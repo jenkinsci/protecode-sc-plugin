@@ -18,7 +18,7 @@
 	</parent>
 
 	<properties>
-		<jenkins.version>1.597</jenkins.version><!-- Jenkins version required by the plugin -->
+		<jenkins.version>1.609.3</jenkins.version><!-- Jenkins version required by the plugin -->
 		<hpi-plugin.version>1.112</hpi-plugin.version><!-- HPI Maven Plugin version used by the plugin -->
 	</properties>
 
