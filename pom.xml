@@ -10,11 +10,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>1.597</version><!-- which version of Jenkins is this plugin built against? -->
+		<version>2.3</version><!-- or later -->
 	</parent>
+
+	<properties>
+		<jenkins.version>1.597</jenkins.version><!-- Jenkins version required by the plugin -->
+		<hpi-plugin.version>1.112</hpi-plugin.version><!-- HPI Maven Plugin version used by the plugin -->
+	</properties>
 
 	<groupId>com.synopsys</groupId>
 	<artifactId>protecode-sc</artifactId>
