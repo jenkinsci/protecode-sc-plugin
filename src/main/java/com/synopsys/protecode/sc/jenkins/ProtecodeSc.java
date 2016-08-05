@@ -14,6 +14,7 @@ package com.synopsys.protecode.sc.jenkins;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -59,6 +60,7 @@ public class ProtecodeSc {
     public static class Meta {
         private Integer code;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Integer getCode() {
             return code;
         }
@@ -115,6 +117,7 @@ public class ProtecodeSc {
         @JsonProperty("vuln-count")
         private VulnCount vulnCount;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Verdict getVerdict() {
             return verdict;
         }
@@ -129,6 +132,7 @@ public class ProtecodeSc {
         @JsonProperty("short")
         private String shortDesc;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getDetailed() {
             return detailed;
         }
@@ -143,14 +147,17 @@ public class ProtecodeSc {
         private Long exact;
         private Long historical;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Long getTotal() {
             return total;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Long getExact() {
             return exact;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Long getHistorical() {
             return historical;
         }
@@ -209,6 +216,7 @@ public class ProtecodeSc {
             return exact;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Vuln getVuln() {
             return vuln;
         }
@@ -220,14 +228,17 @@ public class ProtecodeSc {
 
         private String summary;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getCve() {
             return cve;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getCvss() {
             return cvss;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getSummary() {
             return summary;
         }
@@ -238,14 +249,17 @@ public class ProtecodeSc {
         private String type;
         private String name;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getUrl() {
             return url;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getType() {
             return type;
         }
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public String getName() {
             return name;
         }
@@ -256,6 +270,7 @@ public class ProtecodeSc {
         private Map<String, Integer> filetypes;
         private Map<String, List<String>> flagged;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Map<String, Integer> getFiletypes() {
             return filetypes;
         }
@@ -269,6 +284,7 @@ public class ProtecodeSc {
     public static class Filetype {
         Map<String, Integer> val;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Map<String, Integer> getVal() {
             return val;
         }
@@ -277,6 +293,7 @@ public class ProtecodeSc {
     public static class Flagged {
         Map<String, List<String>> val;
 
+        @SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
         public Map<String, List<String>> getVal() {
             return val;
         }

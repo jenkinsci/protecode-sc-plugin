@@ -65,6 +65,7 @@ import hudson.tasks.Publisher;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ProtecodeScIntegrator extends Notifier {
 
@@ -183,11 +184,12 @@ public class ProtecodeScIntegrator extends Notifier {
         }
     }
 
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private List<File> getArtifacts(AbstractBuild<?, ?> build,
             BuildListener listener) throws IOException, InterruptedException {
         PrintStream log = listener.getLogger();
         List<File> artifacts = new ArrayList<>();
-        if (!StringUtils.isEmpty(artifactDir)) {
+        if (!StringUtils.isEmpty(artifactDir) && build.getWorkspace().child(artifactDir) != null) {
             List<FilePath> files = build.getWorkspace().child(artifactDir)
                     .list(new ScanFileFilter());
 
@@ -197,16 +199,17 @@ public class ProtecodeScIntegrator extends Notifier {
                         + " for Protecode SC scan");
             }
 
-        }
-        List<? extends Run<?, ?>.Artifact> buildArtifacts = build
-                .getArtifacts();
-        for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-            artifacts.add(buildArtifact.getFile());
+            List<? extends Run<?, ?>.Artifact> buildArtifacts = build
+                    .getArtifacts();
+            for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
+                artifacts.add(buildArtifact.getFile());
+            }
         }
 
         return artifacts;
     }
 
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
             BuildListener listener) throws InterruptedException, IOException {
@@ -292,7 +295,11 @@ public class ProtecodeScIntegrator extends Notifier {
             }
         }
         File jsonReportDirectory = build.getRootDir();
-        jsonReportDirectory.mkdirs();
+        boolean reportDirCreated = jsonReportDirectory.mkdirs();
+        if (!reportDirCreated) {
+            log.println("Report directory could not be created.");
+            return false;
+        }
         ObjectMapper mapper = getObjectMapper();
         for (ApiPoller poller : identifiers) {
             writeJson(log, mapper, jsonReportDirectory, poller.getResult());
@@ -333,7 +340,11 @@ public class ProtecodeScIntegrator extends Notifier {
 
         File xmlReportDir = build.getArtifactsDir();
         if (!xmlReportDir.exists()) {
-            xmlReportDir.mkdirs();
+            boolean xmlReportDirCreated = xmlReportDir.mkdirs();
+            if (!xmlReportDirCreated) {
+                log.println("XML report directory could not be created.");
+                throw new IOException("XML report directory could not be created.");
+            }
         }
         File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
 
@@ -349,7 +360,7 @@ public class ProtecodeScIntegrator extends Notifier {
             final String[] jsonFiles, final ObjectMapper mapper,
             OutputStream xmlFile) throws IOException {
 
-        PrintStream out = new PrintStream(xmlFile);
+        PrintStream out = new PrintStream(xmlFile, false, "UTF-8");
         out.println(
                 "<section name=\"Protecode SC analysis result\" fontcolor=\"#000000\">");
         for (String jsonFile : jsonFiles) {
