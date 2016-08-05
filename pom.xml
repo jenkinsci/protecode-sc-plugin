@@ -53,6 +53,12 @@
 		</developer>
 	</developers>
 
+	<scm>
+	  <connection>scm:git:ssh://github.com/jenkinsci/protecode-sc-plugin.git</connection>
+	  <developerConnection>scm:git:ssh://git@github.com/jenkinsci/protecode-sc-plugin.git</developerConnection>
+	  <url>https://github.com/jenkinsci/protecode-sc-plugin</url>
+	</scm>
+
 	<!-- get every artifact through repo.jenkins-ci.org, which proxies all the
 		artifacts that we need -->
 	<repositories>
