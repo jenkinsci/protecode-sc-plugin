@@ -14,7 +14,7 @@
 	<parent>
 		<groupId>org.jenkins-ci.plugins</groupId>
 		<artifactId>plugin</artifactId>
-		<version>2.3</version><!-- or later -->
+		<version>2.5</version><!-- or later -->
 	</parent>
 
 	<properties>
@@ -28,7 +28,7 @@
 
 	<!-- display name, version and url -->
 	<name>Protecode SC Plugin</name>
-	<version>0.9</version>
+	<version>0.9-SNAPSHOT</version>
 	<url>https://wiki.jenkins-ci.org/display/JENKINS/Protecode+SC+Plugin</url>
 
 	<licenses>
