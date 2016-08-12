@@ -7,8 +7,7 @@
  * Contributors:
  *    Jukka Pirinen - initial implementation and documentation
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -28,7 +27,7 @@
 
 	<!-- display name, version and url -->
 	<name>Protecode SC Plugin</name>
-	<version>0.9-SNAPSHOT</version>
+	<version>0.9</version>
 	<url>https://wiki.jenkins-ci.org/display/JENKINS/Protecode+SC+Plugin</url>
 
 	<licenses>
@@ -57,7 +56,8 @@
 	  <connection>scm:git:ssh://github.com/jenkinsci/protecode-sc-plugin.git</connection>
 	  <developerConnection>scm:git:ssh://git@github.com/jenkinsci/protecode-sc-plugin.git</developerConnection>
 	  <url>https://github.com/jenkinsci/protecode-sc-plugin</url>
-	</scm>
+	  <tag>protecode-sc-0.9</tag>
+  </scm>
 
 	<!-- get every artifact through repo.jenkins-ci.org, which proxies all the
 		artifacts that we need -->
