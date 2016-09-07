@@ -1,7 +1,10 @@
 # Protecode SC Jenkins Plugin
 
 This plugin allows Jenkins builds to scan the resulting build artifacts
-with Protecode SC static analysis tool.
+with Synopsys Protecode SC static analysis tool.
+
+More information of Synopsys Protecode SC is available from
+http://www.synopsys.com/software/protecode/Pages/default.aspx
 
 
 ## Build instructions
