@@ -302,7 +302,7 @@ public class ProtecodeScIntegrator extends Notifier {
                 poll = false;
             }
             if (poll) {
-                Thread.sleep(1000);
+                Thread.sleep(10 * 1000);
             }
         }
         File jsonReportDirectory = build.getRootDir();
