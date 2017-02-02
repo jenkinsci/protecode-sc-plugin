@@ -189,21 +189,24 @@ public class ProtecodeScIntegrator extends Notifier {
             BuildListener listener) throws IOException, InterruptedException {
         PrintStream log = listener.getLogger();
         List<File> artifacts = new ArrayList<>();
-        if (!StringUtils.isEmpty(artifactDir) && build.getWorkspace().child(artifactDir) != null) {
+        if (!StringUtils.isEmpty(artifactDir)) {
             List<FilePath> files = build.getWorkspace().child(artifactDir)
                     .list(new ScanFileFilter());
-
-            for (FilePath file : files) {
-                artifacts.add(file.act(new FileReader()));
-                log.println("Adding file " + file.getName()
-                        + " for Protecode SC scan");
+            if (files != null) {
+                for (FilePath file : files) {
+                    artifacts.add(file.act(new FileReader()));
+                    log.println("Adding file " + file.getName()
+                            + " for Protecode SC scan");
+                }
+            } else {
+                log.println(String.format("Could not get additional artifacts from %s", artifactDir));
             }
+        }
 
-            List<? extends Run<?, ?>.Artifact> buildArtifacts = build
-                    .getArtifacts();
-            for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-                artifacts.add(buildArtifact.getFile());
-            }
+        List<? extends Run<?, ?>.Artifact> buildArtifacts = build
+                .getArtifacts();
+        for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
+            artifacts.add(buildArtifact.getFile());
         }
 
         return artifacts;
