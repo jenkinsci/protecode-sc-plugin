@@ -110,17 +110,19 @@ public class ProtecodeScIntegrator extends Notifier {
     private boolean convertToSummary = true;
     private boolean failIfVulns;
     private boolean leaveArtifacts;
+    private int scanTimeout;
 
     @DataBoundConstructor
     public ProtecodeScIntegrator(String credentialsId, String protecodeScGroup,
             boolean failIfVulns, String artifactDir, boolean convertToSummary,
-            boolean leaveArtifacts) {
+            boolean leaveArtifacts, int scanTimeout) {
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
         this.artifactDir = artifactDir;
         this.convertToSummary = convertToSummary;
         this.failIfVulns = failIfVulns;
         this.leaveArtifacts = leaveArtifacts;
+        this.scanTimeout = scanTimeout > 10 ? scanTimeout : 10;
     }
 
     public String getProtecodeScGroup() {
@@ -135,6 +137,8 @@ public class ProtecodeScIntegrator extends Notifier {
         return artifactDir;
     }
 
+    public int getScanTimeout() { return scanTimeout; }
+
     public boolean isConvertToSummary() {
         return convertToSummary;
     }
@@ -146,6 +150,7 @@ public class ProtecodeScIntegrator extends Notifier {
     public boolean isLeaveArtifacts() {
         return leaveArtifacts;
     }
+
 
     @Override
     public boolean prebuild(AbstractBuild<?, ?> build, BuildListener listener) {
@@ -277,7 +282,7 @@ public class ProtecodeScIntegrator extends Notifier {
             return false;
         }
 
-        long stop = System.currentTimeMillis() + 10 * 60 * 1000;
+        long stop = System.currentTimeMillis() + scanTimeout * 60 * 1000;
         boolean poll = true;
         while (poll) {
             boolean resultsLeft = false;
