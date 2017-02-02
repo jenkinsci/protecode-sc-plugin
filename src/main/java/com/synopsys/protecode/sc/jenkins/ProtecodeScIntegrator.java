@@ -305,8 +305,11 @@ public class ProtecodeScIntegrator extends Notifier {
                 Thread.sleep(10 * 1000);
             }
         }
-        File jsonReportDirectory = build.getRootDir();
-        boolean reportDirCreated = jsonReportDirectory.mkdirs();
+        File jsonReportDirectory = new File(build.getWorkspace().getRemote(), "reports");
+        boolean reportDirCreated = false;
+        if (jsonReportDirectory.isDirectory() || jsonReportDirectory.mkdirs()) {
+            reportDirCreated = true;
+        }
         if (!reportDirCreated) {
             log.println("Report directory could not be created.");
             return false;
@@ -342,7 +345,7 @@ public class ProtecodeScIntegrator extends Notifier {
             AbstractBuild<?, ?> build) throws IOException {
         log.println("Creating xml for summary plugin");
         ObjectMapper mapper = getObjectMapper();
-        File jsonReportDirectory = build.getRootDir();
+        File jsonReportDirectory = new File(build.getWorkspace().getRemote(), "reports");
 
         log.println(
                 "Reading json from " + jsonReportDirectory.getAbsolutePath());
