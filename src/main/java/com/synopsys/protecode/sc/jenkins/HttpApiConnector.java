@@ -157,7 +157,7 @@ public class HttpApiConnector {
 
     public String init(Map<String, String> scanMetaData)
             throws KeyManagementException, NoSuchAlgorithmException,
-            IOException {
+            IOException, ApiAuthenticationException {
         client = createClient();
         WebTarget target = client.target(protecodeScHost);
 
@@ -176,6 +176,10 @@ public class HttpApiConnector {
                     e.getValue());
         }
         Response r = requestBuilder.put(Entity.entity(inputStream, "*/*"));
+        if (r.getStatus() == 401) {
+            log.println("Protecode SC upload failed, authorization error");
+            throw new ApiAuthenticationException("Protecode SC authorization failed");
+        }
 
         ProtecodeSc response = r.readEntity(ProtecodeSc.class);
         String identifier = response.getResults().getSha1sum();

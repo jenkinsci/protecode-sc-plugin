@@ -267,6 +267,9 @@ public class ProtecodeScIntegrator extends Notifier {
                         .add(new ApiPoller(connector, protecodeScIdentifier));
             } catch (KeyManagementException | NoSuchAlgorithmException e) {
                 throw new IOException(e);
+            } catch (ApiAuthenticationException e) {
+                log.println("Failed to scan artifact");
+                return false;
             }
         }
         if (identifiers.isEmpty()) {
