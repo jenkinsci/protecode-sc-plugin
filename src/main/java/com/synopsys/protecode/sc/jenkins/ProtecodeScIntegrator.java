@@ -282,7 +282,7 @@ public class ProtecodeScIntegrator extends Notifier {
             return false;
         }
 
-        long stop = System.currentTimeMillis() + scanTimeout * 60 * 1000;
+        long stop = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
         boolean poll = true;
         while (poll) {
             boolean resultsLeft = false;
@@ -345,29 +345,32 @@ public class ProtecodeScIntegrator extends Notifier {
             AbstractBuild<?, ?> build) throws IOException {
         log.println("Creating xml for summary plugin");
         ObjectMapper mapper = getObjectMapper();
-        File jsonReportDirectory = new File(build.getWorkspace().getRemote(), "reports");
+        try {
+            File jsonReportDirectory = new File(build.getWorkspace().getRemote(), "reports");
+            log.println(
+                    "Reading json from " + jsonReportDirectory.getAbsolutePath());
+            String[] jsonFiles = findJsonFiles(jsonReportDirectory);
+            log.println(jsonFiles.length + " files found");
 
-        log.println(
-                "Reading json from " + jsonReportDirectory.getAbsolutePath());
-        String[] jsonFiles = findJsonFiles(jsonReportDirectory);
-        log.println(jsonFiles.length + " files found");
-
-        File xmlReportDir = build.getArtifactsDir();
-        if (!xmlReportDir.exists()) {
-            boolean xmlReportDirCreated = xmlReportDir.mkdirs();
-            if (!xmlReportDirCreated) {
-                log.println("XML report directory could not be created.");
-                throw new IOException("XML report directory could not be created.");
+            File xmlReportDir = build.getArtifactsDir();
+            if (!xmlReportDir.exists()) {
+                boolean xmlReportDirCreated = xmlReportDir.mkdirs();
+                if (!xmlReportDirCreated) {
+                    log.println("XML report directory could not be created.");
+                    throw new IOException("XML report directory could not be created.");
+                }
             }
+            File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
+
+            log.println("Creating xml report to " + xmlFile.getName());
+
+            OutputStream out = new BufferedOutputStream(
+                    new FileOutputStream(xmlFile));
+            createXmlReport(jsonReportDirectory, jsonFiles, mapper, out);
+            out.close();
+        } catch (NullPointerException e) {
+            // NOP
         }
-        File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
-
-        log.println("Creating xml report to " + xmlFile.getName());
-
-        OutputStream out = new BufferedOutputStream(
-                new FileOutputStream(xmlFile));
-        createXmlReport(jsonReportDirectory, jsonFiles, mapper, out);
-        out.close();
     }
 
     static void createXmlReport(final File jsonReportDirectory,
