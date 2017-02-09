@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.DirectoryScanner;
 import org.jenkinsci.remoting.RoleChecker;
@@ -248,18 +250,7 @@ public class ProtecodeScIntegrator extends Notifier {
         for (File artifact : artifacts) {
             final File file = artifact;
             log.println("Scanning artifact " + file.getAbsolutePath());
-            Artifact a = new Artifact() {
-
-                @Override
-                public String getName() {
-                    return file.getName();
-                }
-
-                @Override
-                public InputStream getData() throws IOException {
-                    return new FileInputStream(file);
-                }
-            };
+            Artifact a = new Artifact(file);
             HttpApiConnector connector = new HttpApiConnector(
                     listener.getLogger(), a, host, protecodeScGroup,
                     protecodeScUser, protecodeScPass, dontCheckCert);
@@ -267,13 +258,18 @@ public class ProtecodeScIntegrator extends Notifier {
                     "" + build.getNumber(), "build-url",
                     build.getAbsoluteUrl());
             try {
-                String protecodeScIdentifier = connector.init(scanMetadata);
+                connector.init();
+                String protecodeScIdentifier = connector.sendFile(a, scanMetadata);
                 identifiers
                         .add(new ApiPoller(connector, protecodeScIdentifier));
             } catch (KeyManagementException | NoSuchAlgorithmException e) {
                 throw new IOException(e);
             } catch (ApiAuthenticationException e) {
+                log.println(e.getMessage());
                 log.println("Failed to scan artifact");
+                return false;
+            } catch (ApiException e) {
+                log.println(e.getMessage());
                 return false;
             }
         }
@@ -284,6 +280,7 @@ public class ProtecodeScIntegrator extends Notifier {
 
         long stop = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
         boolean poll = true;
+        log.println("Waiting for scans to complete");
         while (poll) {
             boolean resultsLeft = false;
             for (ApiPoller poller : identifiers) {

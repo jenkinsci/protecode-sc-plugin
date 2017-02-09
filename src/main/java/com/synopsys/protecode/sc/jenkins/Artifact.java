@@ -11,11 +11,27 @@
 
 package com.synopsys.protecode.sc.jenkins;
 
+import javax.annotation.Resource;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public interface Artifact {
-    String getName();
+@Resource
+public class Artifact {
+    File file;
+    public Artifact(File f) {
+        this.file = f;
+    }
+    public String getName() {
+        return file.getName();
+    }
 
-    InputStream getData() throws IOException;
+    public InputStream getData() throws IOException {
+        return new FileInputStream(file);
+    }
+
+    public long getSize() {
+        return file.length();
+    }
 }
