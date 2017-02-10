@@ -11,13 +11,11 @@
 
 package com.synopsys.protecode.sc.jenkins;
 
-import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-@Resource
 public class Artifact {
     File file;
     public Artifact(File f) {
