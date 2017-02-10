@@ -15,6 +15,7 @@ import java.io.*;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -121,7 +122,6 @@ public class HttpApiConnector {
         JacksonJaxbJsonProvider jaxbProvider = new JacksonJaxbJsonProvider();
         jaxbProvider.setMapper(mapper);
 
-
         Client client = (doNotCheckCerts && useSsl)
                 ? ClientBuilder.newBuilder().sslContext(sc)
                         .hostnameVerifier(allowAllHostnames).withConfig(config)
@@ -167,9 +167,7 @@ public class HttpApiConnector {
      * @throws KeyManagementException
      * @throws NoSuchAlgorithmException
      */
-    public void init()
-            throws KeyManagementException, NoSuchAlgorithmException,
-            IOException, ApiAuthenticationException {
+    public void init() throws KeyManagementException, NoSuchAlgorithmException {
         client = createClient();
         setTrustAllCerts();
     }
@@ -180,19 +178,19 @@ public class HttpApiConnector {
      * @param scanMetaData
      * @return SHA1 for the file
      * @throws IOException
-     * @throws KeyManagementException
      * @throws NoSuchAlgorithmException
+     *      When SHA-1 is not available
      * @throws ApiException
      *      When connection fails
      *      When authentication fails
      */
-    public String sendFile(Artifact artifact, Map<String, String> scanMetaData) throws IOException, KeyManagementException, NoSuchAlgorithmException, ApiException {
+    public String sendFile(Artifact artifact, Map<String, String> scanMetaData) throws IOException, ApiException, NoSuchAlgorithmException {
         String filename = artifact.getName();
         String protecodeScFileName = sanitizeArtifactFileName(filename);
-        log.println("Uploading file to appcheck at " + protecodeScHost);
+        log.println("Uploading file to Protecode SC at " + protecodeScHost);
         InputStream fileInputStream = new BufferedInputStream(artifact.getData());
 
-        byte[] authData = (protecodeScUser+":"+protecodeScPass).getBytes("UTF-8");
+        byte[] authData = (protecodeScUser+":"+protecodeScPass).getBytes(StandardCharsets.UTF_8);
         String encodedAuthData = javax.xml.bind.DatatypeConverter.printBase64Binary(authData);
 
         URL url = new URL(protecodeScHost + "api/upload/" + UrlEscapers.urlPathSegmentEscaper()
