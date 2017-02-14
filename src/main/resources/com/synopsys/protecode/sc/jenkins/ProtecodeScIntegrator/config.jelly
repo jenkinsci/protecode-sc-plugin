@@ -26,7 +26,11 @@
       <f:textbox />
   </f:entry>
 
-   <f:entry title="Keep copied artifacts after build" field="leaveArtifacts">
+  <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
+    <f:textbox />
+  </f:entry>
+
+  <f:entry title="Keep copied artifacts after build" field="leaveArtifacts">
       <f:checkbox/>
   </f:entry>
 

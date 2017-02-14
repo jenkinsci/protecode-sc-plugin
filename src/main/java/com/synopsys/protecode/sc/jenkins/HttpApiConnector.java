@@ -11,28 +11,28 @@
 
 package com.synopsys.protecode.sc.jenkins;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
+import java.io.*;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiAuthenticationException;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
@@ -115,7 +115,6 @@ public class HttpApiConnector {
         }
 
         config.connectorProvider(new HttpUrlConnectorProvider());
-
         ObjectMapper mapper = new ObjectMapper();
 
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
@@ -129,14 +128,21 @@ public class HttpApiConnector {
                         .build()
                 : ClientBuilder.newBuilder().withConfig(config).build();
 
-        log.println("Uploading file to appcheck at " + protecodeScHost);
-
         HttpAuthenticationFeature feature = HttpAuthenticationFeature
                 .basicBuilder().credentials(protecodeScUser, protecodeScPass)
                 .build();
         client.register(feature);
         client.register(jaxbProvider);
         return client;
+    }
+
+    private void setTrustAllCerts() throws NoSuchAlgorithmException, KeyManagementException {
+        if (doNotCheckCerts && useSsl) {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, this.trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            HttpsURLConnection.setDefaultHostnameVerifier(allowAllHostnames);
+        }
     }
 
     public static String sanitizeArtifactFileName(String filename) {
@@ -155,36 +161,122 @@ public class HttpApiConnector {
         return sanitizedFilename;
     }
 
-    public String init(Map<String, String> scanMetaData)
-            throws KeyManagementException, NoSuchAlgorithmException,
-            IOException {
-        client = createClient();
-        WebTarget target = client.target(protecodeScHost);
 
+    /**
+     * Initialize HTTP client
+     * @throws KeyManagementException
+     * @throws NoSuchAlgorithmException
+     */
+    public void init() throws KeyManagementException, NoSuchAlgorithmException {
+        client = createClient();
+        setTrustAllCerts();
+    }
+
+    /**
+     * Send artifact for scanning
+     * @param artifact
+     * @param scanMetaData
+     * @return SHA1 for the file
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     *      When SHA-1 is not available
+     * @throws ApiException
+     *      When connection fails
+     *      When authentication fails
+     */
+    public String sendFile(Artifact artifact, Map<String, String> scanMetaData) throws IOException, ApiException, NoSuchAlgorithmException {
         String filename = artifact.getName();
         String protecodeScFileName = sanitizeArtifactFileName(filename);
-        InputStream inputStream = new BufferedInputStream(artifact.getData());
-        Builder requestBuilder = target
+        log.println("Uploading file to Protecode SC at " + protecodeScHost);
+        InputStream fileInputStream = new BufferedInputStream(artifact.getData());
 
-                .path("api/upload/" + UrlEscapers.urlPathSegmentEscaper()
-                        .escape(protecodeScFileName))
-                .request().header("Group-Appcheck", protecodeScGroup)
-                .header("Delete-Binary-Appcheck", "true");
+        byte[] authData = (protecodeScUser+":"+protecodeScPass).getBytes(StandardCharsets.UTF_8);
+        String encodedAuthData = javax.xml.bind.DatatypeConverter.printBase64Binary(authData);
 
-        for (Entry<String, String> e : scanMetaData.entrySet()) {
-            requestBuilder = requestBuilder.header("META-" + e.getKey(),
-                    e.getValue());
+        URL url = new URL(protecodeScHost + "api/upload/" + UrlEscapers.urlPathSegmentEscaper()
+                .escape(protecodeScFileName));
+
+        HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
+        httpCon.setFixedLengthStreamingMode(artifact.getSize());
+        httpCon.setDoOutput(true);
+        httpCon.setRequestMethod("PUT");
+        httpCon.setRequestProperty("Authorization", "Basic "+encodedAuthData);
+        httpCon.setRequestProperty("Group-Appcheck", protecodeScGroup);
+        httpCon.setRequestProperty("Delete-Binary-Appcheck", "true");
+
+        for (Map.Entry<String, String> e : scanMetaData.entrySet()) {
+            httpCon.setRequestProperty("META-" + e.getKey(), e.getValue());
         }
-        Response r = requestBuilder.put(Entity.entity(inputStream, "*/*"));
 
-        ProtecodeSc response = r.readEntity(ProtecodeSc.class);
-        String identifier = response.getResults().getSha1sum();
+        DataOutputStream out = null;
         try {
-            inputStream.close();
-        } catch (IOException ignore) {
-            // intentionally left blank
+            out = new DataOutputStream(
+                    httpCon.getOutputStream());
+        } catch (ConnectException e) {
+            throw new ApiException(e);
         }
-        return identifier;
+
+        int buffsize = 10240;
+        byte[] buff = new byte[buffsize];
+        int len = 0;
+        int inbuff = 0;
+        // Count the SHA1 locally to poll in case scan is already started
+        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        String sha1 = null;
+
+        try {
+            // Do the actual file sending
+            while ((len = fileInputStream.read(buff, 0, buffsize)) > 0) {
+                inbuff = len;
+                while ((inbuff < buffsize)) {
+                    len = fileInputStream.read(buff, inbuff, buffsize - inbuff);
+                    if (len == -1) {
+                        break;
+                    }
+                    inbuff += len;
+                }
+                if (inbuff > 0) {
+                    out.write(buff, 0, inbuff);
+                    digest.update(buff, 0, inbuff);
+                }
+            }
+            sha1 = new HexBinaryAdapter().marshal(digest.digest()).toLowerCase();
+            out.flush();
+            out.close();
+        } catch (IOException e) {
+            throw new ApiException(e.getMessage()); // Don't mind this if running against dev-stack, behaves differently
+        } finally {
+            try {
+                fileInputStream.close();
+            } catch (IOException e) {
+                // NOP
+            }
+        }
+
+        try {
+            if (httpCon.getResponseCode() == 401) {
+                throw new ApiAuthenticationException("Protecode SC upload failed, authorization error");
+            } else if (httpCon.getResponseCode() == 400) {
+                throw new ApiAuthenticationException("Protecode SC upload failed, bad request (please check your credentials and upload group)");
+            } else if (httpCon.getResponseCode() == 409) {
+                return sha1;
+            }
+        } catch (IOException e) {
+            log.println(e.getMessage());
+            throw new ApiException(e);
+        }
+
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            JsonNode resultJson = mapper.readTree(httpCon.getInputStream());
+            JsonNode results = resultJson.get("results");
+            return results.get("sha1sum").asText();
+        } catch (IOException e) {
+            log.println(e.getMessage());
+        } finally {
+            httpCon.disconnect();
+        }
+        return sha1;
     }
 
     public PollResult poll(String identifier) {
@@ -205,9 +297,13 @@ public class HttpApiConnector {
             log.println("Artifact " + artifact.getName()
                     + " polling success, status "
                     + response.getMeta().getCode());
-            return new PollResult(true, response.getResults().getSummary()
-                    .getVulnCount().getExact() == 0, response,
-                    artifact.getName());
+            if (response.getResults().getSummary().getVulnCount() != null) {
+                return new PollResult(true, response.getResults().getSummary()
+                        .getVulnCount().getExact() == 0, response,
+                        artifact.getName());
+            } else {
+                return new PollResult(true, false);
+            }
         }
         if (Status.B.equals(responseStatus)) {
             return new PollResult(false, false);
