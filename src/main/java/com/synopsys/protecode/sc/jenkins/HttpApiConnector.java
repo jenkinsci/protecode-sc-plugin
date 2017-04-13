@@ -184,7 +184,7 @@ public class HttpApiConnector {
      *      When connection fails
      *      When authentication fails
      */
-    public String sendFile(Artifact artifact, Map<String, String> scanMetaData) throws IOException, ApiException, NoSuchAlgorithmException {
+    public String sendFile(Artifact artifact, Map<String, String> scanMetaData) throws IOException, ApiException, NoSuchAlgorithmException, InterruptedException {
         String filename = artifact.getName();
         String protecodeScFileName = sanitizeArtifactFileName(filename);
         log.println("Uploading file to Protecode SC at " + protecodeScHost);

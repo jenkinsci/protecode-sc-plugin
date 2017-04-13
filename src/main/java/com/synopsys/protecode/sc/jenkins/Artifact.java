@@ -11,6 +11,8 @@
 
 package com.synopsys.protecode.sc.jenkins;
 
+import hudson.FilePath;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,18 +20,40 @@ import java.io.InputStream;
 
 public class Artifact {
     File file;
+    FilePath fp;
+
     public Artifact(File f) {
         this.file = f;
     }
+
+    public Artifact(FilePath fp) {
+        this.fp = fp;
+    }
+
     public String getName() {
-        return file.getName();
+        if (this.file != null) {
+            return file.getName();
+        } else if (this.fp != null) {
+            return fp.getName();
+        }
+        return null;
     }
 
-    public InputStream getData() throws IOException {
-        return new FileInputStream(file);
+    public InputStream getData() throws IOException, InterruptedException {
+        if (this.file != null) {
+            return new FileInputStream(file);
+        } else if (this.fp != null) {
+            return fp.read();
+        }
+        return null;
     }
 
-    public long getSize() {
-        return file.length();
+    public long getSize() throws IOException, InterruptedException {
+        if (file != null) {
+            return file.length();
+        } else if (this.fp != null) {
+            return fp.length();
+        }
+        return 0;
     }
 }
