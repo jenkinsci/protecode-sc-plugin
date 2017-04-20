@@ -176,7 +176,7 @@ public class ProtecodeScIntegrator extends Notifier {
         @Override
         public File invoke(File f, VirtualChannel channel)
                 throws IOException, InterruptedException {
-            return f;
+            return f.getAbsoluteFile();
         }
 
     }
@@ -192,16 +192,16 @@ public class ProtecodeScIntegrator extends Notifier {
     }
 
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private List<File> getArtifacts(AbstractBuild<?, ?> build,
+    private List<Artifact> getArtifacts(AbstractBuild<?, ?> build,
             BuildListener listener) throws IOException, InterruptedException {
         PrintStream log = listener.getLogger();
-        List<File> artifacts = new ArrayList<>();
+        List<Artifact> artifacts = new ArrayList<>();
         if (!StringUtils.isEmpty(artifactDir)) {
             List<FilePath> files = build.getWorkspace().child(artifactDir)
                     .list(new ScanFileFilter());
             if (files != null) {
                 for (FilePath file : files) {
-                    artifacts.add(file.act(new FileReader()));
+                    artifacts.add(new Artifact(file));
                     log.println("Adding file " + file.getName()
                             + " for Protecode SC scan");
                 }
@@ -213,7 +213,7 @@ public class ProtecodeScIntegrator extends Notifier {
         List<? extends Run<?, ?>.Artifact> buildArtifacts = build
                 .getArtifacts();
         for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-            artifacts.add(buildArtifact.getFile());
+            artifacts.add(new Artifact(buildArtifact.getFile()));
         }
 
         return artifacts;
@@ -245,21 +245,19 @@ public class ProtecodeScIntegrator extends Notifier {
         log.println("Connecting to Protecode SC host at " + host + " as "
                 + protecodeScUser);
         boolean dontCheckCert = desc.isDontCheckCert();
-        final List<File> artifacts = getArtifacts(build, listener);
+        final List<Artifact> artifacts = getArtifacts(build, listener);
         List<ApiPoller> identifiers = new ArrayList<>();
-        for (File artifact : artifacts) {
-            final File file = artifact;
-            log.println("Scanning artifact " + file.getAbsolutePath());
-            Artifact a = new Artifact(file);
+        for (Artifact artifact : artifacts) {
+            log.println("Scanning artifact " + artifact.getName());
             HttpApiConnector connector = new HttpApiConnector(
-                    listener.getLogger(), a, host, protecodeScGroup,
+                    listener.getLogger(), artifact, host, protecodeScGroup,
                     protecodeScUser, protecodeScPass, dontCheckCert);
             Map<String, String> scanMetadata = ImmutableMap.of("build-id",
                     "" + build.getNumber(), "build-url",
                     build.getAbsoluteUrl());
             try {
                 connector.init();
-                String protecodeScIdentifier = connector.sendFile(a, scanMetadata);
+                String protecodeScIdentifier = connector.sendFile(artifact, scanMetadata);
                 identifiers
                         .add(new ApiPoller(connector, protecodeScIdentifier));
             } catch (KeyManagementException | NoSuchAlgorithmException e) {
@@ -302,19 +300,17 @@ public class ProtecodeScIntegrator extends Notifier {
                 Thread.sleep(10 * 1000);
             }
         }
-        File jsonReportDirectory = new File(build.getWorkspace().getRemote(), "reports");
-        boolean reportDirCreated = false;
-        if (jsonReportDirectory.isDirectory() || jsonReportDirectory.mkdirs()) {
-            reportDirCreated = true;
-        }
-        if (!reportDirCreated) {
+
+        FilePath jsonReportDirectory = build.getWorkspace().child("reports");
+        jsonReportDirectory.mkdirs();
+        if (!jsonReportDirectory.isDirectory()) {
             log.println("Report directory could not be created.");
             return false;
         }
+
         ObjectMapper mapper = getObjectMapper();
         for (ApiPoller poller : identifiers) {
             writeJson(log, mapper, jsonReportDirectory, poller.getResult());
-
         }
         boolean vulns = false;
         for (ApiPoller poller : identifiers) {
@@ -328,7 +324,7 @@ public class ProtecodeScIntegrator extends Notifier {
             }
         }
         if (convertToSummary) {
-            convertToSummary(log, build);
+            convertToSummary(log, build, jsonReportDirectory);
         }
         if (!leaveArtifacts && !StringUtils.isEmpty(artifactDir)) {
             build.getWorkspace().child(artifactDir).deleteContents();
@@ -339,16 +335,12 @@ public class ProtecodeScIntegrator extends Notifier {
     private static final String PROTECODE_FILE_TAG = "protecodesc";
 
     private static void convertToSummary(PrintStream log,
-            AbstractBuild<?, ?> build) throws IOException {
+            AbstractBuild<?, ?> build, FilePath jsonReportDirectory) throws IOException, InterruptedException {
         log.println("Creating xml for summary plugin");
         ObjectMapper mapper = getObjectMapper();
         try {
-            File jsonReportDirectory = new File(build.getWorkspace().getRemote(), "reports");
-            log.println(
-                    "Reading json from " + jsonReportDirectory.getAbsolutePath());
-            String[] jsonFiles = findJsonFiles(jsonReportDirectory);
+            FilePath[] jsonFiles = jsonReportDirectory.list("*-" + PROTECODE_FILE_TAG + ".json");
             log.println(jsonFiles.length + " files found");
-
             File xmlReportDir = build.getArtifactsDir();
             if (!xmlReportDir.exists()) {
                 boolean xmlReportDirCreated = xmlReportDir.mkdirs();
@@ -363,24 +355,21 @@ public class ProtecodeScIntegrator extends Notifier {
 
             OutputStream out = new BufferedOutputStream(
                     new FileOutputStream(xmlFile));
-            createXmlReport(jsonReportDirectory, jsonFiles, mapper, out);
+            createXmlReport(jsonFiles, mapper, out);
             out.close();
         } catch (NullPointerException e) {
             // NOP
         }
     }
 
-    static void createXmlReport(final File jsonReportDirectory,
-            final String[] jsonFiles, final ObjectMapper mapper,
-            OutputStream xmlFile) throws IOException {
+    static void createXmlReport(final FilePath[] jsonFiles, final ObjectMapper mapper,
+            OutputStream xmlFile) throws IOException, InterruptedException {
 
         PrintStream out = new PrintStream(xmlFile, false, "UTF-8");
         out.println(
                 "<section name=\"Protecode SC analysis result\" fontcolor=\"#000000\">");
-        for (String jsonFile : jsonFiles) {
-            File f = new File(jsonReportDirectory, jsonFile);
-            try (InputStream in = new BufferedInputStream(
-                    new FileInputStream(f))) {
+        for (FilePath jsonFile : jsonFiles) {
+            try (InputStream in = new BufferedInputStream(jsonFile.read())) {
                 ProtecodeSc psc = mapper.readValue(in, ProtecodeSc.class);
                 Long exact = psc.getResults().getSummary().getVulnCount()
                         .getExact();
@@ -399,7 +388,6 @@ public class ProtecodeScIntegrator extends Notifier {
                                 + psc.getResults().getReport_url()
                                 + "\">View full report in Protecode SC </a>");
                 out.println("</accordion>");
-
             }
         }
         out.println("</section>");
@@ -438,15 +426,6 @@ public class ProtecodeScIntegrator extends Notifier {
         out.append("</field>\n");
     }
 
-    private static String[] findJsonFiles(File targetDirectory) {
-        DirectoryScanner scanner = new DirectoryScanner();
-        scanner.setIncludes(
-                new String[] { "*-" + PROTECODE_FILE_TAG + ".json" });
-        scanner.setBasedir(targetDirectory);
-        scanner.scan();
-        return scanner.getIncludedFiles();
-    }
-
     private static ObjectMapper getObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.setSerializationInclusion(Include.NON_NULL);
@@ -456,21 +435,21 @@ public class ProtecodeScIntegrator extends Notifier {
     }
 
     private static void writeJson(PrintStream log, ObjectMapper mapper,
-            File workspaceJsonReportDirectory, PollResult result) {
+            FilePath workspaceJsonReportDirectory, PollResult result) {
         if (result == null || result.getProtecodeSc() == null) {
             log.println("No scan result!!");
             return;
         }
-        File file = new File(workspaceJsonReportDirectory,
+        FilePath jsonFile = workspaceJsonReportDirectory.child(
                 result.getArtifactName() + "-" + PROTECODE_FILE_TAG + ".json");
 
-        try (OutputStream out = new BufferedOutputStream(
-                new FileOutputStream(file))) {
+        try (OutputStream out = new BufferedOutputStream(jsonFile.write())) {
             mapper.writeValue(out, result.getProtecodeSc());
         } catch (IOException e) {
             log.println(e.toString());
+        } catch (InterruptedException e) {
+            log.println(e.toString());
         }
-
     }
 
     @Override
