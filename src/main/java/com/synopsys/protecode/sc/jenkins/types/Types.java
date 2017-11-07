@@ -1,5 +1,8 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
+import com.google.gson.annotations.SerializedName;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,13 +53,13 @@ public final class Types {
     
     public static @Data class Summary {
         private Verdict verdict;    
-        // TODO: naming! vuln-count
+        @SerializedName("vuln-count")
         private VulnCount vulnCount;
     }
 
     public static @Data class Verdict {
         private String detailed;
-        // TODO: naming! short
+        @SerializedName("short")
         private String shortDesc;
     }
 
@@ -71,10 +74,10 @@ public final class Types {
         private Collection<String> tags;
         private Collection<Vulns> vulns;
         private String version;
-        private String lib;
-        // TODO: naming! vuln-count
-        private VulnCount vulnCount;
-        // TODO: naming! custom_version
+        private String lib;        
+        @SerializedName("vuln-count")
+        private VulnCount vulnCount;        
+        @SerializedName("custom_version")
         private String customVersion;
         private String subcomponent;       
     }
@@ -107,21 +110,29 @@ public final class Types {
 
     public static @Data class Flagged {
         Map<String, List<String>> val;
-    }
+    }   
     
-    @Data
-    public static enum Status {
-        B("Busy"), R("Ready"), F("Fail");
-
-        private String value;
-
-        private Status(String value) {
-            this.value = value;
+    public static @Data class Status {        
+        private String value;    
+        private List<String> validValues = Arrays.asList("A", "B", "C");
+        
+        public Status(String state) {
+            if (validValues.contains(state)) {
+                this.value = state;
+            }
+            else {
+                throw new ApiException("Incorrect value given as state");
+            }
+        }        
+        
+        @Override
+        public String toString() {
+            switch (value) {
+                case "B": return "Busy";
+                case "R": return "Ready";
+                case "F": return "Fail";
+                default: throw new ApiException("Incorrect value exists as state");
+            }            
         }
-
-//        @Override
-//        public String toString() {
-//            return value;
-//        }
     }
 }
