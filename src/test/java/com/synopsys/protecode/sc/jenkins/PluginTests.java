@@ -9,7 +9,6 @@ import com.synopsys.protecode.sc.jenkins.types.Types;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import lombok.val;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
