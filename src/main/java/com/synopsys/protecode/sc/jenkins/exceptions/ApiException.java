@@ -1,6 +1,6 @@
 package com.synopsys.protecode.sc.jenkins.exceptions;
 
-public class ApiException extends Exception {
+public class ApiException extends RuntimeException {
 
     public ApiException() { super(); }
 
