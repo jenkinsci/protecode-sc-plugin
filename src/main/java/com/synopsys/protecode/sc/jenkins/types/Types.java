@@ -15,7 +15,7 @@ public final class Types {
     }       
     
     public static @Data class ScanId {        
-        private final int id;                                    
+        private final int id;                                                            
     }
 
     public static @Data class Meta {
@@ -116,6 +116,7 @@ public final class Types {
         private String value;    
         private List<String> validValues = Arrays.asList("A", "B", "C");
         
+        // Custom constructor to check value given
         public Status(String state) {
             if (validValues.contains(state)) {
                 this.value = state;

@@ -17,7 +17,7 @@ import okhttp3.Request;
 public class Authenticator implements Interceptor {
     private final String credentials;
 
-    public Authenticator() {
+    public Authenticator(/* Provide credentials at runtime */) {
         this.credentials = Credentials.basic("rest_test", "rest_test");
     }
 

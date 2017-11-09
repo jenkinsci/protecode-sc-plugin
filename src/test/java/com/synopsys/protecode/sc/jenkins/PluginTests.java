@@ -5,14 +5,15 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
+import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScService;
+import com.synopsys.protecode.sc.jenkins.types.Secret;
 import com.synopsys.protecode.sc.jenkins.types.Types;
-import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import retrofit2.Call;
+import retrofit2.Callback;
 import retrofit2.Response;
 
 /**
@@ -20,6 +21,8 @@ import retrofit2.Response;
  * @author pajunen
  */
 public class PluginTests {
+    
+    private static final String URL_STRING = "http://localhost:8000";
     
     private static final Logger LOGGER = Logger.getLogger(PluginTests.class.getName());      
     
@@ -32,16 +35,26 @@ public class PluginTests {
     @Test
     @DisplayName("bob")
     public void testSomething(){
-        try {
-            ProtecodeScService service = plugin.backend(new URL("http://localhost:8000"));
-            Call<Types.Groups> call = service.apps();                        
+        ProtecodeScService service = 
+            ProtecodeScConnection.backend(URL_STRING, "admin", new Secret("adminadminadmin"));
+        
+        Call<Types.Groups> call = service.apps();                        
+        call.enqueue(new Callback<Types.Groups>() {  
+            @Override
+            public void onResponse(Call<Types.Groups> call, Response<Types.Groups> response) {
+                if (response.isSuccessful()) {
+                    log("Response is: " + response.body());            
+                } else {
+                    // error response, no access to resource?
+                    log("Response was failed: " + response.body());
+                }
+            }
 
-            // Fetch and print a list of the contributors to the library.
-            Response<Types.Groups> response = call.execute();
-            log("reponse: " + response.body());            
-        } catch (Exception ex) {
-            Logger.getLogger(PluginTests.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            @Override
+            public void onFailure(Call<Types.Groups> call, Throwable t) {
+                // something went completely south (like no internet connection)
+                log("Error is: " + t.getMessage());
+            }
+        });
     }
-    
 }
