@@ -22,8 +22,8 @@
         <junit.platform.version>1.0.1</junit.platform.version>
         <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
-    <name>TODO Plugin</name>
-    <description>TODO</description>
+    <name>ProtecodeSC</name>
+    <description>Jenkins integration to Protecode SC</description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
     <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
     <licenses>

@@ -4,7 +4,6 @@ import hudson.tasks.Builder;
 import lombok.Data;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-
 /**
  *
  * @author pajunen
@@ -23,6 +22,7 @@ public @Data class ProtecodeScPlugin extends Builder {
     @DataBoundConstructor
     public ProtecodeScPlugin(String task) {
         // Get conf here
+        super();
         System.out.println("BOBS UR UNKKEL");
         this.task = task;
     }    

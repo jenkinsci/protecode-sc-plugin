@@ -1,5 +1,6 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
+import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import java.util.Arrays;
@@ -14,17 +15,41 @@ public final class Types {
     private Types(){
     }       
     
-    public static @Data class ScanId {        
-        private final int id;                                                            
-    }
-
-    public static @Data class Meta {
-        private final int code;  
+    public static @Data class UploadResponse {
+        private Meta meta;
+        private ScanStateSub results;
     }
     
+    public static @Data class ScanStateSub {        
+        private int id;
+        private String sha1sum;
+        private String status;
+        private int product_id;
+    }        
+    
+    public static @Data class ScanResultResponse {
+        private Meta meta;
+        private Results results;
+    } 
+    
+    public static @Data class Results {
+        private String code;
+        private int id;
+        private String sha1sum;
+        private Summary summary;
+        private Collection<Component> components;
+        private String status;
+        private String report_url;
+        private Details details;       
+    }    
+        
     public static @Data class Groups {
         private final Meta meta;
         private final Product[] products;                       
+    } 
+    
+    public static @Data class Meta {
+        private final int code;  
     }
     
     public static @Data class Product {
@@ -40,17 +65,6 @@ public final class Types {
         private final Meta meta;
     }
 
-    public static @Data class Result {
-        private Integer id;
-        private String sha1sum;
-        private Summary summary;
-        private Collection<Component> components;
-        private Status status;
-        private String report_url;
-        private Details details;
-    }    
-
-    
     public static @Data class Summary {
         private Verdict verdict;    
         @SerializedName("vuln-count")
@@ -103,15 +117,15 @@ public final class Types {
         private Map<String, Integer> filetypes;
         private Map<String, List<String>> flagged;
     }
-
-    public static @Data class Filetype {
-        Map<String, Integer> val;
-    }
-
-    public static @Data class Flagged {
-        Map<String, List<String>> val;
-    }   
-    
+//
+//    public static @Data class Filetype {
+//        Map<String, Integer> val;
+//    }
+//
+//    public static @Data class Flagged {
+//        Map<String, List<String>> val;
+//    }   
+//    
     public static @Data class Status {        
         private String value;    
         private List<String> validValues = Arrays.asList("A", "B", "C");
@@ -129,6 +143,7 @@ public final class Types {
         @Override
         public String toString() {
             switch (value) {
+                // TODO use enum
                 case "B": return "Busy";
                 case "R": return "Ready";
                 case "F": return "Fail";

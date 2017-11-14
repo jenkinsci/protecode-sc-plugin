@@ -13,9 +13,18 @@ import com.synopsys.protecode.sc.jenkins.types.Types;
  */
 public class Listeners {
     public static interface ScanService {
-        public void processScanId(Types.ScanId result);
+        public void processUploadResult(Types.UploadResponse result);
+    }       
+    
+    public static interface PollService {
+        public void setScanStatus(Types.UploadResponse status);
     }
-   
+    
+    public static interface ResultService {
+        public void setScanResult(Types.ScanResultResponse result);
+//        public void setScanResult(String result);
+    }
+    
     public static interface GroupService {
         public void setGroups(Types.Groups groups);
     }

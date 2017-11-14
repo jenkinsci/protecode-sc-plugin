@@ -1,4 +1,7 @@
+<!--
+  This view is used to render the installed plugins page.
+-->
 <?jelly escape-by-default='true'?>
 <div>
-    TODO
+  This plug-in scans build artifacts with Synopsys Protecode Supply Chain.
 </div>

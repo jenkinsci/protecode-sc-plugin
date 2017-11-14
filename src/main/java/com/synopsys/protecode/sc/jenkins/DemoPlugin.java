@@ -5,6 +5,9 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
+import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
 import com.synopsys.protecode.sc.jenkins.types.Types;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,6 +25,8 @@ import java.nio.file.Files;
  */
 public class DemoPlugin {
     private static ProtecodeSc pcs = null;
+    private static int id = 0;    
+    private static Sha1Sum sha1sum;
     
     public static void main(String[] args) {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -29,7 +34,7 @@ public class DemoPlugin {
         try {
             Configuration.instantiate(
                 new URL("http://localhost:8000"), 
-                "Demo_group", 
+                "1", 
                 "admin", 
                 "adminadminadmin"
             );
@@ -52,6 +57,12 @@ public class DemoPlugin {
                     case "2":
                         scanFile();
                         break;
+                    case "3":
+                        pollOnce();
+                        break;
+                    case "4":
+                        fetchResult();
+                        break;
                 }
             } catch (IOException ioe) {
                 print("Boom, again: ");                
@@ -67,9 +78,25 @@ public class DemoPlugin {
     
     private static void scanFile() throws IOException {
         print("requesting scan");
-        byte [] bytes = Files.readAllBytes(Paths.get("/Users/pajunen/vlc.dmg"));
-        print("bytes read");
-        pcs.scan("vlc.dmg", bytes, (Types.ScanId result) -> {
+        byte [] bytes = Files.readAllBytes(Paths.get("/Users/pajunen/vlc.dmg"));        
+        pcs.scan("vlc.dmg", bytes, (Types.UploadResponse result) -> {
+            print(result.toString());
+            id = result.getResults().getId();
+        });
+    }
+    
+    private static void pollOnce() throws IOException {
+        print("polling");
+        pcs.poll(id, (Types.UploadResponse status) -> {
+            print("Process status is: " + status);
+            sha1sum = new Sha1Sum(status.getResults().getSha1sum());
+        });
+    }
+    
+    private static void fetchResult() throws IOException {
+        print("fetching");
+        pcs.scanResult(sha1sum, (Types.ScanResultResponse result) -> {
+        //pcs.scanResult(sha1sum, (String result) -> {
             print(result.toString());
         });
     }
@@ -79,6 +106,8 @@ public class DemoPlugin {
         print("");
         print("Press 1. to get groups from Protecode SC");
         print("Press 2. to scan vlc file - blocks");
+        print("Press 3. to poll");  
+        print("Press 4. to fetch result (after fetching status with 3.)");
         print("Press 0. to exit");                
     }
     
