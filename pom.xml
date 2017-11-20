@@ -22,7 +22,7 @@
         <junit.platform.version>1.0.1</junit.platform.version>
         <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
-    <name>ProtecodeSC</name>
+    <name>New Plugin!</name>
     <description>Jenkins integration to Protecode SC</description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
     <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
@@ -144,5 +144,17 @@
             <version>3.9.0</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>credentials</artifactId>
+            <version>2.1.16</version>
+            <type>jar</type>
+        </dependency>
+<!--        <dependency>
+            <groupId>org.kohsuke.stapler</groupId>
+            <artifactId>stapler</artifactId>
+            <version>1.252</version>
+            <type>jar</type>
+        </dependency>-->
     </dependencies>
 </project>

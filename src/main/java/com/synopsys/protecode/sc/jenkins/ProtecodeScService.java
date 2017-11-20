@@ -6,7 +6,6 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
-import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScService;
 import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
 import com.synopsys.protecode.sc.jenkins.types.Types;
 
@@ -16,6 +15,7 @@ import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 
 /**
  * This class implements and encapsulates the interface towards Protecode.
@@ -25,9 +25,9 @@ import retrofit2.Response;
  * 
  * @author pajunen
  */
-public class ProtecodeSc {
+public class ProtecodeScService {
 
-    private static final Logger LOGGER = Logger.getLogger(ProtecodeSc.class.getName());      
+    private static final Logger LOGGER = Logger.getLogger(ProtecodeScService.class.getName());      
     // TODO do something nice here, please
     private void log(String toLog) {
         LOGGER.log(Level.SEVERE, toLog);
@@ -35,7 +35,7 @@ public class ProtecodeSc {
     
     Configuration configuration = Configuration.getInstance();
     
-    private ProtecodeScService service = 
+    private ProtecodeScApi service = 
         ProtecodeScConnection.backend(configuration);
                     
     public void scan(String fileName, byte[] file, ScanService listener) {  

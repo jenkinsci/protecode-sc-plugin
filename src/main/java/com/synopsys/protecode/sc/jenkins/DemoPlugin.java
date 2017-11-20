@@ -24,7 +24,7 @@ import java.nio.file.Files;
  * @author pajunen
  */
 public class DemoPlugin {
-    private static ProtecodeSc pcs = null;
+    private static ProtecodeScService pcs = null;
     private static int id = 0;    
     private static Sha1Sum sha1sum;
     
@@ -40,7 +40,7 @@ public class DemoPlugin {
             );
         } catch (MalformedURLException e) {
         }
-        pcs = new ProtecodeSc();
+        pcs = new ProtecodeScService();
         
         showMenu();
         

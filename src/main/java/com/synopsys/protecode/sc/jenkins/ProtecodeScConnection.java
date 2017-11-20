@@ -5,7 +5,6 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScService;
 import com.synopsys.protecode.sc.jenkins.types.Secret;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -15,6 +14,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 
 /**
  *
@@ -25,7 +25,7 @@ public class ProtecodeScConnection {
         // Don't instantiate me.
     }
     
-    public static ProtecodeScService backend(String urlString, String username, Secret password) {    
+    public static ProtecodeScApi backend(String urlString, String username, Secret password) {    
         URL url;
         try {
             url = new URL(urlString);
@@ -36,11 +36,11 @@ public class ProtecodeScConnection {
         return backend(url, username, password);
     }
     
-    public static ProtecodeScService backend(Configuration conf) {
+    public static ProtecodeScApi backend(Configuration conf) {
         return backend(conf.getHost(), conf.getUserName(), conf.getPassword());
     }
     
-    public static ProtecodeScService backend(URL url, String username, Secret password) {
+    public static ProtecodeScApi backend(URL url, String username, Secret password) {
         OkHttpClient okHttpClient = new OkHttpClient().newBuilder()
                 .addInterceptor((Interceptor.Chain chain) -> {
             Request originalRequest = chain.request();
@@ -58,6 +58,6 @@ public class ProtecodeScConnection {
             .client(okHttpClient)
             .build();
 
-        return retrofit.create(ProtecodeScService.class);
+        return retrofit.create(ProtecodeScApi.class);
     }
 }
