@@ -5,10 +5,8 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
-import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
-import com.synopsys.protecode.sc.jenkins.types.Types;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Sha1Sum;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -71,7 +69,7 @@ public class DemoPlugin {
     }
     
     private static void showGroups() {        
-        pcs.groups((Types.Groups groups) -> {
+        pcs.groups((HttpTypes.Groups groups) -> {
             print(groups.toString());
         });
     }
@@ -79,7 +77,7 @@ public class DemoPlugin {
     private static void scanFile() throws IOException {
         print("requesting scan");
         byte [] bytes = Files.readAllBytes(Paths.get("/Users/pajunen/vlc.dmg"));        
-        pcs.scan("vlc.dmg", bytes, (Types.UploadResponse result) -> {
+        pcs.scan("vlc.dmg", bytes, (HttpTypes.UploadResponse result) -> {
             print(result.toString());
             id = result.getResults().getId();
         });
@@ -87,7 +85,7 @@ public class DemoPlugin {
     
     private static void pollOnce() throws IOException {
         print("polling");
-        pcs.poll(id, (Types.UploadResponse status) -> {
+        pcs.poll(id, (HttpTypes.UploadResponse status) -> {
             print("Process status is: " + status);
             sha1sum = new Sha1Sum(status.getResults().getSha1sum());
         });
@@ -95,7 +93,7 @@ public class DemoPlugin {
     
     private static void fetchResult() throws IOException {
         print("fetching");
-        pcs.scanResult(sha1sum, (Types.ScanResultResponse result) -> {
+        pcs.scanResult(sha1sum, (HttpTypes.ScanResultResponse result) -> {
         //pcs.scanResult(sha1sum, (String result) -> {
             print(result.toString());
         });

@@ -5,16 +5,6 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.types.Secret;
-import com.synopsys.protecode.sc.jenkins.types.Types;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 
 /**
  *

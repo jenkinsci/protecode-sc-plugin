@@ -5,9 +5,9 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
+import com.cloudbees.plugins.credentials.Credentials;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
-import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
-import com.synopsys.protecode.sc.jenkins.types.Types;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,93 +16,103 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Group;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Secret;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Sha1Sum;
+import java.net.URL;
+import lombok.Data;
 
 /**
  * This class implements and encapsulates the interface towards Protecode.
  * 
- * - Put implementation required to make calls here. 
- * - Make/Use Interfaces from interfaces.Listeners to call those interested in results.
+ * As a service class it won't know what it's calling, so the backend must be provided
+ for it.
  * 
  * @author pajunen
  */
-public class ProtecodeScService {
+public @Data class ProtecodeScService {
 
-    private static final Logger LOGGER = Logger.getLogger(ProtecodeScService.class.getName());      
-    // TODO do something nice here, please
-    private void log(String toLog) {
-        LOGGER.log(Level.SEVERE, toLog);
-    }        
+    private static ProtecodeScService instance = null;
+    private ProtecodeScApi backend = null;
     
-    Configuration configuration = Configuration.getInstance();
+    private ProtecodeScService(String username, Secret password, URL host){
+        System.out.println("ProtecodeScService()");
+        this.backend = ProtecodeScConnection.backend(host, username, password);
+    }
     
-    private ProtecodeScApi service = 
-        ProtecodeScConnection.backend(configuration);
+    public static ProtecodeScService getInstance(String username, Secret password, URL host) {
+        System.out.println("ProtecodeScService.getInstance");
+        if (instance == null) {
+            instance = new ProtecodeScService(username, password, host);
+        }
+        return instance;
+    }       
                     
-    public void scan(String fileName, byte[] file, ScanService listener) {  
+    public void scan(Group group, String fileName, byte[] file, ScanService listener) {  
         RequestBody body = RequestBody.create(null, file);
-        Call<Types.UploadResponse> call = service.scan(configuration.getGroup(), fileName, body);                        
-        call.enqueue(new Callback<Types.UploadResponse>() {  
+        Call<HttpTypes.UploadResponse> call = backend.scan(group.getName(), fileName, body);                        
+        call.enqueue(new Callback<HttpTypes.UploadResponse>() {  
             @Override
             public void onResponse(
-                Call<Types.UploadResponse> call, 
-                Response<Types.UploadResponse> response
+                Call<HttpTypes.UploadResponse> call, 
+                Response<HttpTypes.UploadResponse> response
             ) {
-                log("onResponse");
+                Utils.log("onResponse");
                 if (response.isSuccessful()) {
                     listener.processUploadResult(response.body());            
                 } else {
                     // error response, no access to resource?
-                    log("Response was failed: " + response.body());
+                    Utils.log("Response was failed: " + response.body());
                 }
             }
             @Override
-            public void onFailure(Call<Types.UploadResponse> call, Throwable t) {
+            public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
-                log("Error is: " + t.getMessage());
+                Utils.log("Error is: " + t.getMessage());
             }
         });
     }
 
     public void poll(Integer scanId, PollService listener) {  
-        log("scanId: " + scanId);
-        Call<Types.UploadResponse> call = service.poll(scanId);                        
-        call.enqueue(new Callback<Types.UploadResponse>() {  
+        Utils.log("scanId: " + scanId);
+        Call<HttpTypes.UploadResponse> call = backend.poll(scanId);                        
+        call.enqueue(new Callback<HttpTypes.UploadResponse>() {  
             @Override
-            public void onResponse(Call<Types.UploadResponse> call, Response<Types.UploadResponse> response) {
-                log("onResponse");
+            public void onResponse(Call<HttpTypes.UploadResponse> call, Response<HttpTypes.UploadResponse> response) {
+                Utils.log("onResponse");
                 if (response.isSuccessful()) {
                     listener.setScanStatus(response.body());            
                 } else {
                     // error response, no access to resource?
-                    log("Response was failed: " + response.body());
+                    Utils.log("Response was failed: " + response.body());
                 }
             }
             @Override
-            public void onFailure(Call<Types.UploadResponse> call, Throwable t) {
+            public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
-                log("Error is: " + t.getMessage());
+                Utils.log("Error is: " + t.getMessage());
             }
         });
     }
     
     public void scanResult(Sha1Sum sha1sum, ResultService listener) {        
-        log("sha1sum: " + sha1sum);
-        Call<Types.ScanResultResponse> call = service.scanResult(sha1sum.toString());                        
-        call.enqueue(new Callback<Types.ScanResultResponse>() {  
+        Utils.log("sha1sum: " + sha1sum);
+        Call<HttpTypes.ScanResultResponse> call = backend.scanResult(sha1sum.toString());                        
+        call.enqueue(new Callback<HttpTypes.ScanResultResponse>() {  
             @Override
-            public void onResponse(Call<Types.ScanResultResponse> call, Response<Types.ScanResultResponse> response) {
-                log("onResponse");
+            public void onResponse(Call<HttpTypes.ScanResultResponse> call, Response<HttpTypes.ScanResultResponse> response) {
+                Utils.log("onResponse");
                 if (response.isSuccessful()) {
                     listener.setScanResult(response.body());            
                 } else {
                     // error response, no access to resource?
-                    log("Response was failed: " + response.body());
+                    Utils.log("Response was failed: " + response.body());
                 }
             }
             @Override
-            public void onFailure(Call<Types.ScanResultResponse> call, Throwable t) {
+            public void onFailure(Call<HttpTypes.ScanResultResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
-                log("Error is: " + t.getMessage());
+                Utils.log("Error is: " + t.getMessage());
             }
         });
     }  
@@ -129,22 +139,22 @@ public class ProtecodeScService {
 //    } 
     
     public void groups(GroupService listener) {                
-        Call<Types.Groups> call = service.apps();                        
-        call.enqueue(new Callback<Types.Groups>() {  
+        Call<HttpTypes.Groups> call = backend.groups();                        
+        call.enqueue(new Callback<HttpTypes.Groups>() {  
             @Override
-            public void onResponse(Call<Types.Groups> call, Response<Types.Groups> response) {
+            public void onResponse(Call<HttpTypes.Groups> call, Response<HttpTypes.Groups> response) {
                 if (response.isSuccessful()) {
-                    log("Response is: " + response.body());            
+                    Utils.log("Response is: " + response.body());            
                 } else {
                     // error response, no access to resource?
-                    log("Response was failed: " + response.body());
+                    Utils.log("Response was failed: " + response.body());
                 }
             }
 
             @Override
-            public void onFailure(Call<Types.Groups> call, Throwable t) {
+            public void onFailure(Call<HttpTypes.Groups> call, Throwable t) {
                 // something went completely south (like no internet connection)
-                log("Error is: " + t.getMessage());
+                Utils.log("Error is: " + t.getMessage());
             }
         });
     }

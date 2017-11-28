@@ -1,0 +1,21 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <f:entry title="Group ID" field="protecodeScGroup">
+        <f:select />
+    </f:entry>
+    <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
+        <f:checkbox/>
+    </f:entry>
+    <f:entry title="Additional artifact directory" field="artifactDir">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Keep copied artifacts after build" field="leaveArtifacts">
+        <f:checkbox/>
+    </f:entry>
+    <f:entry title="Convert results to Summary plugin format" field="convertToSummary">
+        <f:checkbox />
+    </f:entry>
+</j:jelly>

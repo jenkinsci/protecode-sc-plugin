@@ -5,8 +5,7 @@
  */
 package com.synopsys.protecode.sc.jenkins.interfaces;
 
-import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
-import com.synopsys.protecode.sc.jenkins.types.Types;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.http.*;
@@ -17,33 +16,33 @@ import retrofit2.http.*;
  */
 public interface ProtecodeScApi {
     @PUT("/api/upload/{filename}")
-    public Call<Types.UploadResponse> scan(
+    public Call<HttpTypes.UploadResponse> scan(
         @Header("Group") String groupName, 
         @Path("filename") String filename, 
         @Body RequestBody bytes
     );   
       
     @GET("/api/product/{id}/")
-    public Call<Types.UploadResponse> poll(@Path("id") int scanId);
+    public Call<HttpTypes.UploadResponse> poll(@Path("id") int scanId);
     
     @GET("/api/product/{sha1sum}/")
-    public Call<Types.ScanResultResponse> scanResult(@Path("sha1sum") String sha1sum);
+    public Call<HttpTypes.ScanResultResponse> scanResult(@Path("sha1sum") String sha1sum);
    
     @GET("/api/product/{id}/infoleak")
-    public Call<Types.InfoLeak> infoleak(@Path("id") int scanId);
+    public Call<HttpTypes.InfoLeak> infoleak(@Path("id") int scanId);
     
     @DELETE("/api/product/{id}")
-    public Call<Types.Meta> deleteResult(@Path("id") int scanId);
+    public Call<HttpTypes.Meta> deleteResult(@Path("id") int scanId);
     
     @DELETE("/api/product/{id}/remove")
-    public Call<Types.Meta> deleteFiles(@Path("id") int scanId);   
+    public Call<HttpTypes.Meta> deleteFiles(@Path("id") int scanId);   
         
     @POST("/api/product/{product_id}/abort")
-    public Call<Types.Meta> abortScan(@Path("product_id") int scanId);
+    public Call<HttpTypes.Meta> abortScan(@Path("product_id") int scanId);
     
     @GET("/api/status/")
-    public Call<Types.Meta> status();
+    public Call<HttpTypes.Meta> status();
         
-    @GET("/api/apps/")    
-    public Call<Types.Groups> apps();
+    @GET("/api/groups/")    
+    public Call<HttpTypes.Groups> groups();
 }

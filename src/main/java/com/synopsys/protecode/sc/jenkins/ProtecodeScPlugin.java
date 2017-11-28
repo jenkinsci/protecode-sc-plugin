@@ -1,18 +1,21 @@
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.types.Group;
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
-import hudson.tasks.BuildStepDescriptor;
+import hudson.security.ACL;
 import hudson.tasks.Builder;
 import java.io.IOException;
+import java.net.URL;
+import jenkins.model.Jenkins;
 import lombok.Getter;
 import lombok.Setter;
-
 import org.kohsuke.stapler.DataBoundConstructor;
 
 public class ProtecodeScPlugin extends Builder {
@@ -35,7 +38,7 @@ public class ProtecodeScPlugin extends Builder {
         boolean leaveArtifacts, 
         int scanTimeout
     ) {
-        System.out.println("AAAafddAAAafddfAAAafddfAAAafddfAAAafddfAAAafddfAAAafddfAAAafddfAAAafddff");
+        System.out.println("-------- ProtecodeScPlugin");
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
         this.artifactDir = artifactDir;
@@ -47,45 +50,20 @@ public class ProtecodeScPlugin extends Builder {
 
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-//        System.out.println("BOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOBBOB");
-        listener.getLogger().print("BOBOOOOBBBBOBOBOBOBOBOBOBOBOBOOBOBOBOBOBOBOBOBOOB");
+        listener.getLogger().print("-------- perform, group: " + protecodeScGroup);
         return true;
     }
     
     @Override
     public Descriptor getDescriptor() {
+        System.out.println("getDescriptor");
         return new DescriptorImpl();
     }
-
-    @Extension
-    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        private Group [] groups;
-        
-        // creds?
-        
-        public DescriptorImpl() { 
-            super();
-            System.out.println("DescriptorImplDescriptorImplDescriptorImplDescriptorImplDescriptorImpl");           
-            super.load();
-        }
-
-        @Override
-        public String getDisplayName() {
-            return "New Plugin!";
-        }
-
-        @Override
-        public synchronized void load() {
-            super.load(); 
-        }           
-
-        @Override
-        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
-            return true;
-        }
-    }
     
-    public String getBob() {
-        return "Bob";
+    @Extension
+    public static final class DescriptorImpl extends ProtecodeConfigurationDescriptor {
+        public DescriptorImpl() {
+            super();
+        }
     }
 }

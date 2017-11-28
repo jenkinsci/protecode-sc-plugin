@@ -5,15 +5,10 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.types.Secret;
-import java.net.MalformedURLException;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Secret;
 import java.net.URL;
 import lombok.*;
 
-/**
- *
- * @author pajunen
- */
 public @Data class Configuration {
     
     private static Configuration instance = null;
@@ -35,7 +30,7 @@ public @Data class Configuration {
     
     public static Configuration getInstance() {
         if (instance == null) {
-            throw new RuntimeException("Configuration must be insetantiated first");
+            throw new RuntimeException("Configuration must be instantiated first");
         } 
         return instance;
     }

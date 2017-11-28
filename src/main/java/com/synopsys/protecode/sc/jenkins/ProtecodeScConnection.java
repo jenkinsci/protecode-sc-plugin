@@ -5,7 +5,6 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.types.Secret;
 import java.net.MalformedURLException;
 import java.net.URL;
 import okhttp3.Credentials;
@@ -15,6 +14,7 @@ import okhttp3.Request;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Secret;
 
 /**
  *
@@ -25,6 +25,8 @@ public class ProtecodeScConnection {
         // Don't instantiate me.
     }
     
+    private ProtecodeScApi instance;
+    
     public static ProtecodeScApi backend(String urlString, String username, Secret password) {    
         URL url;
         try {
@@ -34,10 +36,6 @@ public class ProtecodeScConnection {
             throw new RuntimeException(ex.getMessage());
         }
         return backend(url, username, password);
-    }
-    
-    public static ProtecodeScApi backend(Configuration conf) {
-        return backend(conf.getHost(), conf.getUserName(), conf.getPassword());
     }
     
     public static ProtecodeScApi backend(URL url, String username, Secret password) {

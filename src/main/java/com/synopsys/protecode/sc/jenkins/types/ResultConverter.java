@@ -6,12 +6,12 @@
 package com.synopsys.protecode.sc.jenkins.types;
 // TODO order
 import com.google.gson.*;
-import com.synopsys.protecode.sc.jenkins.types.Types.Component;
-import com.synopsys.protecode.sc.jenkins.types.Types.Details;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Component;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Details;
 
-import com.synopsys.protecode.sc.jenkins.types.Types.Results;
-import com.synopsys.protecode.sc.jenkins.types.Types.Status;
-import com.synopsys.protecode.sc.jenkins.types.Types.Summary;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Results;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Status;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Summary;
 
 import java.util.Map;
 import java.util.Collection;

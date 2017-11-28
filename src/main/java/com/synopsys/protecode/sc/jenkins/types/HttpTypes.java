@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.*;
 
-public final class Types {
+public final class HttpTypes {
     
     // Don't instantiate this
-    private Types(){
+    private HttpTypes(){
     }       
     
     public static @Data class UploadResponse {
@@ -43,9 +43,14 @@ public final class Types {
         private Details details;       
     }    
         
+    public static @Data class Group {
+        private final int id;
+        private final String name;
+    }
+    
     public static @Data class Groups {
         private final Meta meta;
-        private final Product[] products;                       
+        private final Group [] groups;                       
     } 
     
     public static @Data class Meta {
