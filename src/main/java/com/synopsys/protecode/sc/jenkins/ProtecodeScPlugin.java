@@ -101,7 +101,7 @@ public class ProtecodeScPlugin extends Builder {
             return super.configure(req, formData);
         }
 
-        public ListBoxModel doFillProtecodeCredentialsIdItems(@AncestorInPath Item context) {
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
             // The host must have been set before this!
             // TODO find a nice way to tell the user to fill in the host first
             Utils.log("---------------------------------- doFillCreds");
