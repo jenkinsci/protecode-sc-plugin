@@ -25,7 +25,7 @@ public final class ProtecodeConfigurationUtils {
         ProtecodeScPlugin.DescriptorImpl descriptor,
         String credentialsId
     ) {
-        String host = descriptor.getProtecodeScHost();
+        String host = descriptor.getProtecodeScHost().toExternalForm();
         StandardUsernamePasswordCredentials creds = CredentialsMatchers
             .firstOrNull(
                 CredentialsProvider.lookupCredentials(

@@ -20,7 +20,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 public class ProtecodeScPlugin extends Builder {
             
-    @Getter @Setter private String protecodeScGroup; // gotten from getGroup, and the pull down in UI
+    @Getter @Setter private String protecodeScGroup;
     @Getter @Setter private String credentialsId;
     @Getter @Setter private String artifactDir;
     @Getter @Setter private boolean convertToSummary = true;
@@ -62,6 +62,7 @@ public class ProtecodeScPlugin extends Builder {
     
     @Extension
     public static final class DescriptorImpl extends ProtecodeConfigurationDescriptor {
+        @DataBoundConstructor
         public DescriptorImpl() {
             super();
         }

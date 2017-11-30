@@ -22,7 +22,7 @@ import java.nio.file.Files;
  * @author pajunen
  */
 public class DemoPlugin {
-    private static ProtecodeScService pcs = null;
+  /*  private static ProtecodeScService pcs = null;
     private static int id = 0;    
     private static Sha1Sum sha1sum;
     
@@ -111,5 +111,5 @@ public class DemoPlugin {
     
     private static void print(String line) {
         System.out.println(line);
-    }
+    }*/
 }

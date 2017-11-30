@@ -35,6 +35,7 @@ public @Data class ProtecodeScService {
     private static ProtecodeScService instance = null;
     private ProtecodeScApi backend = null;
     
+    // TODO ugly, package maybe
     private ProtecodeScService(String username, Secret password, URL host){
         System.out.println("ProtecodeScService()");
         this.backend = ProtecodeScConnection.backend(host, username, password);

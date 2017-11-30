@@ -6,14 +6,11 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
 import com.synopsys.protecode.sc.jenkins.types.*;
 import hudson.model.AbstractProject;
 import hudson.model.Descriptor;
@@ -26,20 +23,19 @@ import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.concurrent.atomic.AtomicReference;
 import javax.servlet.ServletException;
-import jenkins.model.Jenkins;
+import lombok.Data;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-public class ProtecodeConfigurationDescriptor extends BuildStepDescriptor<Builder> {
+public @Data class ProtecodeConfigurationDescriptor extends BuildStepDescriptor<Builder> {
     private InternalTypes.Group [] groups;
     private InternalTypes.Group chosenGroup;
     private URL protecodeScHost;
     private boolean dontCheckCert;
-    private Credentials credentialsId;
+    private Credentials protecodeCredentialsId;
 
     protected ProtecodeConfigurationDescriptor() { 
         super();
@@ -58,15 +54,18 @@ public class ProtecodeConfigurationDescriptor extends BuildStepDescriptor<Builde
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
+        //protecodeCredentialsId = (Credentials)formData.get("protecodeCredentialsIdField");
+        //Utils.log("----------------creds: " + protecodeCredentialsId);
         dontCheckCert = formData.getBoolean("dontCheckCert");
 
         save();
         return super.configure(req, formData);
     }
     
-    public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
+    public ListBoxModel doFillProtecodeCredentialsIdItems(@AncestorInPath Item context) {
         // The host must have been set before this!
         // TODO find a nice way to tell the user to fill in the host first
+        Utils.log("---------------------------------- doFillCreds");
         StandardListBoxModel result = new StandardListBoxModel();
         result.withEmptySelection();
         result.withMatching(
@@ -79,43 +78,49 @@ public class ProtecodeConfigurationDescriptor extends BuildStepDescriptor<Builde
         return result;
     }
 
-    
+//    public ListBoxModel doFillProtecodeScGroupItems(@QueryParameter String protecodeScGroup) throws MalformedURLException {
+//        System.out.println("start");
+//        final AtomicReference<HttpTypes.Groups> notifier = new AtomicReference();
+//        System.out.println("AtomicReference");
+//        ProtecodeScService.getInstance(
+//            "admin", new Secret("adminadminadmin"), new URL("http://127.0.0.1:8000")
+//        ).groups((HttpTypes.Groups tempGroups) -> {
+//            synchronized (notifier) {
+//                System.out.println("synchronized (notifier) {");
+//                notifier.set(tempGroups);
+//                notifier.notify();
+//            }
+//        });
+//        synchronized (notifier) {
+//            System.out.println("synchronized (notifier) {");
+//            while (notifier.get() == null)          
+//            try {
+//                System.out.println("2222");
+//                notifier.wait();
+//            } catch (InterruptedException ex) {
+//                Utils.log("2222 interrupted");
+//                // Carry on... We're supposed to be here. Nothing to see.
+//            }
+//        }
+//        System.out.println("333333");
+//        HttpTypes.Groups groups = notifier.get();
+//        ListBoxModel listBoxModel = new ListBoxModel();
+//        for (HttpTypes.Group group : groups.getGroups()) {
+//            System.out.println("444444");
+//          listBoxModel.add(group.getName());                
+//        }
+//        System.out.println("55555");
+//        return listBoxModel;
+//    }
     public ListBoxModel doFillProtecodeScGroupItems(@QueryParameter String protecodeScGroup) {
-        System.out.println("start");
-        final AtomicReference<HttpTypes.Groups> notifier = new AtomicReference();
-        System.out.println("AtomicReference");
-        ProtecodeScService.getInstance(
-            
-        ).groups((HttpTypes.Groups tempGroups) -> {
-            synchronized (notifier) {
-                System.out.println("synchronized (notifier) {");
-                notifier.set(tempGroups);
-                notifier.notify();
-            }
-        });
-        synchronized (notifier) {
-            System.out.println("synchronized (notifier) {");
-            while (notifier.get() == null)          
-            try {
-                System.out.println("2222");
-                notifier.wait();
-            } catch (InterruptedException ex) {
-                // Carry on... We're supposed to be here. Nothing to see.
-            }
-        }
-        System.out.println("333333");
-        HttpTypes.Groups groups = notifier.get();
-        ListBoxModel listBoxModel = new ListBoxModel();
-        for (HttpTypes.Group group : groups.getGroups()) {
-            System.out.println("444444");
-          listBoxModel.add(group.getName());                
-        }
-        System.out.println("55555");
-        return listBoxModel;
+        return new ListBoxModel(new ListBoxModel.Option("1.13", "1.13", protecodeScGroup.matches("1.13") ),
+                new ListBoxModel.Option("1.14", "1.14", protecodeScGroup.matches("1.14") ),
+                new ListBoxModel.Option("1.15", "1.15", protecodeScGroup.matches("1.15") ));
     }
 
     public FormValidation doCheckScanTimeout(@QueryParameter String value) 
         throws IOException, ServletException {
+        Utils.log("validate timeout");
         try {
             Integer.parseInt(value);
             return FormValidation.ok();
@@ -124,6 +129,27 @@ public class ProtecodeConfigurationDescriptor extends BuildStepDescriptor<Builde
         }
     }
 
+    public FormValidation doCheckProtecodeScHost(@QueryParameter String protecodeScHost) 
+        throws IOException, ServletException {
+        try {
+            URL protecodeHost = new URL(protecodeScHost);
+            this.protecodeScHost = protecodeHost;
+            return FormValidation.ok();
+        } catch (NumberFormatException e) {
+            return FormValidation.error("The url provided was not formatted correctly");
+        }
+    }
+    
+    public Credentials getProtecodeCredentialsId() {
+        if (this.protecodeCredentialsId != null) {
+            Utils.log("getCredentialsId: " + this.protecodeCredentialsId);
+        } else {
+            Utils.log("Creds null, prepare to crash");
+        }
+           
+        return this.protecodeCredentialsId;
+    }
+    
     @Override
     public String getDisplayName() {
         return "New Plugin!";
@@ -133,15 +159,5 @@ public class ProtecodeConfigurationDescriptor extends BuildStepDescriptor<Builde
     public boolean isApplicable(Class<? extends AbstractProject> jobType) {
         System.out.println("------- isApplicable");
         return true;
-    }
-
-    public String getProtecodeScHost() {
-        System.out.println("------- getProtecodeScHost");
-        return protecodeScHost.toExternalForm();
-    }
-
-    public boolean isDontCheckCert() {
-        System.out.println("------- isDontCheckCert");
-        return dontCheckCert;
-    }       
+    }     
 }
