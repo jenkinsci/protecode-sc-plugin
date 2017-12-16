@@ -5,19 +5,15 @@
  */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.cloudbees.plugins.credentials.Credentials;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Group;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Secret;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.Sha1Sum;
 import java.net.URL;
 import lombok.Data;
@@ -35,23 +31,22 @@ public @Data class ProtecodeScService {
     private static ProtecodeScService instance = null;
     private ProtecodeScApi backend = null;
     
-    // TODO ugly, package maybe
-    private ProtecodeScService(String username, Secret password, URL host){
+    private ProtecodeScService(String credentialsId, URL host){
         System.out.println("ProtecodeScService()");
-        this.backend = ProtecodeScConnection.backend(host, username, password);
+        this.backend = ProtecodeScConnection.backend(credentialsId, host);
     }
     
-    public static ProtecodeScService getInstance(String username, Secret password, URL host) {
+    public static ProtecodeScService getInstance(String credentialsId, URL host) {
         System.out.println("ProtecodeScService.getInstance");
         if (instance == null) {
-            instance = new ProtecodeScService(username, password, host);
+            instance = new ProtecodeScService(credentialsId, host);
         }
         return instance;
     }       
                     
-    public void scan(Group group, String fileName, byte[] file, ScanService listener) {  
-        RequestBody body = RequestBody.create(null, file);
-        Call<HttpTypes.UploadResponse> call = backend.scan(group.getName(), fileName, body);                        
+    public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
+        //RequestBody body = RequestBody.create(null, file);
+        Call<HttpTypes.UploadResponse> call = backend.scan(group, fileName, requestBody);                        
         call.enqueue(new Callback<HttpTypes.UploadResponse>() {  
             @Override
             public void onResponse(
@@ -117,34 +112,16 @@ public @Data class ProtecodeScService {
             }
         });
     }  
-//    public void scanResult(Sha1Sum sha1sum, ResultService listener) {        
-//        log("sha1sum: " + sha1sum);
-//        Call<String> call = service.scanResult(sha1sum.toString());                        
-//        call.enqueue(new Callback<String>() {  
-//            @Override
-//            public void onResponse(Call<String> call, Response<String> response) {
-//                log("onResponse");
-//                if (response.isSuccessful()) {
-//                    listener.setScanResult(response.body());            
-//                } else {
-//                    // error response, no access to resource?
-//                    log("Response was failed: " + response.body());
-//                }
-//            }
-//            @Override
-//            public void onFailure(Call<String> call, Throwable t) {
-//                // something went completely south (like no internet connection)
-//                log("Error is: " + t.getMessage());
-//            }
-//        });
-//    } 
     
     public void groups(GroupService listener) {                
-        Call<HttpTypes.Groups> call = backend.groups();                        
+        Utils.log("Doing call");
+        Call<HttpTypes.Groups> call = backend.groups();
+        Utils.log("call done");
         call.enqueue(new Callback<HttpTypes.Groups>() {  
             @Override
             public void onResponse(Call<HttpTypes.Groups> call, Response<HttpTypes.Groups> response) {
                 if (response.isSuccessful()) {
+                    listener.setGroups(response.body());
                     Utils.log("Response is: " + response.body());            
                 } else {
                     // error response, no access to resource?

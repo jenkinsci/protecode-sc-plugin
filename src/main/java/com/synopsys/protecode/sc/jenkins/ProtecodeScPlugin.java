@@ -1,32 +1,43 @@
 package com.synopsys.protecode.sc.jenkins;
 
-import com.cloudbees.plugins.credentials.Credentials;
+
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.GroupService;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
+
 import hudson.Extension;
 import hudson.ExtensionPoint;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
+import hudson.model.Run;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import javax.servlet.ServletException;
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -39,7 +50,9 @@ public class ProtecodeScPlugin extends Builder {
     @Getter @Setter private boolean convertToSummary = true;
     @Getter @Setter private boolean failIfVulns;
     @Getter @Setter private boolean leaveArtifacts;
-    @Getter @Setter private int scanTimeout;      
+    @Getter @Setter private int scanTimeout;  
+    // don't access service directly, use service(). It checks w
+    private ProtecodeScService service = null;
     
     @DataBoundConstructor
     public ProtecodeScPlugin(
@@ -59,24 +72,97 @@ public class ProtecodeScPlugin extends Builder {
         this.failIfVulns = failIfVulns;
         this.leaveArtifacts = leaveArtifacts;
         this.scanTimeout = scanTimeout > 10 ? scanTimeout : 10;
-    }
-
+    }       
+    
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-        listener.getLogger().print("-------- perform, group: " + protecodeScGroup);
+    public boolean prebuild(AbstractBuild<?, ?> build, BuildListener listener) {
+        if (getDescriptor().getProtecodeScHost() == null) {
+            listener.error(
+                    "Protecode SC host not defined. Configure it to global plugin properties");
+            return false;
+        }       
+        // TODO check whether group is ok
         return true;
     }
     
+    private ProtecodeScService service() throws MalformedURLException {
+        if (service == null) {
+            service = ProtecodeScService.getInstance(
+                credentialsId,
+                new URL(getDescriptor().getProtecodeScHost())
+            );
+        }
+        return service;
+    }
+    
+    // TODO move
+    private List<UploadResponse> uploadResponses = new ArrayList<>();
+    private void addUploadResponse(UploadResponse response) {
+        uploadResponses.add(response);
+    }
+    
+    @Override    
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
+        BuildListener listener) throws InterruptedException, IOException 
+    {               
+        List<ReadableFile> filesToScan = Utils.getFiles(artifactDir, build, listener);
+        
+        for (ReadableFile file: filesToScan) {
+            service().scan(
+                protecodeScGroup, 
+                file.name(), 
+                new StreamRequestBody
+                (
+                    MediaType.parse("application/octet-stream"), 
+                    file.read()
+                ), 
+                (UploadResponse resp) -> {
+                    addUploadResponse(resp);
+                }
+            );   
+        }
+        
+        // Then we wait and continue only when we have as many UploadResponses as we have 
+        // filesToScan. Sad but true                
+        waitForUploadResponses(filesToScan.size());
+
+        // start polling for reponses to scans
+        
+        return true;
+    }
+    
+    private synchronized void waitForUploadResponses(int fileCount) {        
+        boolean waitForResponses = true;
+        while (waitForResponses) {                   
+            try {
+                this.wait(1000);
+                if (uploadResponses.size() == fileCount) {
+                    waitForResponses = false;
+                }
+            } catch (InterruptedException ie) {
+
+            }
+        }
+    }
+    
     @Override
-    public Descriptor getDescriptor() {
+    public DescriptorImpl getDescriptor() {
         System.out.println("------------- getDescriptor");        
         return (DescriptorImpl) super.getDescriptor();
     }
     
+    public String getTask() {
+        return "Protecode SC";
+    }
+    
+    // TODO: move to different file, this clutters
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {        
-        private String protecodeScHost;
-        private boolean dontCheckCert;
+        @Getter @Setter private String protecodeScHost;
+        @Getter @Setter private boolean dontCheckCert;
+        /* These are used to combine credentials with group to check is the combination valid */
+        private String credentialsForCheck = null;
+        private String groupForCheck = null;
                 
         public DescriptorImpl() {           
             super.load();           
@@ -117,12 +203,6 @@ public class ProtecodeScPlugin extends Builder {
             return result;
         }
 
-        public ListBoxModel doFillProtecodeScGroupItems(@QueryParameter String protecodeScGroup) {
-            return new ListBoxModel(new ListBoxModel.Option("1.13", "1.13", protecodeScGroup.matches("1.13") ),
-                    new ListBoxModel.Option("1.14", "1.14", protecodeScGroup.matches("1.14") ),
-                    new ListBoxModel.Option("1.15", "1.15", protecodeScGroup.matches("1.15") ));
-        }
-
         public FormValidation doCheckScanTimeout(@QueryParameter String value) 
             throws IOException, ServletException {
             Utils.log("validate timeout");
@@ -134,17 +214,34 @@ public class ProtecodeScPlugin extends Builder {
             }
         }
 
-        public FormValidation doCheckProtecodeScHost(@QueryParameter String protecodeScHost) 
+        public FormValidation doCheckProtecodeScHost(@QueryParameter String protecodeScHost)            
             throws IOException, ServletException {
+            System.out.println("checking host");
             try {
                 URL protecodeHost = new URL(protecodeScHost);
                 this.protecodeScHost = protecodeHost.toExternalForm();
-                return FormValidation.ok();
+                return FormValidation.ok("everything nice with url!");
             } catch (NumberFormatException e) {
                 return FormValidation.error("The url provided was not formatted correctly");
             }
         }
+        
+        public FormValidation doCheckProtecodeScGroup(@QueryParameter String protecodeScGroup) {           
+            Utils.log("group check");
+            groupForCheck = protecodeScGroup;
+            return FormValidation.ok();
+        }
 
+        public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {           
+            Utils.log("cred check");
+            credentialsForCheck = credentialsId;
+            return FormValidation.ok();
+        }
+        
+        private boolean checkConnection(String group, String credentialsId) {
+            return true;
+        }
+        
         @Override
         public String getDisplayName() {
             return "New Plugin!";

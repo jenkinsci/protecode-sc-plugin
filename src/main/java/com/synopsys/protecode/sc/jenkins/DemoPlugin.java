@@ -77,7 +77,7 @@ public class DemoPlugin {
     private static void scanFile() throws IOException {
         print("requesting scan");
         byte [] bytes = Files.readAllBytes(Paths.get("/Users/pajunen/vlc.dmg"));        
-        pcs.scan("vlc.dmg", bytes, (HttpTypes.UploadResponse result) -> {
+        pcs.scan("1", "vlc.dmg", bytes, (HttpTypes.UploadResponse result) -> {
             print(result.toString());
             id = result.getResults().getId();
         });

@@ -4,7 +4,7 @@
         <c:select />
     </f:entry>
     <f:entry title="Group ID" field="protecodeScGroup">
-        <f:select />
+        <f:textbox />
     </f:entry>
     <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
         <f:checkbox/>
