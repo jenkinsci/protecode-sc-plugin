@@ -6,6 +6,8 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
 import com.synopsys.protecode.sc.jenkins.exceptions.MalformedSha1SumException;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import lombok.Data;
 
 /**
@@ -13,6 +15,38 @@ import lombok.Data;
  * @author pajunen
  */
 public class InternalTypes {
+    
+    public static @Data class FileAndResult {
+        private String filename = null;
+        private UploadResponse uploadResponse = null; 
+        //private ScanState scanState = null;               
+        private ScanResultResponse resultResponse = null;
+        private boolean resultBeingFetched = false;
+        
+        public FileAndResult(String filename, UploadResponse uploadResponse) {
+            this.filename = filename;
+            this.uploadResponse = uploadResponse;
+        }
+        
+        public int uploadHTTPStatus() {
+            return uploadResponse.getMeta().getCode();
+        }
+        
+        public String getState() {
+            if (uploadResponse != null) {
+                return uploadResponse.getResults().getStatus();
+            } else {
+                // if we don't know the state, we can assume it's busy until otherwise stated
+                // this will cause the logic to ask for it again
+                return "B";
+            }
+        }
+        
+        public boolean ready() {
+            return resultResponse != null;
+        }
+    }
+    
     public static @Data class Secret {
         private final String string;
 

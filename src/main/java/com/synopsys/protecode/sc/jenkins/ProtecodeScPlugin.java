@@ -6,20 +6,18 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.GroupService;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
 
 import hudson.Extension;
 import hudson.ExtensionPoint;
-import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
-import hudson.model.Run;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -36,8 +34,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
 import okhttp3.MediaType;
-import okhttp3.RequestBody;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -53,6 +49,9 @@ public class ProtecodeScPlugin extends Builder {
     @Getter @Setter private int scanTimeout;  
     // don't access service directly, use service(). It checks w
     private ProtecodeScService service = null;
+    
+    // Below used in the scan process
+    private List<FileAndResult> results = new ArrayList<>();    
     
     @DataBoundConstructor
     public ProtecodeScPlugin(
@@ -85,30 +84,32 @@ public class ProtecodeScPlugin extends Builder {
         return true;
     }
     
-    private ProtecodeScService service() throws MalformedURLException {
+    private ProtecodeScService service() {
         if (service == null) {
+            try {
             service = ProtecodeScService.getInstance(
                 credentialsId,
                 new URL(getDescriptor().getProtecodeScHost())
             );
+            } catch (MalformedURLException e) {
+                // this url is already cleaned when getting it from the configuration page
+            }
         }
         return service;
-    }
-    
-    // TODO move
-    private List<UploadResponse> uploadResponses = new ArrayList<>();
-    private void addUploadResponse(UploadResponse response) {
-        uploadResponses.add(response);
     }
     
     @Override    
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
         BuildListener listener) throws InterruptedException, IOException 
     {               
+        PrintStream log = listener.getLogger();
+        // use shortened word to distinguish from possibly null service
+        ProtecodeScService serv = service();
         List<ReadableFile> filesToScan = Utils.getFiles(artifactDir, build, listener);
         
         for (ReadableFile file: filesToScan) {
-            service().scan(
+            log.print("File: " + file.name());
+            serv.scan(
                 protecodeScGroup, 
                 file.name(), 
                 new StreamRequestBody
@@ -117,30 +118,81 @@ public class ProtecodeScPlugin extends Builder {
                     file.read()
                 ), 
                 (UploadResponse resp) -> {
-                    addUploadResponse(resp);
+                    addUploadResponse(file.name(), resp);
                 }
             );   
         }
         
         // Then we wait and continue only when we have as many UploadResponses as we have 
-        // filesToScan. Sad but true                
-        waitForUploadResponses(filesToScan.size());
+        // filesToScan. Sad but true       
+        log.print("Calling wait");
+        waitForUploadResponses(filesToScan.size(), log);
 
         // start polling for reponses to scans
         
         return true;
     }
     
-    private synchronized void waitForUploadResponses(int fileCount) {        
+     /**
+     * Called by the lamdas given to upload rest calls
+     * @param response The responses fetched from Protecode SC
+     */
+    private void addUploadResponse(String name, UploadResponse response) {
+        results.add(new FileAndResult(name, response));
+    }
+    
+    /**
+     * TODO clean up depth, this is awful
+     * @param listener 
+     */
+    private void poll(BuildListener listener) {
+        // use shortened word to distinguish from possibly null service
+        ProtecodeScService serv = service();
+        do {            
+            results.forEach((fileAndResult) -> {
+                if (!fileAndResult.ready()) {  // if this return true, we can ignore the fileAndResult
+                    if (fileAndResult.uploadHTTPStatus() == 200) {                        
+                        if ("R".equals(fileAndResult.getState())) {
+                            fileAndResult.setResultBeingFetched(true);
+                            serv.scanResult(
+                                fileAndResult.getUploadResponse().getResults().getSha1sum(), 
+                                (ScanResultResponse scanResult) -> {
+                                    fileAndResult.setResultResponse(scanResult);
+                                }
+                            );
+                        } else {
+                            serv.poll(
+                                fileAndResult.getUploadResponse().getResults().getId(), 
+                                (UploadResponse uploadResponse) -> {
+                                    fileAndResult.setUploadResponse(uploadResponse);                                
+                                }
+                            );
+                        }
+                    } else {
+                        listener.error("Status code for file upload: '" + fileAndResult.getFilename() + 
+                            "' was " + fileAndResult.uploadHTTPStatus());
+                    }
+                }
+            });
+        } while (allNotReady());
+    }
+    
+    private boolean allNotReady() {
+        return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.ready()));
+    }
+    
+    private synchronized void waitForUploadResponses(int fileCount, PrintStream log) {
+        log.print("Starting wait");
         boolean waitForResponses = true;
         while (waitForResponses) {                   
             try {
                 this.wait(1000);
+                log.print("Tick");
                 if (uploadResponses.size() == fileCount) {
                     waitForResponses = false;
                 }
             } catch (InterruptedException ie) {
-
+                log.print("Interrupted");
             }
         }
     }

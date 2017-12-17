@@ -22,7 +22,6 @@ public class Listeners {
     
     public static interface ResultService {
         public void setScanResult(HttpTypes.ScanResultResponse result);
-//        public void setScanResult(String result);
     }
     
     public static interface GroupService {

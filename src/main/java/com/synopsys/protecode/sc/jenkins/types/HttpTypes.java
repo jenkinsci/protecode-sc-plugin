@@ -1,6 +1,5 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
-import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import java.util.Arrays;
@@ -17,12 +16,13 @@ public final class HttpTypes {
     
     public static @Data class UploadResponse {
         private Meta meta;
-        private ScanStateSub results;
+        private ScanState results;
     }
     
-    public static @Data class ScanStateSub {        
+    public static @Data class ScanState {        
         private int id;
         private String sha1sum;
+        /** Can be R(eady) B(usy) F(ailed) */
         private String status;
         private int product_id;
     }        

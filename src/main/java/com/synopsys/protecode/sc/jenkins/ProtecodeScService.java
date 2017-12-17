@@ -91,9 +91,9 @@ public @Data class ProtecodeScService {
         });
     }
     
-    public void scanResult(Sha1Sum sha1sum, ResultService listener) {        
+    public void scanResult(String sha1sum, ResultService listener) {        
         Utils.log("sha1sum: " + sha1sum);
-        Call<HttpTypes.ScanResultResponse> call = backend.scanResult(sha1sum.toString());                        
+        Call<HttpTypes.ScanResultResponse> call = backend.scanResult(sha1sum);                        
         call.enqueue(new Callback<HttpTypes.ScanResultResponse>() {  
             @Override
             public void onResponse(Call<HttpTypes.ScanResultResponse> call, Response<HttpTypes.ScanResultResponse> response) {

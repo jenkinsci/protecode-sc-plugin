@@ -2,3 +2,4 @@ src/main/java/com/synopsys/protecode/sc/jenkins/vlc-2.2.6.dmg
 target/
 work/
 **/.DS_Store
+nb-configuration.xml
