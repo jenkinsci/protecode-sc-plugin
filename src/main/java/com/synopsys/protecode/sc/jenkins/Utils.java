@@ -50,6 +50,7 @@ public class Utils {
             BuildListener listener) throws IOException, InterruptedException {
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
+        log.print("Reading from directory: " + fileDirectory);
         if (!StringUtils.isEmpty(fileDirectory)) {
             List<FilePath> files = build.getWorkspace().child(fileDirectory)
                     .list(new ScanFileFilter());
@@ -79,4 +80,20 @@ public class Utils {
         
         return readableFiles;
     }           
+    
+    public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {
+        PrintStream log = listener.getLogger();
+        try {
+            FilePath jsonReportDirectory = build.getWorkspace().child("reports");
+            jsonReportDirectory.mkdirs();
+            if (!jsonReportDirectory.isDirectory()) {
+                log.println("Report directory could not be created.");
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            listener.error("An exception occured while creating directory: " + name);            
+            return false;
+        }
+    }
 }

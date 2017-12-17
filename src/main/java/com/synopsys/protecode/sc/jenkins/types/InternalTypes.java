@@ -18,10 +18,9 @@ public class InternalTypes {
     
     public static @Data class FileAndResult {
         private String filename = null;
-        private UploadResponse uploadResponse = null; 
-        //private ScanState scanState = null;               
+        private UploadResponse uploadResponse = null;               
         private ScanResultResponse resultResponse = null;
-        private boolean resultBeingFetched = false;
+        private boolean resultBeingFetched = false;        
         
         public FileAndResult(String filename, UploadResponse uploadResponse) {
             this.filename = filename;
@@ -42,9 +41,34 @@ public class InternalTypes {
             }
         }
         
+        /**         
+         * @return True if the scan result has been fetched.
+         */
         public boolean ready() {
             return resultResponse != null;
         }
+        
+        public boolean verdict() {
+            if (!ready()) {
+                throw new RuntimeException("No result received for file: " + this.filename);
+            }
+            return resultResponse.getResults().getSummary().getVulnCount().getTotal() > 0;
+        }                        
+         
+        public SerializableResult getSerializableResult() {
+            return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
+        }
+    }
+    
+    public static @Data class SerializableResult {
+        public SerializableResult(String filename, HttpTypes.Results results, HttpTypes.Meta meta) {
+            this.filename = filename;
+            this.results = results;
+            this.meta = meta;
+        }    
+        private String filename;
+        private HttpTypes.Results results;
+        private HttpTypes.Meta meta;
     }
     
     public static @Data class Secret {
@@ -77,6 +101,7 @@ public class InternalTypes {
             }
         }
 
+        @Override
         public String toString() {
             return sha1sum;
         }

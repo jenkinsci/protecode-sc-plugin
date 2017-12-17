@@ -6,6 +6,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.synopsys.protecode.sc.jenkins.ProtecodeScService;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
@@ -42,7 +43,7 @@ import org.kohsuke.stapler.StaplerRequest;
 public class ProtecodeScPlugin extends Builder {
     @Getter @Setter private String credentialsId;
     @Getter @Setter private String protecodeScGroup;    
-    @Getter @Setter private String artifactDir;
+    @Getter @Setter private String filesToScanDirectory;
     @Getter @Setter private boolean convertToSummary = true;
     @Getter @Setter private boolean failIfVulns;
     @Getter @Setter private boolean leaveArtifacts;
@@ -51,13 +52,16 @@ public class ProtecodeScPlugin extends Builder {
     private ProtecodeScService service = null;
     
     // Below used in the scan process
-    private List<FileAndResult> results = new ArrayList<>();    
+    private List<FileAndResult> results = new ArrayList<>(); 
+    private long stopAt = 0;
+    
+    public static String REPORT_DIRECTORY = "reports";
     
     @DataBoundConstructor
     public ProtecodeScPlugin(
         String credentialsId, 
         String protecodeScGroup,        
-        String artifactDir, 
+        String filesToScanDirectory, 
         boolean convertToSummary,
         boolean failIfVulns,
         boolean leaveArtifacts, 
@@ -66,7 +70,7 @@ public class ProtecodeScPlugin extends Builder {
         System.out.println("-------- ProtecodeScPlugin");
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
-        this.artifactDir = artifactDir;
+        this.filesToScanDirectory = filesToScanDirectory;
         this.convertToSummary = convertToSummary;
         this.failIfVulns = failIfVulns;
         this.leaveArtifacts = leaveArtifacts;
@@ -98,14 +102,23 @@ public class ProtecodeScPlugin extends Builder {
         return service;
     }
     
+    private boolean isTimeout() {
+        return System.currentTimeMillis() > stopAt;
+    }
+    
+    private void startPollTimer() {
+        // stopAt is set to be the moment we don't try to poll anymore
+        stopAt = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
+    }
+    
     @Override    
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
+    public synchronized boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
         BuildListener listener) throws InterruptedException, IOException 
     {               
         PrintStream log = listener.getLogger();
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
-        List<ReadableFile> filesToScan = Utils.getFiles(artifactDir, build, listener);
+        List<ReadableFile> filesToScan = Utils.getFiles(filesToScanDirectory, build, listener);
         
         for (ReadableFile file: filesToScan) {
             log.print("File: " + file.name());
@@ -126,11 +139,24 @@ public class ProtecodeScPlugin extends Builder {
         // Then we wait and continue only when we have as many UploadResponses as we have 
         // filesToScan. Sad but true       
         log.print("Calling wait");
-        waitForUploadResponses(filesToScan.size(), log);
-
-        // start polling for reponses to scans
+        waitForUploadResponses(filesToScan.size(), log);       
         
-        return true;
+        // start polling for reponses to scans
+        poll(listener);
+        
+        //evaluate
+        boolean verdict = ProtecodeEvaluator.evaluate(results, build, listener);
+        
+        // make results
+        ReportBuilder.report(results, build, listener, REPORT_DIRECTORY);
+        
+        
+        // summarise
+        if(convertToSummary) {
+            
+        }
+        
+        return verdict;
     }
     
      /**
@@ -142,17 +168,21 @@ public class ProtecodeScPlugin extends Builder {
     }
     
     /**
-     * TODO clean up depth, this is awful
+     * TODO clean up depth, move logic to other methods.
      * @param listener 
      */
     private void poll(BuildListener listener) {
+        startPollTimer();
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
-        do {            
+        do {
+            if (isTimeout()) {
+                break;
+            }
             results.forEach((fileAndResult) -> {
                 if (!fileAndResult.ready()) {  // if this return true, we can ignore the fileAndResult
                     if (fileAndResult.uploadHTTPStatus() == 200) {                        
-                        if ("R".equals(fileAndResult.getState())) {
+                        if ("R".equals(fileAndResult.getState()) && !fileAndResult.isResultBeingFetched()) {
                             fileAndResult.setResultBeingFetched(true);
                             serv.scanResult(
                                 fileAndResult.getUploadResponse().getResults().getSha1sum(), 
@@ -174,6 +204,11 @@ public class ProtecodeScPlugin extends Builder {
                     }
                 }
             });
+            try {
+                this.wait(1000);
+            } catch (InterruptedException e) {
+                
+            }            
         } while (allNotReady());
     }
     
@@ -181,21 +216,27 @@ public class ProtecodeScPlugin extends Builder {
         return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.ready()));
     }
     
+    /**
+     * Waits until all upload results are in. Returns only then.
+     * @param fileCount How many files were uploaded
+     * @param log for printing to Jenkins build console.
+     */
     private synchronized void waitForUploadResponses(int fileCount, PrintStream log) {
         log.print("Starting wait");
         boolean waitForResponses = true;
         while (waitForResponses) {                   
             try {
                 this.wait(1000);
-                log.print("Tick");
-                if (uploadResponses.size() == fileCount) {
+                // TODO: remove print after testing
+                log.print("Tick - remove this");
+                if (results.size() == fileCount) {
                     waitForResponses = false;
                 }
             } catch (InterruptedException ie) {
                 log.print("Interrupted");
             }
         }
-    }
+    }        
     
     @Override
     public DescriptorImpl getDescriptor() {
