@@ -32,7 +32,14 @@ public final class HttpTypes {
         private Meta meta;
         private Results results;
     } 
-    
+    /*
+    { "components" : [ ], 
+    "details" : { "filetypes" : { "bzip2 compressed data" : 50 }, "flagged" : { } }, 
+    "id" : 1, 
+    "report_url" : "http://127.0.0.1:8000/products/1/", 
+    "sha1sum" : "9c91bcf3aced19c5f3b635e4c8c25dd67b36d6ed", 
+    "status" : "R", "summary" : { "verdict" : { "detailed" : "No libraries or licenses could be identified.", "shortDesc" : "N/A" }, "vulnCount" : { "exact" : 0, "historical" : 0 } } }
+    */
     public static @Data class Results {
         private String code;
         private int id;

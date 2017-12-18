@@ -48,6 +48,7 @@ public class Utils {
     
     public static List<ReadableFile> getFiles(String fileDirectory, AbstractBuild<?, ?> build,
             BuildListener listener) throws IOException, InterruptedException {
+        // TODO, make sure the path works, add / to end and so forth
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
         log.println("Reading from directory: " + fileDirectory);
@@ -85,10 +86,13 @@ public class Utils {
     public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {        
         PrintStream log = listener.getLogger();        
         FilePath jsonReportDirectory = build.getWorkspace().child("reports");
-        // these will NOT throw exceptions
-        jsonReportDirectory.mkdirs();
-        if (!jsonReportDirectory.isDirectory()) {
-            log.println("Report directory could not be created.");
+        try {
+            jsonReportDirectory.mkdirs();
+            if (!jsonReportDirectory.isDirectory()) {
+                log.println("Report directory could not be created.");
+                return false;
+            }
+        } catch (IOException | InterruptedException e) {
             return false;
         }
         return true;

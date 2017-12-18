@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Results;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.*;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
 import hudson.FilePath;
@@ -92,36 +93,36 @@ public class ReportBuilder {
         return true;
     }
 
-    static void createXmlReport(final FilePath[] jsonFiles, final ObjectMapper mapper,
+    private static void createXmlReport(final FilePath[] jsonFiles, final ObjectMapper mapper,
             OutputStream xmlFile) throws IOException, InterruptedException {
 
-        PrintStream out = new PrintStream(xmlFile, false, "UTF-8");
-        out.println(
+        try (PrintStream out = new PrintStream(xmlFile, false, "UTF-8")) {
+            out.println(
                 "<section name=\"Protecode SC analysis result\" fontcolor=\"#000000\">");
-        for (FilePath jsonFile : jsonFiles) {
-            try (InputStream in = new BufferedInputStream(jsonFile.read())) {
-                SerializableResult readResult = mapper.readValue(in, SerializableResult.class);
-                Long exact = readResult.getResults().getSummary().getVulnCount()
+            for (FilePath jsonFile : jsonFiles) {
+                try (InputStream in = new BufferedInputStream(jsonFile.read())) {
+                    Results readResult = mapper.readValue(in, Results.class);
+                    Long exact = readResult.getSummary().getVulnCount()
                         .getExact();
-                String verdict = readResult.getResults().getSummary().getVerdict()
+                    String verdict = readResult.getSummary().getVerdict()
                         .getShortDesc();
-                String verdict_detailed = readResult.getResults().getSummary().getVerdict()
+                    String verdict_detailed = readResult.getSummary().getVerdict()
                         .getDetailed();
-                out.println("<accordion name =\"" + readResult.getFilename()
+                    out.println("<accordion name =\"" + "jamppa"//readResult.getFilename()
                         + " (" + verdict + ")\">");
-
-                Color color = exact > 0L ? Color.RED : Color.GREEN;
-                writeField(out, "Verdict", verdict_detailed, color);
-                writeField(out, "Vulnerabilities", exact.toString(), Color.BLACK);
-                writeField(out, "Report", "", Color.BLACK,
-                                "<a target=\"_blank\" href=\""
-                                + readResult.getResults().getReport_url()
-                                + "\">View full report in Protecode SC </a>");
-                out.println("</accordion>");
+                    
+                    Color color = exact > 0L ? Color.RED : Color.GREEN;
+                    writeField(out, "Verdict", verdict_detailed, color);
+                    writeField(out, "Vulnerabilities", exact.toString(), Color.BLACK);
+                    writeField(out, "Report", "", Color.BLACK,
+                        "<a target=\"_blank\" href=\""
+                            + readResult.getReport_url()
+                            + "\">View full report in Protecode SC </a>");
+                    out.println("</accordion>");
+                }
             }
+            out.println("</section>");
         }
-        out.println("</section>");
-        out.close();
     }
    
     private static enum Color {

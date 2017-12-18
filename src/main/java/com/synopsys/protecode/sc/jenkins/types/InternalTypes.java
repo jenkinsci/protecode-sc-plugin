@@ -52,7 +52,7 @@ public class InternalTypes {
             if (!ready()) {
                 throw new RuntimeException("No result received for file: " + this.filename);
             }
-            return resultResponse.getResults().getSummary().getVulnCount().getTotal() > 0;
+            return resultResponse.getResults().getSummary().getVulnCount().getExact() > 0;
         }                        
          
         public SerializableResult getSerializableResult() {
@@ -61,11 +61,14 @@ public class InternalTypes {
     }
     
     public static @Data class SerializableResult {
+        public SerializableResult() {
+            // left empty
+        }
         public SerializableResult(String filename, HttpTypes.Results results, HttpTypes.Meta meta) {
             this.filename = filename;
             this.results = results;
             this.meta = meta;
-        }    
+        }
         private String filename;
         private HttpTypes.Results results;
         private HttpTypes.Meta meta;
