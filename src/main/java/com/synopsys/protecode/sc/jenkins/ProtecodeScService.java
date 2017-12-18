@@ -47,7 +47,11 @@ public @Data class ProtecodeScService {
     }       
                     
     public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
-        Call<HttpTypes.UploadResponse> call = backend.scan(group, fileName, requestBody);                        
+        Call<HttpTypes.UploadResponse> call = backend.scan(
+            group, 
+            Utils.replaceSpaceWithPlus(fileName), 
+            requestBody
+        );                        
         call.enqueue(new Callback<HttpTypes.UploadResponse>() {  
             @Override
             public void onResponse(

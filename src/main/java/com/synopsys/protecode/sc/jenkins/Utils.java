@@ -83,7 +83,11 @@ public class Utils {
         }
         
         return readableFiles;
-    }           
+    }         
+    
+    public static String replaceSpaceWithPlus(String line) {
+        return line.replaceAll(" ", "+");
+    }
     
     public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {        
         PrintStream log = listener.getLogger();        
