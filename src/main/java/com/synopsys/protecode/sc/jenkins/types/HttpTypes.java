@@ -2,6 +2,7 @@ package com.synopsys.protecode.sc.jenkins.types;
 
 import com.google.gson.annotations.SerializedName;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -48,6 +49,7 @@ public final class HttpTypes {
         private final String name;
     }
     
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public static @Data class Groups {
         private final Meta meta;
         private final Group [] groups;                       

@@ -60,7 +60,9 @@ public class ReportBuilder {
         BuildListener listener,
         String reportDirectory
     ) throws IOException, InterruptedException {
+        @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         FilePath jsonReportDirectory = build.getWorkspace().child(reportDirectory);
+        
         PrintStream log = listener.getLogger();
         
         log.println("Creating xml for summary plugin");

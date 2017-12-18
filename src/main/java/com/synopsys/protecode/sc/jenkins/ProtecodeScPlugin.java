@@ -48,14 +48,14 @@ public class ProtecodeScPlugin extends Builder {
     @Getter @Setter private boolean failIfVulns;
     @Getter @Setter private boolean leaveArtifacts;
     @Getter @Setter private int scanTimeout;  
-    // don't access service directly, use service(). It checks w
+    // don't access service directly, use service(). It checks whether this exists
     private ProtecodeScService service = null;
     
     // Below used in the scan process
-    private List<FileAndResult> results = new ArrayList<>(); 
+    private final List<FileAndResult> results = new ArrayList<>(); 
     private long stopAt = 0;
     
-    public static String REPORT_DIRECTORY = "reports";
+    public static final String REPORT_DIRECTORY = "reports";
     
     @DataBoundConstructor
     public ProtecodeScPlugin(
@@ -112,7 +112,7 @@ public class ProtecodeScPlugin extends Builder {
     }
     
     @Override    
-    public synchronized boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
+    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
         BuildListener listener) throws InterruptedException, IOException 
     {               
         PrintStream log = listener.getLogger();
@@ -120,8 +120,20 @@ public class ProtecodeScPlugin extends Builder {
         ProtecodeScService serv = service();
         List<ReadableFile> filesToScan = Utils.getFiles(filesToScanDirectory, build, listener);
         
+        if (filesToScan.isEmpty()) {
+            // no files to scan, no failure
+            return true;
+        } else {
+            log.print("Was not empty, proceding");
+            Utils.log("Was not empty, proceding");
+        }
+        
+        log.print("Sending files");
+        Utils.log("Sending files");
+        
         for (ReadableFile file: filesToScan) {
             log.print("File: " + file.name());
+            Utils.log("File: " + file.name());
             serv.scan(
                 protecodeScGroup, 
                 file.name(), 
@@ -139,7 +151,11 @@ public class ProtecodeScPlugin extends Builder {
         // Then we wait and continue only when we have as many UploadResponses as we have 
         // filesToScan. Sad but true       
         log.print("Calling wait");
-        waitForUploadResponses(filesToScan.size(), log);       
+        Utils.log("Calling wait");
+        waitForUploadResponses(filesToScan.size(), log); 
+        
+        log.print("Wait over");
+        Utils.log("Wait over");
         
         // start polling for reponses to scans
         poll(listener);
@@ -149,8 +165,7 @@ public class ProtecodeScPlugin extends Builder {
         
         // make results
         ReportBuilder.report(results, build, listener, REPORT_DIRECTORY);
-        
-        
+            
         // summarise
         if(convertToSummary) {
             
@@ -221,12 +236,12 @@ public class ProtecodeScPlugin extends Builder {
      * @param fileCount How many files were uploaded
      * @param log for printing to Jenkins build console.
      */
-    private synchronized void waitForUploadResponses(int fileCount, PrintStream log) {
+    private void waitForUploadResponses(int fileCount, PrintStream log) {
         log.print("Starting wait");
         boolean waitForResponses = true;
         while (waitForResponses) {                   
             try {
-                this.wait(1000);
+                Thread.sleep(10 * 1000);
                 // TODO: remove print after testing
                 log.print("Tick - remove this");
                 if (results.size() == fileCount) {
@@ -239,8 +254,7 @@ public class ProtecodeScPlugin extends Builder {
     }        
     
     @Override
-    public DescriptorImpl getDescriptor() {
-        System.out.println("------------- getDescriptor");        
+    public DescriptorImpl getDescriptor() {      
         return (DescriptorImpl) super.getDescriptor();
     }
     
@@ -253,10 +267,7 @@ public class ProtecodeScPlugin extends Builder {
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {        
         @Getter @Setter private String protecodeScHost;
         @Getter @Setter private boolean dontCheckCert;
-        /* These are used to combine credentials with group to check is the combination valid */
-        private String credentialsForCheck = null;
-        private String groupForCheck = null;
-                
+        
         public DescriptorImpl() {           
             super.load();           
         }
@@ -264,8 +275,7 @@ public class ProtecodeScPlugin extends Builder {
         @Override
         @SuppressWarnings("ResultOfObjectAllocationIgnored")
         public boolean configure(StaplerRequest req, JSONObject formData)
-                throws Descriptor.FormException {
-            System.out.println("------- configure");
+                throws Descriptor.FormException {            
             // To persist global configuration information,
             // set that to properties and call save().
             try {
@@ -317,22 +327,6 @@ public class ProtecodeScPlugin extends Builder {
             } catch (NumberFormatException e) {
                 return FormValidation.error("The url provided was not formatted correctly");
             }
-        }
-        
-        public FormValidation doCheckProtecodeScGroup(@QueryParameter String protecodeScGroup) {           
-            Utils.log("group check");
-            groupForCheck = protecodeScGroup;
-            return FormValidation.ok();
-        }
-
-        public FormValidation doCheckCredentialsId(@QueryParameter String credentialsId) {           
-            Utils.log("cred check");
-            credentialsForCheck = credentialsId;
-            return FormValidation.ok();
-        }
-        
-        private boolean checkConnection(String group, String credentialsId) {
-            return true;
         }
         
         @Override

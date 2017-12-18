@@ -18,21 +18,19 @@ import okhttp3.Request;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
 import okhttp3.Credentials;
 
 
-/**
- *
- * @author pajunen
- */
 public class ProtecodeScConnection {
     private ProtecodeScConnection() {
         // Don't instantiate me.
     }
     
-    private ProtecodeScApi instance;
+    //@SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
+    //private ProtecodeScApi instance = null;
     
     public static ProtecodeScApi backend(String credentialsId, String urlString) {    
         URL url;

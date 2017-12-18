@@ -50,8 +50,9 @@ public class Utils {
             BuildListener listener) throws IOException, InterruptedException {
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
-        log.print("Reading from directory: " + fileDirectory);
+        log.println("Reading from directory: " + fileDirectory);
         if (!StringUtils.isEmpty(fileDirectory)) {
+            @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
             List<FilePath> files = build.getWorkspace().child(fileDirectory)
                     .list(new ScanFileFilter());
             if (!files.isEmpty()) {
@@ -63,7 +64,7 @@ public class Utils {
             } else {
                 log.println(
                     String.format(
-                        "Could not get additional artifacts from %s", 
+                        "Could not get files to scan from %s", 
                         fileDirectory
                     )
                 );
@@ -81,19 +82,15 @@ public class Utils {
         return readableFiles;
     }           
     
-    public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {
-        PrintStream log = listener.getLogger();
-        try {
-            FilePath jsonReportDirectory = build.getWorkspace().child("reports");
-            jsonReportDirectory.mkdirs();
-            if (!jsonReportDirectory.isDirectory()) {
-                log.println("Report directory could not be created.");
-                return false;
-            }
-            return true;
-        } catch (Exception e) {
-            listener.error("An exception occured while creating directory: " + name);            
+    public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {        
+        PrintStream log = listener.getLogger();        
+        FilePath jsonReportDirectory = build.getWorkspace().child("reports");
+        // these will NOT throw exceptions
+        jsonReportDirectory.mkdirs();
+        if (!jsonReportDirectory.isDirectory()) {
+            log.println("Report directory could not be created.");
             return false;
         }
+        return true;
     }
 }
