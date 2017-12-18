@@ -95,7 +95,7 @@ public class ProtecodeScPlugin extends Builder {
                     "Protecode SC host not defined. Configure it to global plugin properties");
             return false;
         }       
-        // TODO check whether group is ok
+        // TODO: check whether group is ok
         return true;
     }
     
@@ -135,16 +135,13 @@ public class ProtecodeScPlugin extends Builder {
             // no files to scan, no failure
             return true;
         } else {
-            log.println("Was not empty, proceding");
-            Utils.log("Was not empty, proceding");
+            log.println("Directory for files to scan was not empty, proceding");            
         }
         
-        log.println("Sending files");
-        Utils.log("Sending files");
+        log.println("Sending files");        
         
         for (ReadableFile file: filesToScan) {
-            log.println("File: " + file.name());
-            Utils.log("File: " + file.name());
+            log.println("Sending file: " + file.name());            
             serv.scan(
                 protecodeScGroup, 
                 file.name(), 
@@ -162,11 +159,8 @@ public class ProtecodeScPlugin extends Builder {
         // Then we wait and continue only when we have as many UploadResponses as we have 
         // filesToScan. Sad but true       
         log.println("Calling wait");
-        Utils.log("Calling wait");
-        waitForUploadResponses(filesToScan.size(), log); 
-        
+        waitForUploadResponses(filesToScan.size(), log);        
         log.println("Wait over");
-        Utils.log("Wait over");
         
         // start polling for reponses to scans
         poll(listener);                
@@ -312,10 +306,8 @@ public class ProtecodeScPlugin extends Builder {
             return super.configure(req, formData);
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
-            // The host must have been set before this!
-            // TODO find a nice way to tell the user to fill in the host first
-            Utils.log("---------------------------------- doFillCreds");
+        public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {            
+            // TODO Find a nice way to use this to fetch possible groups
             StandardListBoxModel result = new StandardListBoxModel();
             result.withEmptySelection();
             result.withMatching(
@@ -328,20 +320,8 @@ public class ProtecodeScPlugin extends Builder {
             return result;
         }
 
-        public FormValidation doCheckScanTimeout(@QueryParameter String value) 
-            throws IOException, ServletException {
-            Utils.log("validate timeout");
-            try {
-                Integer.parseInt(value);
-                return FormValidation.ok();
-            } catch (NumberFormatException e) {
-                return FormValidation.error("Not a number");
-            }
-        }
-
         public FormValidation doCheckProtecodeScHost(@QueryParameter String protecodeScHost)            
-            throws IOException, ServletException {
-            System.out.println("checking host");
+            throws IOException, ServletException {            
             try {
                 URL protecodeHost = new URL(protecodeScHost);
                 this.protecodeScHost = protecodeHost.toExternalForm();
@@ -353,12 +333,12 @@ public class ProtecodeScPlugin extends Builder {
         
         @Override
         public String getDisplayName() {
+            // TODO: give a nicer name 
             return "New Plugin!";
         }          
 
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
-            System.out.println("------- isApplicable");
             return true;
         }   
     }

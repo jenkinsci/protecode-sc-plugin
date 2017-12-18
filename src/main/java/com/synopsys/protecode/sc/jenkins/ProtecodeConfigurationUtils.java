@@ -23,6 +23,12 @@ public final class ProtecodeConfigurationUtils {
         // don't instantiate me
     }
     
+    /**
+     * TODO: Use this. Implement this fully.
+     * @param descriptor
+     * @param credentialsId
+     * @return 
+     */
     public static StandardUsernamePasswordCredentials getCredentials(
         ProtecodeScPlugin.DescriptorImpl descriptor,
         String credentialsId

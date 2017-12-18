@@ -63,6 +63,7 @@ public class ReportBuilder {
         BuildListener listener,
         String reportDirectory
     ) throws IOException, InterruptedException {
+        // TODO: This doesn't seem to suppres the error
         @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         FilePath jsonReportDirectory = build.getWorkspace().child(reportDirectory);
         
@@ -85,10 +86,10 @@ public class ReportBuilder {
 
             log.println("Creating xml report to " + xmlFile.getName());
 
-            OutputStream out = new BufferedOutputStream(
-                    new FileOutputStream(xmlFile));
-            createXmlReport(jsonFiles, mapper, out);
-            out.close();
+            try (OutputStream out = new BufferedOutputStream(
+                new FileOutputStream(xmlFile))) {
+                createXmlReport(jsonFiles, mapper, out);
+            }
         } catch (NullPointerException e) {
             // NOP
         }
@@ -111,6 +112,7 @@ public class ReportBuilder {
                     String verdict_detailed = readResult.getSummary().getVerdict()
                         .getDetailed();
                     
+                    // TODO: Provide name more nicely
                     String fileName = jsonFile.getName().substring(
                         0, 
                         jsonFile.getName().indexOf(PROTECODE_FILE_TAG) - 1
