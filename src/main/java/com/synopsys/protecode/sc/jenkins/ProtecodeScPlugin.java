@@ -151,7 +151,7 @@ public class ProtecodeScPlugin extends Builder {
                     file.read()
                 ), 
                 (UploadResponse resp) -> {
-                    addUploadResponse(file.name(), resp);
+                    addUploadResponse(listener, file.name(), resp);
                 }
             );   
         }
@@ -183,7 +183,9 @@ public class ProtecodeScPlugin extends Builder {
      * Called by the lamdas given to upload rest calls
      * @param response The responses fetched from Protecode SC
      */
-    private void addUploadResponse(String name, UploadResponse response) {
+    private void addUploadResponse(BuildListener listener, String name, UploadResponse response) {
+        PrintStream log = listener.getLogger();
+        log.println("adding upload response for file: " + name);
         results.add(new FileAndResult(name, response));
     }
     
@@ -201,6 +203,7 @@ public class ProtecodeScPlugin extends Builder {
                 break;
             }
             results.forEach((fileAndResult) -> {
+                // TODO: Add check if the result never was reached
                 log.println("Starting result polling and fetching");
                 if (!fileAndResult.ready()) {  // if this return true, we can ignore the fileAndResult                    
                     log.println("no result received yet for " + fileAndResult.getFilename());
@@ -255,19 +258,28 @@ public class ProtecodeScPlugin extends Builder {
     private void waitForUploadResponses(int fileCount, PrintStream log) {
         log.println("Starting wait");
         boolean waitForResponses = true;
+        // TODO: Add timeout since some files get no reponse from protecode
         while (waitForResponses) {                   
             try {                
                 Thread.sleep(10 * 1000);
                 // TODO: remove print after testing
                 log.println("Tick - remove this");
                 if (results.size() == fileCount) {
+                    log.println("true!" + results.size() + ">=" + "fileCount");
                     waitForResponses = false;
+                } else {
+                    log.println("false" + results.size() + "<" + "fileCount");
                 }
             } catch (InterruptedException ie) {
                 log.println("Interrupted");
             }
         }
     }        
+    
+    private void removeOrphans() {
+        // TODO check if some are null
+        // -> add results required
+    }
     
     @Override
     public DescriptorImpl getDescriptor() {      
@@ -333,7 +345,8 @@ public class ProtecodeScPlugin extends Builder {
         
         @Override
         public String getDisplayName() {
-            // TODO: give a nicer name 
+            // TODO: give a nicer name
+            // This name is such to distinguish it clearly from the old plugin (whcih I also have)
             return "New Plugin!";
         }          
 
