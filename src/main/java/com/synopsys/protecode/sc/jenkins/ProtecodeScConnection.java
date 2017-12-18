@@ -1,11 +1,15 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/*******************************************************************************
+* Copyright (c) 2017 Synopsys, Inc
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+*    Synopsys, Inc - initial implementation and documentation
+*******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-//import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
@@ -18,7 +22,6 @@ import okhttp3.Request;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import jenkins.model.Jenkins;
 import okhttp3.Credentials;
@@ -28,9 +31,6 @@ public class ProtecodeScConnection {
     private ProtecodeScConnection() {
         // Don't instantiate me.
     }
-    
-    //@SuppressFBWarnings("UWF_UNWRITTEN_FIELD")
-    //private ProtecodeScApi instance = null;
     
     public static ProtecodeScApi backend(String credentialsId, String urlString) {    
         URL url;
@@ -57,14 +57,13 @@ public class ProtecodeScConnection {
                                 new HostnameRequirement(url.toExternalForm())),
                         CredentialsMatchers.withId(credentialsId));
             
+            // Right now we can't provide credentials "as is" to protecode so we need to extract to
+            // contents
             String protecodeScUser = credentials.getUsername();
-            String protecodeScPass = credentials.getPassword().toString();
-            
-            System.out.println("Creds: " + credentials.getUsername() + ":" + credentials.getPassword());
+            String protecodeScPass = credentials.getPassword().toString();                        
 
             Request.Builder builder = originalRequest.newBuilder().header(
                 "Authorization", 
-//                credentials.toString()
                  Credentials.basic(protecodeScUser, protecodeScPass)
             );
             

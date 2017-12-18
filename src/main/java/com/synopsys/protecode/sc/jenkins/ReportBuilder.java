@@ -1,8 +1,13 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+/*******************************************************************************
+* Copyright (c) 2017 Synopsys, Inc
+* All rights reserved. This program and the accompanying materials
+* are made available under the terms of the Eclipse Public License v1.0
+* which accompanies this distribution, and is available at
+* http://www.eclipse.org/legal/epl-v10.html
+*
+* Contributors:
+*    Synopsys, Inc - initial implementation and documentation
+*******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -25,10 +30,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.List;
 
-/**
- *
- * @author pajunen
- */
+
 public class ReportBuilder {
     
     private static final String PROTECODE_FILE_TAG = "protecodesc";
@@ -108,8 +110,12 @@ public class ReportBuilder {
                         .getShortDesc();
                     String verdict_detailed = readResult.getSummary().getVerdict()
                         .getDetailed();
-                    out.println("<accordion name =\"" + "jamppa"//readResult.getFilename()
-                        + " (" + verdict + ")\">");
+                    
+                    String fileName = jsonFile.getName().substring(
+                        0, 
+                        jsonFile.getName().indexOf(PROTECODE_FILE_TAG) - 1
+                    );
+                    out.println("<accordion name =\"" + fileName + " (" + verdict + ")\">");
                     
                     Color color = exact > 0L ? Color.RED : Color.GREEN;
                     writeField(out, "Verdict", verdict_detailed, color);
@@ -124,6 +130,8 @@ public class ReportBuilder {
             out.println("</section>");
         }
     }
+    
+//    private static get
    
     private static enum Color {
         RED("#ff0000"), GREEN("#00ff00"), YELLOW("#ff9c00"), BLACK("#000000");
