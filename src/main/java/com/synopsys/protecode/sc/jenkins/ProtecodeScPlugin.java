@@ -24,12 +24,15 @@ import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
 
 import hudson.Extension;
 import hudson.ExtensionPoint;
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -41,7 +44,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
+import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
@@ -49,17 +55,19 @@ import okhttp3.MediaType;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-public class ProtecodeScPlugin extends Builder {
-    @Getter @Setter private String credentialsId;
-    @Getter @Setter private String protecodeScGroup;    
-    @Getter @Setter private String filesToScanDirectory;
-    @Getter @Setter private boolean convertToSummary = true;
-    @Getter @Setter private boolean failIfVulns;
-    @Getter @Setter private boolean leaveArtifacts;
-    @Getter @Setter private int scanTimeout;  
+public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
+    @Getter private String credentialsId;
+    @Getter private String protecodeScGroup;    
+    @Getter private String filesToScanDirectory;
+    //@Getter private boolean convertToSummary = true;
+    private boolean convertToSummary = true;
+    @Getter private boolean failIfVulns;
+    @Getter private boolean leaveArtifacts;
+    @Getter private int scanTimeout;  
     // don't access service directly, use service(). It checks whether this exists
     private ProtecodeScService service = null;
     
@@ -69,7 +77,7 @@ public class ProtecodeScPlugin extends Builder {
     
     public static final String REPORT_DIRECTORY = "reports";
     
-    @DataBoundConstructor
+    @DataBoundConstructor   
     public ProtecodeScPlugin(
         String credentialsId, 
         String protecodeScGroup,        
@@ -88,6 +96,16 @@ public class ProtecodeScPlugin extends Builder {
         this.leaveArtifacts = leaveArtifacts;
         this.scanTimeout = scanTimeout > 10 ? scanTimeout : 10;
     }       
+    
+    @DataBoundSetter // Groovy
+    public void setConvertToSummary(boolean convertToSummary) {
+        this.convertToSummary = convertToSummary;
+    }
+    
+    @CheckForNull
+    public boolean getConvertToSummary() {
+        return convertToSummary;
+    }   
     
     @Override
     public boolean prebuild(AbstractBuild<?, ?> build, BuildListener listener) {
@@ -291,10 +309,14 @@ public class ProtecodeScPlugin extends Builder {
     public String getTask() {
         return "Protecode SC";
     }
+
+    @Override
+    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
     
     // TODO: move to different file, this clutters
-    @Symbol("protecodesc") // for groovy access
-    @Extension
+    @Extension @Symbol("protecodesc_groovy_step")
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {        
         @Getter @Setter private String protecodeScHost;
         @Getter @Setter private boolean dontCheckCert;
