@@ -46,6 +46,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
 import okhttp3.MediaType;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -100,6 +101,7 @@ public class ProtecodeScPlugin extends Builder {
     }
     
     private ProtecodeScService service() {
+        // TODO: Add check that service is ok
         if (service == null) {
             try {
             service = ProtecodeScService.getInstance(
@@ -291,6 +293,7 @@ public class ProtecodeScPlugin extends Builder {
     }
     
     // TODO: move to different file, this clutters
+    @Symbol("protecodesc") // for groovy access
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {        
         @Getter @Setter private String protecodeScHost;
@@ -320,6 +323,7 @@ public class ProtecodeScPlugin extends Builder {
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {            
             // TODO Find a nice way to use this to fetch possible groups
+            //  - this might be impossible in this scope
             StandardListBoxModel result = new StandardListBoxModel();
             result.withEmptySelection();
             result.withMatching(
@@ -337,9 +341,9 @@ public class ProtecodeScPlugin extends Builder {
             try {
                 URL protecodeHost = new URL(protecodeScHost);
                 this.protecodeScHost = protecodeHost.toExternalForm();
-                return FormValidation.ok("everything nice with url!");
+                return FormValidation.ok();
             } catch (NumberFormatException e) {
-                return FormValidation.error("The url provided was not formatted correctly");
+                return FormValidation.error("Please provide a valid URL");
             }
         }
         

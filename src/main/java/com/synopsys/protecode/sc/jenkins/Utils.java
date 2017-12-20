@@ -85,8 +85,8 @@ public class Utils {
         return readableFiles;
     }         
     
-    public static String replaceSpaceWithPlus(String line) {
-        return line.replaceAll(" ", "+");
+    public static String replaceSpaceWithUnderscore(String line) {
+        return line.replace(" ", "_");
     }
     
     public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {        

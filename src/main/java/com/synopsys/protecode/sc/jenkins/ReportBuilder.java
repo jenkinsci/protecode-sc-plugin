@@ -132,8 +132,6 @@ public class ReportBuilder {
             out.println("</section>");
         }
     }
-    
-//    private static get
    
     private static enum Color {
         RED("#ff0000"), GREEN("#00ff00"), YELLOW("#ff9c00"), BLACK("#000000");

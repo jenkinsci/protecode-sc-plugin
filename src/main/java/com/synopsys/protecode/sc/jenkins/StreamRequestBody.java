@@ -27,7 +27,9 @@ public class StreamRequestBody extends RequestBody {
     private final MediaType contentType;
 
     public StreamRequestBody(MediaType contentType, InputStream inputStream) {
-        if (inputStream == null) throw new NullPointerException("inputStream == null");
+        if (inputStream == null) {
+            throw new NullPointerException("inputStream == null");
+        }
         this.contentType = contentType;
         this.inputStream = inputStream;
     }

@@ -26,8 +26,7 @@ import lombok.Data;
  * This class implements and encapsulates the interface towards Protecode.
  * 
  * As a service class it won't know what it's calling, so the backend must be provided
- for it.
- * 
+ * for it.
  * @author pajunen
  */
 public @Data class ProtecodeScService {
@@ -49,7 +48,7 @@ public @Data class ProtecodeScService {
     public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
         Call<HttpTypes.UploadResponse> call = backend.scan(
             group, 
-            Utils.replaceSpaceWithPlus(fileName), 
+            Utils.replaceSpaceWithUnderscore(fileName), 
             requestBody
         );                        
         call.enqueue(new Callback<HttpTypes.UploadResponse>() {  
