@@ -18,7 +18,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
-import java.io.PrintStream;
 import java.net.URL;
 import lombok.Data;
 
@@ -60,13 +59,11 @@ public @Data class ProtecodeScService {
                 if (response.isSuccessful()) {
                     listener.processUploadResult(response.body());            
                 } else {
-                    Utils.log("BOBOBOBOBOBOBO");
                     // TODO: What will cause this error
                 }
             }
             @Override
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
-                Utils.log("BOBOBOBOBOBOBO2");
                 // something went completely south (like no internet connection)
                 // TODO: Should we handle this somehow
             }

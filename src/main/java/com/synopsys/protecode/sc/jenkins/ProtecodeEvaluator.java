@@ -11,16 +11,12 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import java.util.List;
 
 
 public class ProtecodeEvaluator {
     public static boolean evaluate(
-        List<InternalTypes.FileAndResult> results, 
-        AbstractBuild<?, ?> build, 
-        BuildListener listener
+        List<InternalTypes.FileAndResult> results
     ) {
         return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.verdict()));               
     }

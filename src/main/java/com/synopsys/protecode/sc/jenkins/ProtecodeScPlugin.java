@@ -32,6 +32,7 @@ import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.Run;
+import hudson.model.Run.Artifact;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
@@ -75,6 +76,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     private final List<FileAndResult> results = new ArrayList<>(); 
     private long stopAt = 0;
     
+    // used for printing to the jenkins console
+    PrintStream log = null;
+    TaskListener listener = null;
+    
     public static final String REPORT_DIRECTORY = "reports";
     
     @DataBoundConstructor   
@@ -87,7 +92,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         boolean leaveArtifacts, 
         int scanTimeout
     ) {
-        System.out.println("-------- ProtecodeScPlugin");
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
         this.filesToScanDirectory = filesToScanDirectory;
@@ -142,14 +146,35 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         stopAt = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
     }
     
+    @Override
+    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) 
+        throws InterruptedException, IOException 
+    {                
+        log = listener.getLogger();
+        this.listener = listener;
+        doPerform(run, workspace);
+    }
+    
     @Override    
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, 
         BuildListener listener) throws InterruptedException, IOException 
-    {               
-        PrintStream log = listener.getLogger();
+    {         
+        log = listener.getLogger();
+        this.listener = (TaskListener) listener;
+        return doPerform(build, build.getWorkspace());
+    }
+    
+    public boolean doPerform(Run<?, ?> run, FilePath workspace) 
+        throws IOException, InterruptedException 
+    {        
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
-        List<ReadableFile> filesToScan = Utils.getFiles(filesToScanDirectory, build, listener);
+        List<ReadableFile> filesToScan = Utils.getFiles(
+            filesToScanDirectory, 
+            workspace, 
+            run, 
+            listener
+        );
         
         if (filesToScan.isEmpty()) {
             // no files to scan, no failure
@@ -171,7 +196,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                     file.read()
                 ), 
                 (UploadResponse resp) -> {
-                    addUploadResponse(listener, file.name(), resp);
+                    addUploadResponse(log, file.name(), resp);
                 }
             );   
         }
@@ -183,17 +208,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         log.println("Wait over");
         
         // start polling for reponses to scans
-        poll(listener);                
+        poll();                
         
         //evaluate
-        boolean verdict = ProtecodeEvaluator.evaluate(results, build, listener);
+        boolean verdict = ProtecodeEvaluator.evaluate(results);
         
         // make results
-        ReportBuilder.report(results, build, listener, REPORT_DIRECTORY);
+        ReportBuilder.report(results, listener, REPORT_DIRECTORY, workspace);
             
         // summarise
         if(convertToSummary) {
-            ReportBuilder.makeSummary(results, build, listener, REPORT_DIRECTORY);
+            ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
         }
         
         return verdict;
@@ -203,8 +228,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * Called by the lamdas given to upload rest calls
      * @param response The responses fetched from Protecode SC
      */
-    private void addUploadResponse(BuildListener listener, String name, UploadResponse response) {
-        PrintStream log = listener.getLogger();
+    private void addUploadResponse(PrintStream log, String name, UploadResponse response) {        
         log.println("adding upload response for file: " + name);
         results.add(new FileAndResult(name, response));
     }
@@ -213,9 +237,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * TODO clean up depth, move logic to other methods.
      * @param listener 
      */
-    private void poll(BuildListener listener) {
-        startPollTimer();
-        PrintStream log = listener.getLogger();
+    private void poll() {
+        startPollTimer();        
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
         do {
@@ -284,13 +307,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 Thread.sleep(10 * 1000);
                 // TODO: remove print after testing
                 log.println("Tick - remove this");
-                if (results.size() == fileCount) {
-                    log.println("true!" + results.size() + ">=" + "fileCount");
+                if (results.size() >= fileCount) {
+                    log.println("true!" + results.size() + ">=" + "fileCount: " + fileCount);
                     waitForResponses = false;
                 } else {
-                    log.println("false" + results.size() + "<" + "fileCount");
+                    log.println("false" + results.size() + "<" + "fileCount: " + fileCount);
                 }
             } catch (InterruptedException ie) {
+                waitForResponses = false;
                 log.println("Interrupted");
             }
         }
@@ -308,15 +332,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     public String getTask() {
         return "Protecode SC";
-    }
-
-    @Override
-    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    }   
     
     // TODO: move to different file, this clutters
-    @Extension @Symbol("protecodesc_groovy_step")
+    @Extension @Symbol("protecode")
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {        
         @Getter @Setter private String protecodeScHost;
         @Getter @Setter private boolean dontCheckCert;

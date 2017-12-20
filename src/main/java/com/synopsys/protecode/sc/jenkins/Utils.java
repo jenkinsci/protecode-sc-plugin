@@ -12,8 +12,8 @@ package com.synopsys.protecode.sc.jenkins;
 
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import java.io.File;
 import java.io.FileFilter;
 
@@ -24,8 +24,6 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public class Utils {
@@ -34,29 +32,22 @@ public class Utils {
         // don't instantiate me...
     }
     
-    private static final Logger LOGGER = Logger.getLogger(ProtecodeScService.class.getName());      
-    
-    public static void log(String toLog) {
-        LOGGER.log(Level.ALL, toLog);
-    }
-    
     private static class ScanFileFilter implements FileFilter, Serializable {
         @Override
         public boolean accept(File pathname) {
             return pathname.isFile();
-
         }
     }
     
-    public static List<ReadableFile> getFiles(String fileDirectory, AbstractBuild<?, ?> build,
-            BuildListener listener) throws IOException, InterruptedException {
+    public static List<ReadableFile> getFiles(String fileDirectory, FilePath workspace, Run<?, ?> run,
+            TaskListener listener) throws IOException, InterruptedException {
         // TODO, make sure the path works, add / to end and so forth
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
         log.println("Reading from directory: " + fileDirectory);
         if (!StringUtils.isEmpty(fileDirectory)) {
             @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-            List<FilePath> files = build.getWorkspace().child(fileDirectory)
+            List<FilePath> files = workspace.child(fileDirectory)
                     .list(new ScanFileFilter());
             if (!files.isEmpty()) {
                 for (FilePath file : files) {
@@ -76,8 +67,7 @@ public class Utils {
             log.print("Directory empty, no files to scan with ProtecodeSC");
         }
 
-        List<? extends Run<?, ?>.Artifact> buildArtifacts = build
-                .getArtifacts();
+        List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
         for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
             readableFiles.add(new ReadableFile(buildArtifact.getFile()));
         }
@@ -89,9 +79,9 @@ public class Utils {
         return line.replace(" ", "_");
     }
     
-    public static boolean makeDirectory(AbstractBuild<?, ?> build, String name, BuildListener listener) {        
+    public static boolean makeDirectory(String name, FilePath workspace, TaskListener listener) {        
         PrintStream log = listener.getLogger();        
-        FilePath jsonReportDirectory = build.getWorkspace().child("reports");
+        FilePath jsonReportDirectory = workspace.child("reports");
         try {
             jsonReportDirectory.mkdirs();
             if (!jsonReportDirectory.isDirectory()) {

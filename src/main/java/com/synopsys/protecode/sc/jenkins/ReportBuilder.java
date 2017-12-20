@@ -20,6 +20,8 @@ import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
 import hudson.FilePath;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -37,16 +39,16 @@ public class ReportBuilder {
     
     public static boolean report(
         List<FileAndResult> results, 
-        AbstractBuild<?, ?> build, 
-        BuildListener listener,
-        String reportDirectory
+        TaskListener listener,
+        String reportDirectory,
+        FilePath workspace
     ) {
         
-        if (!Utils.makeDirectory(build, reportDirectory, listener)) {
+        if (!Utils.makeDirectory(reportDirectory, workspace, listener)) {
             listener.error("Couldn't create report directory.");
             return false;
         }
-        FilePath jsonReportDirectory = build.getWorkspace().child(reportDirectory);
+        FilePath jsonReportDirectory = workspace.child(reportDirectory);
         
         PrintStream log = listener.getLogger();
         ObjectMapper mapper = getObjectMapper();
@@ -59,13 +61,14 @@ public class ReportBuilder {
     
     public static boolean makeSummary(
         List<FileAndResult> results, 
-        AbstractBuild<?, ?> build, 
-        BuildListener listener,
-        String reportDirectory
+        Run<?, ?> run, 
+        TaskListener listener,
+        String reportDirectory,
+        FilePath workspace
     ) throws IOException, InterruptedException {
         // TODO: This doesn't seem to suppres the error
         @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-        FilePath jsonReportDirectory = build.getWorkspace().child(reportDirectory);
+        FilePath jsonReportDirectory = workspace.child(reportDirectory);
         
         PrintStream log = listener.getLogger();
         
@@ -74,7 +77,7 @@ public class ReportBuilder {
         try {
             FilePath[] jsonFiles = jsonReportDirectory.list("*-" + PROTECODE_FILE_TAG + ".json");
             log.println(jsonFiles.length + " files found");
-            File xmlReportDir = build.getArtifactsDir();
+            File xmlReportDir = run.getArtifactsDir();
             if (!xmlReportDir.exists()) {
                 boolean xmlReportDirCreated = xmlReportDir.mkdirs();
                 if (!xmlReportDirCreated) {
