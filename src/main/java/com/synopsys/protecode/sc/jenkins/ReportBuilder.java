@@ -65,8 +65,7 @@ public class ReportBuilder {
         TaskListener listener,
         String reportDirectory,
         FilePath workspace
-    ) throws IOException, InterruptedException {
-        // TODO: This doesn't seem to suppres the error
+    ) throws IOException, InterruptedException {       
         @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         FilePath jsonReportDirectory = workspace.child(reportDirectory);
         

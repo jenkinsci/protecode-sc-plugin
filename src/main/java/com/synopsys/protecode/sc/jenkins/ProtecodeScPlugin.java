@@ -128,7 +128,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             try {
             service = ProtecodeScService.getInstance(
                 credentialsId,
-                new URL(getDescriptor().getProtecodeScHost())
+                new URL(getDescriptor().getProtecodeScHost()),
+                !getDescriptor().isDontCheckCert()
             );
             } catch (MalformedURLException e) {
                 // this url is already cleaned when getting it from the configuration page

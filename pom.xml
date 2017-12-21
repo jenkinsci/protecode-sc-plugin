@@ -24,8 +24,7 @@
     </properties>
     <name>New Plugin!</name>
     <description>Jenkins integration to Protecode SC</description>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
-    <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>    
     <licenses>
         <license>
             <name>TODO</name>

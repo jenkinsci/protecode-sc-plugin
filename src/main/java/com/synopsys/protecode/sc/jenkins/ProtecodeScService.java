@@ -33,13 +33,17 @@ public @Data class ProtecodeScService {
     private static ProtecodeScService instance = null;
     private ProtecodeScApi backend = null;
     
-    private ProtecodeScService(String credentialsId, URL host){
-        this.backend = ProtecodeScConnection.backend(credentialsId, host);
+    private ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
+        this.backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
     }
     
-    public static ProtecodeScService getInstance(String credentialsId, URL host) {        
+    public static ProtecodeScService getInstance(
+        String credentialsId, 
+        URL host, 
+        boolean checkCertificate
+    ) {        
         if (instance == null) {
-            instance = new ProtecodeScService(credentialsId, host);
+            instance = new ProtecodeScService(credentialsId, host, checkCertificate);
         }
         return instance;
     }       

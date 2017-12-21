@@ -3,3 +3,4 @@ target/
 work/
 **/.DS_Store
 nb-configuration.xml
+push.sh
