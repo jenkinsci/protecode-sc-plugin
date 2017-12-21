@@ -52,25 +52,6 @@ public class ProtecodeScConnection {
     }
     
     public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {        
-        OkHttpClient client;
-        
-        if (checkCertificate) {
-            System.out.println("Building secure connection");
-            ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)  
-                .tlsVersions(TlsVersion.TLS_1_2)
-                .cipherSuites(
-                      CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-                      CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                      CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256)
-                .build();
-            client = new OkHttpClient();
-            
-        } else {
-            System.out.println("Building UNSECURE connection");
-            client = UnsafeOkHttpClient.getUnsafeOkHttpClient();
-        }
-                        
-
         OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
             (Interceptor.Chain chain) -> 
             {

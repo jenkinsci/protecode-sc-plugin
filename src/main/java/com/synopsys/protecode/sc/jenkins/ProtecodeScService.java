@@ -70,6 +70,7 @@ public @Data class ProtecodeScService {
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
                 // TODO: Should we handle this somehow
+                System.out.println("scan response error: " + t.getLocalizedMessage());
             }
         });
     }

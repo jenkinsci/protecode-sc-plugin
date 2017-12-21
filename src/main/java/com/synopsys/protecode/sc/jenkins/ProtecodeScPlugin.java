@@ -205,11 +205,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         // Then we wait and continue only when we have as many UploadResponses as we have 
         // filesToScan. Sad but true       
         log.println("Calling wait");
-        waitForUploadResponses(filesToScan.size(), log);        
+        waitForUploadResponses(filesToScan.size(), log);            
         log.println("Wait over");
         
-        // start polling for reponses to scans
-        poll();                
+        // start polling for reponses to scans                
+        if (!poll()) {
+            // maybe we were interrupted or something failed, ending phase
+            return false;
+        }
         
         //evaluate
         boolean verdict = ProtecodeEvaluator.evaluate(results);
@@ -238,7 +241,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * TODO clean up depth, move logic to other methods.
      * @param listener 
      */
-    private void poll() {
+    private boolean poll() {
         startPollTimer();        
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
@@ -284,10 +287,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 log.println("Sleeping for a moment");
                 Thread.sleep(10 * 1000);
             } catch (InterruptedException e) {
-                log.println("Sleep was interrupted");
+                log.println("Sleep was interrupted, anding wait and stopping build");
+                return false;
             }            
         } while (allNotReady());
         log.println("All results in, returning to perform()");
+        return true;
     }
     
     private boolean allNotReady() {
@@ -318,7 +323,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 waitForResponses = false;
                 log.println("Interrupted");
             }
-        }
+        }        
     }        
     
     private void removeOrphans() {
