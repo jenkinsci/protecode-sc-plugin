@@ -45,6 +45,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -109,18 +111,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @CheckForNull
     public boolean getConvertToSummary() {
         return convertToSummary;
-    }   
-    
-    @Override
-    public boolean prebuild(AbstractBuild<?, ?> build, BuildListener listener) {
-        if (getDescriptor().getProtecodeScHost() == null) {
-            listener.error(
-                    "Protecode SC host not defined. Configure it to global plugin properties");
-            return false;
-        }       
-        // TODO: check whether group is ok
-        return true;
-    }
+    }          
     
     private ProtecodeScService service() {
         // TODO: Add check that service is ok
@@ -199,7 +190,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 (UploadResponse resp) -> {
                     addUploadResponse(log, file.name(), resp);
                 }
-            );   
+            );
+            Thread.sleep(500); // we don't want to overload anything
         }
         
         // Then we wait and continue only when we have as many UploadResponses as we have 
@@ -210,7 +202,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         
         // start polling for reponses to scans                
         if (!poll()) {
-            // maybe we were interrupted or something failed, ending phase
+            // maybe we were interrupted or something failed, ending phase            
             return false;
         }
         
@@ -224,8 +216,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         if(convertToSummary) {
             ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
         }
-        
-        return verdict;
+        if (failIfVulns) {
+            return verdict;
+        }
+        return true;
     }
     
      /**
@@ -247,31 +241,34 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         ProtecodeScService serv = service();
         do {
             if (isTimeout()) {
-                break;
+                return false;
             }
             results.forEach((fileAndResult) -> {
                 // TODO: Add check if the result never was reached
                 log.println("Starting result polling and fetching");
-                if (!fileAndResult.ready()) {  // if this return true, we can ignore the fileAndResult                    
-                    log.println("no result received yet for " + fileAndResult.getFilename());
+                if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult                    
+                    //log.println("no result received yet for " + fileAndResult.getFilename());
                     if (fileAndResult.uploadHTTPStatus() == 200) {     
-                        log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
-                        if ("R".equals(fileAndResult.getState()) && !fileAndResult.isResultBeingFetched()) {
-                            log.println("status not R yet for " + fileAndResult.getFilename());
-                            fileAndResult.setResultBeingFetched(true);
-                            serv.scanResult(
-                                fileAndResult.getUploadResponse().getResults().getSha1sum(), 
-                                (ScanResultResponse scanResult) -> {                                    
-                                    log.println("setting result for file: " + fileAndResult.getFilename());
-                                    fileAndResult.setResultResponse(scanResult);
-                                }
-                            );
+                        //log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
+                        if ("R".equals(fileAndResult.getState())) {
+                            log.println("status 'Ready' for " + fileAndResult.getFilename());
+                            if (!fileAndResult.isResultBeingFetched()) {
+                                log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
+                                fileAndResult.setResultBeingFetched(true);
+                                serv.scanResult(
+                                    fileAndResult.getUploadResponse().getResults().getSha1sum(), 
+                                    (ScanResultResponse scanResult) -> {                                    
+                                        log.println("setting result for file: " + fileAndResult.getFilename());
+                                        fileAndResult.setResultResponse(scanResult);
+                                    }
+                                );
+                            }
                         } else {
-                            log.println("status is R for " + fileAndResult.getFilename() + ", fetching scan result");
+                            log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", pollin.");
                             serv.poll(
                                 fileAndResult.getUploadResponse().getResults().getId(), 
                                 (UploadResponse uploadResponse) -> {
-                                    log.println("server responded for query of scan result for " + fileAndResult.getFilename());
+                                    log.println("server responded for query of scan status for " + fileAndResult.getFilename());
                                     fileAndResult.setUploadResponse(uploadResponse);                                
                                 }
                             );
@@ -281,22 +278,29 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                             "' was " + fileAndResult.uploadHTTPStatus());
                     }
                 }
+                try {
+                    Thread.sleep(500); // we don't want to overload anything
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
+                }
             });
-            // TODO, don't sleep when all is done
-            try {
-                log.println("Sleeping for a moment");
-                Thread.sleep(10 * 1000);
-            } catch (InterruptedException e) {
-                log.println("Sleep was interrupted, anding wait and stopping build");
-                return false;
-            }            
+            
+            if (allNotReady()) {
+                try {
+                    log.println("Main thread sleeping for a moment");
+                    Thread.sleep(15 * 1000);
+                } catch (InterruptedException e) {
+                    log.println("Sleep was interrupted, anding wait and stopping build");
+                    return false;
+                }            
+            }
         } while (allNotReady());
         log.println("All results in, returning to perform()");
         return true;
     }
     
     private boolean allNotReady() {
-        return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.ready()));
+        return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.hasScanResponse()));
     }
     
     /**
@@ -314,10 +318,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 // TODO: remove print after testing
                 log.println("Tick - remove this");
                 if (results.size() >= fileCount) {
-                    log.println("true!" + results.size() + ">=" + "fileCount: " + fileCount);
+                    log.println("true!" + results.size() + " >= " + "fileCount: " + fileCount);
                     waitForResponses = false;
                 } else {
-                    log.println("false" + results.size() + "<" + "fileCount: " + fileCount);
+                    log.println("false" + results.size() + " < " + "fileCount: " + fileCount);
                 }
             } catch (InterruptedException ie) {
                 waitForResponses = false;

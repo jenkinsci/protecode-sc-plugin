@@ -46,12 +46,12 @@ public class InternalTypes {
         /**         
          * @return True if the scan result has been fetched.
          */
-        public boolean ready() {
+        public boolean hasScanResponse() {
             return resultResponse != null;
         }
         
         public boolean verdict() {
-            if (!ready()) {
+            if (!hasScanResponse()) {
                 throw new RuntimeException("No result received for file: " + this.filename);
             }
             return resultResponse.getResults().getSummary().getVulnCount().getExact() > 0;

@@ -18,7 +18,10 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+import java.io.IOException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import lombok.Data;
 
 /**
@@ -49,6 +52,7 @@ public @Data class ProtecodeScService {
     }       
                     
     public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
+        System.out.println("Requesting scan for: " + fileName);
         Call<HttpTypes.UploadResponse> call = backend.scan(
             group, 
             Utils.replaceSpaceWithUnderscore(fileName), 
@@ -63,14 +67,19 @@ public @Data class ProtecodeScService {
                 if (response.isSuccessful()) {
                     listener.processUploadResult(response.body());            
                 } else {
-                    // TODO: What will cause this error
+                    try {
+                        System.out.println("scan Response error: " + response.errorBody().string() + " for file: " + fileName);
+                    } catch (IOException ex) {
+                        Logger.getLogger(ProtecodeScService.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
             }
             @Override
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
                 // TODO: Should we handle this somehow
-                System.out.println("scan response error: " + t.getLocalizedMessage());
+                System.out.println("scan full error: " + t.getLocalizedMessage());
+                System.out.println("error: " +  t.getMessage());
             }
         });
     }
