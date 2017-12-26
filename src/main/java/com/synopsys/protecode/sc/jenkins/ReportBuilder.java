@@ -53,7 +53,11 @@ public class ReportBuilder {
         PrintStream log = listener.getLogger();
         ObjectMapper mapper = getObjectMapper();
         results.forEach((result) -> {
-            writeJson(log, mapper, jsonReportDirectory, result.getSerializableResult());
+            try {
+                writeJson(log, mapper, jsonReportDirectory, result.getSerializableResult());
+            } catch (Exception e) {
+                log.println("there is a result which cannot be written to a report: " + result.getFilename());
+            }            
         });
         
         return true;

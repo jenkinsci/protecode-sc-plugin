@@ -55,7 +55,12 @@ public class InternalTypes {
             } else {
                 // if we don't know the state, we can assume it's busy until otherwise stated
                 // this will cause the logic to ask for it again
-                return "B";
+                if (error == null) {
+                    return "B";                    
+                } else {
+                    // there's an error so no point in polling more
+                    return "R";
+                }
             }
         }                
         
@@ -63,18 +68,23 @@ public class InternalTypes {
          * @return True if the scan result has been fetched.
          */
         public boolean hasScanResponse() {
-                return resultResponse != null || !"".equals(error);
+            return resultResponse != null || error != null;
         }
         
         public boolean verdict() {
-            if (!hasScanResponse()) {
-                throw new RuntimeException("No result received for file: " + this.filename);
+            if (!hasScanResponse() || !"".equals(error)) {
+                return false;
             }
             return resultResponse.getResults().getSummary().getVulnCount().getExact() > 0;
         }                        
          
         public SerializableResult getSerializableResult() {
-            return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
+            if (resultResponse != null) {
+                // TODO implement error handling for misbuilt responses
+                return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
+            } else {                
+                return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
+            }
         }
     }
     

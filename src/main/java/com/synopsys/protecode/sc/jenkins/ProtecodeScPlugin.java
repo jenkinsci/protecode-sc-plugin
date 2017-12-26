@@ -239,7 +239,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * @param response The responses fetched from Protecode SC
      */
     private void addUploadResponse(PrintStream log, String name, UploadResponse response, String error) {
-        if ("".equals(error)) {
+        if (NO_ERROR.equals(error)) {
             log.println("adding upload response for file: " + name);
             results.add(new FileAndResult(name, response));
         } else {
@@ -261,47 +261,44 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             if (isTimeout()) {
                 return false;
             }
-            results.forEach(new Consumer<FileAndResult>() {
-                @Override
-                public void accept(FileAndResult fileAndResult) {
-                    // TODO: Add check if the result never was reached
-                    if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
-                        log.println("no result received yet for " + fileAndResult.getFilename());
-                        if (fileAndResult.uploadHTTPStatus() == 200) {
-                            log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
-                            if ("R".equals(fileAndResult.getState())) {
-                                log.println("status 'Ready' for " + fileAndResult.getFilename());
-                                if (!fileAndResult.isResultBeingFetched()) {
-                                    log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
-                                    fileAndResult.setResultBeingFetched(true);
-                                    serv.scanResult(
-                                        fileAndResult.getUploadResponse().getResults().getSha1sum(),
-                                        (ScanResultResponse scanResult) -> {
-                                            log.println("setting result for file: " + fileAndResult.getFilename());
-                                            fileAndResult.setResultResponse(scanResult);
-                                        }
-                                    );
-                                }
-                            } else {
-                                log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", polling.");
-                                serv.poll(
-                                    fileAndResult.getUploadResponse().getResults().getId(),
-                                    (UploadResponse uploadResponse) -> {
-                                        log.println("server responded for poll of " + fileAndResult.getFilename() + ": " + uploadResponse.getResults().getStatus());
-                                        fileAndResult.setUploadResponse(uploadResponse);
+            results.forEach((FileAndResult fileAndResult) -> {
+                // TODO: Add check if the result never was reached
+                if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
+                    log.println("no result received yet for " + fileAndResult.getFilename());
+                    if (fileAndResult.uploadHTTPStatus() == 200) {
+                        log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
+                        if ("R".equals(fileAndResult.getState())) {
+                            log.println("status 'Ready' for " + fileAndResult.getFilename());
+                            if (!fileAndResult.isResultBeingFetched()) {
+                                log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
+                                fileAndResult.setResultBeingFetched(true);
+                                serv.scanResult(
+                                    fileAndResult.getUploadResponse().getResults().getSha1sum(),
+                                    (ScanResultResponse scanResult) -> {
+                                        log.println("setting result for file: " + fileAndResult.getFilename());
+                                        fileAndResult.setResultResponse(scanResult);
                                     }
                                 );
                             }
                         } else {
-                            listener.error("Status code for file upload: '" + fileAndResult.getFilename() +
-                                "' was " + fileAndResult.uploadHTTPStatus());
+                            log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", polling.");
+                            serv.poll(
+                                fileAndResult.getUploadResponse().getResults().getId(),
+                                (UploadResponse uploadResponse) -> {
+                                    log.println("server responded for poll of " + fileAndResult.getFilename() + ": " + uploadResponse.getResults().getStatus());
+                                    fileAndResult.setUploadResponse(uploadResponse);
+                                }
+                            );
                         }
+                    } else {
+                        listener.error("Status code for file upload: '" + fileAndResult.getFilename() +
+                            "' was " + fileAndResult.uploadHTTPStatus());
                     }
-                    try {
-                        Thread.sleep(500); // we don't want to overload anything
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                }
+                try {
+                    Thread.sleep(500); // we don't want to overload anything
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
                 }
             });
             
