@@ -41,7 +41,10 @@ public class Utils {
     
     public static List<ReadableFile> getFiles(String fileDirectory, FilePath workspace, Run<?, ?> run,
             TaskListener listener) throws IOException, InterruptedException {
-        // TODO, make sure the path works, add / to end and so forth
+        // add '/' to end if absent
+        if (!fileDirectory.endsWith("/")) {
+            fileDirectory = fileDirectory + "/";
+        }
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
         log.println("Reading from directory: " + fileDirectory);

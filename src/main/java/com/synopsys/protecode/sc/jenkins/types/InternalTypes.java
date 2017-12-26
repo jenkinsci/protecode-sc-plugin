@@ -23,10 +23,26 @@ public class InternalTypes {
         private UploadResponse uploadResponse = null;               
         private ScanResultResponse resultResponse = null;
         private boolean resultBeingFetched = false;        
+        private String error = null;
+        
+        public FileAndResult(String filename, UploadResponse uploadResponse, String error) {
+            this.filename = filename;
+            this.uploadResponse = uploadResponse;
+            this.error = error;
+        }
         
         public FileAndResult(String filename, UploadResponse uploadResponse) {
             this.filename = filename;
             this.uploadResponse = uploadResponse;
+        }
+        
+        public FileAndResult(String filename, String error) {
+            this.filename = filename;       
+            this.error = error;
+        }
+        
+        public boolean hasError() {
+            return !"".equals(error);
         }
         
         public int uploadHTTPStatus() {
@@ -41,13 +57,13 @@ public class InternalTypes {
                 // this will cause the logic to ask for it again
                 return "B";
             }
-        }
+        }                
         
         /**         
          * @return True if the scan result has been fetched.
          */
         public boolean hasScanResponse() {
-            return resultResponse != null;
+                return resultResponse != null || !"".equals(error);
         }
         
         public boolean verdict() {

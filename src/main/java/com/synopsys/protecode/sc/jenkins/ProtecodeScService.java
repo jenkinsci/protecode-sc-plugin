@@ -69,8 +69,10 @@ public @Data class ProtecodeScService {
                 } else {
                     try {
                         System.out.println("scan Response error: " + response.errorBody().string() + " for file: " + fileName);
+                        listener.setError("Protecode SC returned error for file scan request: " + fileName);
                     } catch (IOException ex) {
                         Logger.getLogger(ProtecodeScService.class.getName()).log(Level.SEVERE, null, ex);
+                        listener.setError("Protecode SC returned generic error without error message");
                     }
                 }
             }
@@ -78,6 +80,7 @@ public @Data class ProtecodeScService {
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
                 // TODO: Should we handle this somehow
+                listener.setError("Protecode SC returned error for file scan request: " + fileName);
                 System.out.println("scan full error: " + t.getLocalizedMessage());
                 System.out.println("error: " +  t.getMessage());
             }

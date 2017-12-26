@@ -10,6 +10,9 @@
 *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
+import hudson.FilePath;
+import hudson.remoting.VirtualChannel;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.annotation.Nullable;
@@ -20,18 +23,20 @@ import okhttp3.internal.Util;
 import okio.BufferedSink;
 import okio.Okio;
 import okio.Source;
+import org.jenkinsci.remoting.RoleChecker;
 
 
 public class StreamRequestBody extends RequestBody {
     private final InputStream inputStream;
     private final MediaType contentType;
+    // TODO: private final long size;
 
-    public StreamRequestBody(MediaType contentType, InputStream inputStream) {
-        if (inputStream == null) {
+    public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {
+        if (file.read() == null) {
             throw new NullPointerException("inputStream == null");
         }
         this.contentType = contentType;
-        this.inputStream = inputStream;
+        this.inputStream = file.read();        
     }
 
     @Nullable
@@ -54,5 +59,20 @@ public class StreamRequestBody extends RequestBody {
         } finally {
             Util.closeQuietly(source);
         }
+    }
+    
+    private static final class FileReader implements FilePath.FileCallable<File> {
+
+        @Override
+        public void checkRoles(RoleChecker arg0) throws SecurityException {
+          // intentionally left empty
+        }
+
+        @Override
+        public File invoke(File f, VirtualChannel channel)
+                throws IOException, InterruptedException {
+            return f.getAbsoluteFile();
+        }
+
     }
 }

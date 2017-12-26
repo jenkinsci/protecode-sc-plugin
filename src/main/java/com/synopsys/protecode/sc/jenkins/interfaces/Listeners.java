@@ -12,10 +12,13 @@ package com.synopsys.protecode.sc.jenkins.interfaces;
 
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 
-
+/**
+ * TODO: Add error setters for all interfaces
+ */
 public class Listeners {
     public static interface ScanService {
         public void processUploadResult(HttpTypes.UploadResponse result);
+        public void setError(String reason);
     }       
     
     public static interface PollService {

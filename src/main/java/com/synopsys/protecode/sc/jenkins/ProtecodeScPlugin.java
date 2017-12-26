@@ -18,6 +18,7 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import com.synopsys.protecode.sc.jenkins.ProtecodeScService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
@@ -45,6 +46,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -83,6 +86,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     TaskListener listener = null;
     
     public static final String REPORT_DIRECTORY = "reports";
+    public static final String NO_ERROR = "";
     
     @DataBoundConstructor   
     public ProtecodeScPlugin(
@@ -185,10 +189,18 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 new StreamRequestBody
                 (
                     MediaType.parse("application/octet-stream"), 
-                    file.read()
+                    file
                 ), 
-                (UploadResponse resp) -> {
-                    addUploadResponse(log, file.name(), resp);
+                new ScanService() {
+                    @Override
+                    public void processUploadResult(UploadResponse result) {
+                        addUploadResponse(log, file.name(), result, NO_ERROR);
+                    }
+                    @Override
+                    public void setError(String reason) {
+                        // TODO: use Optional
+                        addUploadResponse(log, file.name(), null, reason);
+                    }
                 }
             );
             Thread.sleep(500); // we don't want to overload anything
@@ -226,9 +238,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * Called by the lamdas given to upload rest calls
      * @param response The responses fetched from Protecode SC
      */
-    private void addUploadResponse(PrintStream log, String name, UploadResponse response) {        
-        log.println("adding upload response for file: " + name);
-        results.add(new FileAndResult(name, response));
+    private void addUploadResponse(PrintStream log, String name, UploadResponse response, String error) {
+        if ("".equals(error)) {
+            log.println("adding upload response for file: " + name);
+            results.add(new FileAndResult(name, response));
+        } else {
+            log.println("adding upload response with ERROR for file: " + name);
+            results.add(new FileAndResult(name, error));
+        }
     }
     
     /**
@@ -240,48 +257,51 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
         do {
+            log.println("Starting result polling and fetching");
             if (isTimeout()) {
                 return false;
             }
-            results.forEach((fileAndResult) -> {
-                // TODO: Add check if the result never was reached
-                log.println("Starting result polling and fetching");
-                if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult                    
-                    //log.println("no result received yet for " + fileAndResult.getFilename());
-                    if (fileAndResult.uploadHTTPStatus() == 200) {     
-                        //log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
-                        if ("R".equals(fileAndResult.getState())) {
-                            log.println("status 'Ready' for " + fileAndResult.getFilename());
-                            if (!fileAndResult.isResultBeingFetched()) {
-                                log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
-                                fileAndResult.setResultBeingFetched(true);
-                                serv.scanResult(
-                                    fileAndResult.getUploadResponse().getResults().getSha1sum(), 
-                                    (ScanResultResponse scanResult) -> {                                    
-                                        log.println("setting result for file: " + fileAndResult.getFilename());
-                                        fileAndResult.setResultResponse(scanResult);
+            results.forEach(new Consumer<FileAndResult>() {
+                @Override
+                public void accept(FileAndResult fileAndResult) {
+                    // TODO: Add check if the result never was reached
+                    if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
+                        log.println("no result received yet for " + fileAndResult.getFilename());
+                        if (fileAndResult.uploadHTTPStatus() == 200) {
+                            log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
+                            if ("R".equals(fileAndResult.getState())) {
+                                log.println("status 'Ready' for " + fileAndResult.getFilename());
+                                if (!fileAndResult.isResultBeingFetched()) {
+                                    log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
+                                    fileAndResult.setResultBeingFetched(true);
+                                    serv.scanResult(
+                                        fileAndResult.getUploadResponse().getResults().getSha1sum(),
+                                        (ScanResultResponse scanResult) -> {
+                                            log.println("setting result for file: " + fileAndResult.getFilename());
+                                            fileAndResult.setResultResponse(scanResult);
+                                        }
+                                    );
+                                }
+                            } else {
+                                log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", polling.");
+                                serv.poll(
+                                    fileAndResult.getUploadResponse().getResults().getId(),
+                                    (UploadResponse uploadResponse) -> {
+                                        log.println("server responded for poll of " + fileAndResult.getFilename() + ": " + uploadResponse.getResults().getStatus());
+                                        fileAndResult.setUploadResponse(uploadResponse);
                                     }
                                 );
                             }
                         } else {
-                            log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", pollin.");
-                            serv.poll(
-                                fileAndResult.getUploadResponse().getResults().getId(), 
-                                (UploadResponse uploadResponse) -> {
-                                    log.println("server responded for query of scan status for " + fileAndResult.getFilename());
-                                    fileAndResult.setUploadResponse(uploadResponse);                                
-                                }
-                            );
+                            listener.error("Status code for file upload: '" + fileAndResult.getFilename() +
+                                "' was " + fileAndResult.uploadHTTPStatus());
                         }
-                    } else {
-                        listener.error("Status code for file upload: '" + fileAndResult.getFilename() + 
-                            "' was " + fileAndResult.uploadHTTPStatus());
                     }
-                }
-                try {
-                    Thread.sleep(500); // we don't want to overload anything
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
+                    try {
+                        Thread.sleep(500); // we don't want to overload anything
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
             });
             
@@ -318,10 +338,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 // TODO: remove print after testing
                 log.println("Tick - remove this");
                 if (results.size() >= fileCount) {
-                    log.println("true!" + results.size() + " >= " + "fileCount: " + fileCount);
+                    log.println(results.size() + " >= " + "fileCount: " + fileCount);
                     waitForResponses = false;
                 } else {
-                    log.println("false" + results.size() + " < " + "fileCount: " + fileCount);
+                    log.println(results.size() + " < " + "fileCount: " + fileCount);
                 }
             } catch (InterruptedException ie) {
                 waitForResponses = false;
@@ -330,6 +350,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         }        
     }        
     
+    // TODO is this truly needed?
     private void removeOrphans() {
         // TODO check if some are null
         // -> add results required
