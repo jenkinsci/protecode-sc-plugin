@@ -17,6 +17,8 @@ import retrofit2.http.*;
 
 
 public interface ProtecodeScApi {
+    
+    //@Headers("Connection: close")
     @PUT("/api/upload/{filename}")
     public Call<HttpTypes.UploadResponse> scan(
         @Header("Group") String groupName, 

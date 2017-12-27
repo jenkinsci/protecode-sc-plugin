@@ -10,9 +10,6 @@
 *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import hudson.FilePath;
-import hudson.remoting.VirtualChannel;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import javax.annotation.Nullable;
@@ -23,20 +20,20 @@ import okhttp3.internal.Util;
 import okio.BufferedSink;
 import okio.Okio;
 import okio.Source;
-import org.jenkinsci.remoting.RoleChecker;
 
 
 public class StreamRequestBody extends RequestBody {
     private final InputStream inputStream;
-    private final MediaType contentType;
-    // TODO: private final long size;
+    private final MediaType contentType;    
+    private final long size;
 
     public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {
         if (file.read() == null) {
-            throw new NullPointerException("inputStream == null");
+            throw new NullPointerException("File inputStream == null");
         }
         this.contentType = contentType;
-        this.inputStream = file.read();        
+        this.inputStream = file.read(); 
+        this.size = file.getFilePath().length();
     }
 
     @Nullable
@@ -47,32 +44,26 @@ public class StreamRequestBody extends RequestBody {
 
     @Override
     public long contentLength() throws IOException {
-        return inputStream.available() == 0 ? -1 : inputStream.available();
+        // TODO, this must be tested with a slave
+        return this.size;
     }
 
     @Override
-    public void writeTo(@NonNull BufferedSink sink) throws IOException {
-        Source source = null;
-        try {
-            source = Okio.source(inputStream);
-            sink.writeAll(source);
-        } finally {
+    public void writeTo(@NonNull BufferedSink sink) throws IOException {        
+        Source source = null;        
+        try {            
+            long writeAmount = inputStream.available();
+            while (writeAmount != 0) {
+                source = Okio.source(inputStream);                
+                sink.write(source, writeAmount);
+                sink.flush();                 
+                writeAmount = inputStream.available();            
+            }
+        } catch (Exception e) {
+            
+        }
+        finally {
             Util.closeQuietly(source);
         }
-    }
-    
-    private static final class FileReader implements FilePath.FileCallable<File> {
-
-        @Override
-        public void checkRoles(RoleChecker arg0) throws SecurityException {
-          // intentionally left empty
-        }
-
-        @Override
-        public File invoke(File f, VirtualChannel channel)
-                throws IOException, InterruptedException {
-            return f.getAbsoluteFile();
-        }
-
-    }
+    }        
 }

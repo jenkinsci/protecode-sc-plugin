@@ -34,10 +34,10 @@ import lombok.Data;
 public @Data class ProtecodeScService {
 
     private static ProtecodeScService instance = null;
-    private ProtecodeScApi backend = null;
+    private static ProtecodeScApi backend = null;
     
     private ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
-        this.backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
+        backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
     }
     
     public static ProtecodeScService getInstance(
@@ -80,7 +80,7 @@ public @Data class ProtecodeScService {
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
                 // TODO: Should we handle this somehow
-                listener.setError("Protecode SC returned error for file scan request: " + fileName);
+                //listener.setError("Protecode SC returned error for file scan request: " + fileName);
                 System.out.println("scan full error: " + t.getLocalizedMessage());
                 System.out.println("error: " +  t.getMessage());
             }

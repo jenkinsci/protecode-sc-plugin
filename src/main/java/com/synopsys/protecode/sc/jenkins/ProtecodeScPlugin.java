@@ -331,7 +331,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         // TODO: Add timeout since some files get no reponse from protecode
         while (waitForResponses) {                   
             try {                
-                Thread.sleep(10 * 1000);
+                Thread.sleep(30 * 1000);
                 // TODO: remove print after testing
                 log.println("Tick - remove this");
                 if (results.size() >= fileCount) {

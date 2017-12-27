@@ -51,7 +51,12 @@ public class ProtecodeScConnection {
         return backend(credentialsId, url, checkCertificate);
     }
     
-    public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {        
+    public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {       
+        // Leave these here for convenience of debugging. They bleed memory _badly_ though
+        // HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        // interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+        // ... ).addInterceptor(interceptor).build();                
+        
         OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
             (Interceptor.Chain chain) -> 
             {
@@ -78,19 +83,19 @@ public class ProtecodeScConnection {
 
                 Request newRequest = builder.build();
                 return chain.proceed(newRequest);
-            }
-        ).build();
+            }        
+        ).build();                
         
         Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(url.toString())
             .addConverterFactory(GsonConverterFactory.create())
-            .client(okHttpClient)
+            .client(okHttpClient)            
             .build();
 
         return retrofit.create(ProtecodeScApi.class);
     }
     
-    private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {      
+    private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {          
         if (checkCertificate) {
             System.out.println("Building secure connection");
             ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)  
@@ -98,7 +103,7 @@ public class ProtecodeScConnection {
                 .cipherSuites(
                       CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
                       CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                      CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256)
+                      CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256)                
                 .build();            
             return new OkHttpClient.Builder().connectionSpecs(Collections.singletonList(spec));
         } else {
