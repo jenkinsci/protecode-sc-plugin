@@ -79,6 +79,7 @@ public class Utils {
     }         
     
     public static String replaceSpaceWithUnderscore(String line) {
+        // TODO, use something which is certainly not used in other files. Underscore isn't good.
         return line.replace(" ", "_");
     }
     

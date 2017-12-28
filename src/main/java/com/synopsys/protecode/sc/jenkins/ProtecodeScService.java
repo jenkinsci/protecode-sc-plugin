@@ -35,6 +35,9 @@ public @Data class ProtecodeScService {
 
     private static ProtecodeScService instance = null;
     private static ProtecodeScApi backend = null;
+    private static String storedCredentialsId = null;
+    private static URL storedHost = null;
+    private static boolean storedCheckCertificate = true;
     
     private ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
         backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
@@ -45,7 +48,12 @@ public @Data class ProtecodeScService {
         URL host, 
         boolean checkCertificate
     ) {        
-        if (instance == null) {
+        // TODO, check change and make new if needed
+        if (instance == null 
+            || !credentialsId.equals(storedCredentialsId) 
+            || !host.toExternalForm().equals(storedHost.toExternalForm())
+            || storedCheckCertificate != checkCertificate
+            ) {
             instance = new ProtecodeScService(credentialsId, host, checkCertificate);
         }
         return instance;

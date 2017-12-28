@@ -18,8 +18,6 @@ import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Results;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.*;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
 import hudson.FilePath;
-import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.BufferedInputStream;
@@ -87,6 +85,8 @@ public class ReportBuilder {
                     log.println("XML report directory could not be created.");
                     throw new IOException("XML report directory could not be created.");
                 }
+            } else {
+                log.println("cannot find log dir: " + xmlReportDir.getAbsolutePath());
             }
             File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
 
