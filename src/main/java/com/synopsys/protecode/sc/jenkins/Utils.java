@@ -45,6 +45,9 @@ public class Utils {
         if (!fileDirectory.endsWith("/")) {
             fileDirectory = fileDirectory + "/";
         }
+        if (!fileDirectory.startsWith("./")) {
+            fileDirectory = "./" + fileDirectory;
+        }
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
         log.println("Reading from directory: " + fileDirectory);

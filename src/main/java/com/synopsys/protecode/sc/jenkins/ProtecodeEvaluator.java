@@ -17,8 +17,7 @@ import java.util.List;
 public class ProtecodeEvaluator {
     public static boolean evaluate(
         List<InternalTypes.FileAndResult> results
-    ) {
-        //System.out.println("checking for vulncount-exact");
+    ) {        
         return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.verdict()));               
     }
 }

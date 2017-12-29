@@ -76,6 +76,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @Getter private int scanTimeout;  
     // don't access service directly, use service(). It checks whether this exists
     private ProtecodeScService service = null;
+    // used to know whether to make a new service
+    private static URL storedHost = null;
+    private static boolean storedDontCheckCertificate = true;
     
     // Below used in the scan process
     private final List<FileAndResult> results = new ArrayList<>(); 
@@ -98,6 +101,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         boolean leaveArtifacts, 
         int scanTimeout
     ) {
+        System.out.println("constructing");
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
         this.filesToScanDirectory = filesToScanDirectory;
@@ -119,9 +123,19 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     private ProtecodeScService service() {
         // TODO: Add check that service is ok
-        if (service == null) {
+        getDescriptor().load();
+        
+        if (service == null
+            || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
+            || getDescriptor().isDontCheckCert() != storedDontCheckCertificate) {            
             try {
-            service = ProtecodeScService.getInstance(
+            storedHost = new URL(getDescriptor().getProtecodeScHost());
+            } catch (Exception e) {
+                // cleaned at config time
+            }
+            storedDontCheckCertificate = getDescriptor().isDontCheckCert();
+            try {
+            service = new ProtecodeScService(
                 credentialsId,
                 new URL(getDescriptor().getProtecodeScHost()),
                 !getDescriptor().isDontCheckCert()
@@ -129,7 +143,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             } catch (MalformedURLException e) {
                 // this url is already cleaned when getting it from the configuration page
             }
-        }
+        }        
         return service;
     }
     
@@ -176,13 +190,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             // no files to scan, no failure
             return true;
         } else {
-            log.println("Directory for files to scan was not empty, proceding");            
+            //log.println("Directory for files to scan was not empty, proceding");            
         }
         
-        log.println("Sending files");        
+        //log.println("Sending files");        
         
         for (ReadableFile file: filesToScan) {
-            log.println("Sending file: " + file.name());            
+            //log.println("Sending file: " + file.name());            
             serv.scan(
                 protecodeScGroup, 
                 file.name(), 
@@ -208,9 +222,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         
         // Then we wait and continue only when we have as many UploadResponses as we have 
         // filesToScan. Sad but true       
-        log.println("Calling wait");
+        //log.println("Calling wait");
         waitForUploadResponses(filesToScan.size(), log);            
-        log.println("Wait over");
+        //log.println("Wait over");
         
         // start polling for reponses to scans                
         if (!poll()) {
@@ -240,10 +254,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      */
     private void addUploadResponse(PrintStream log, String name, UploadResponse response, String error) {
         if (NO_ERROR.equals(error)) {
-            log.println("adding upload response for file: " + name);
+            //log.println("adding upload response for file: " + name);
             results.add(new FileAndResult(name, response));
         } else {
-            log.println("adding upload response with ERROR for file: " + name);
+            //log.println("adding upload response with ERROR for file: " + name);
             results.add(new FileAndResult(name, error));
         }
     }
@@ -257,62 +271,62 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
         do {
-            log.println("Starting result polling and fetching");
+            log.println("Fetching results from Protecode SC");
             if (isTimeout()) {
                 return false;
             }
             results.forEach((FileAndResult fileAndResult) -> {
                 // TODO: Add check if the result never was reached
                 if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
-                    log.println("no result received yet for " + fileAndResult.getFilename());
+                    //log.println("no result received yet for " + fileAndResult.getFilename());
                     if (fileAndResult.uploadHTTPStatus() == 200) {
-                        log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
+                        //log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
                         if ("R".equals(fileAndResult.getState())) {
-                            log.println("status 'Ready' for " + fileAndResult.getFilename());
+                            //log.println("status 'Ready' for " + fileAndResult.getFilename());
                             if (!fileAndResult.isResultBeingFetched()) {
-                                log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
+                                //log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
                                 fileAndResult.setResultBeingFetched(true);
                                 serv.scanResult(
                                     fileAndResult.getUploadResponse().getResults().getSha1sum(),
                                     (ScanResultResponse scanResult) -> {
-                                        log.println("setting result for file: " + fileAndResult.getFilename());
+                                        log.println("Received Protecode SC scan result for file: " + fileAndResult.getFilename());
                                         fileAndResult.setResultResponse(scanResult);
                                     }
                                 );
                             }
                         } else {
-                            log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", polling.");
+                            //log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", polling.");
                             serv.poll(
                                 fileAndResult.getUploadResponse().getResults().getId(),
                                 (UploadResponse uploadResponse) -> {
-                                    log.println("server responded for poll of " + fileAndResult.getFilename() + ": " + uploadResponse.getResults().getStatus());
+                                    //log.println("server responded for poll of " + fileAndResult.getFilename() + ": " + uploadResponse.getResults().getStatus());
                                     fileAndResult.setUploadResponse(uploadResponse);
                                 }
                             );
                         }
                     } else {
                         listener.error("Status code for file upload: '" + fileAndResult.getFilename() +
-                            "' was " + fileAndResult.uploadHTTPStatus());
+                            "' was " + fileAndResult.uploadHTTPStatus() + ". No results to fetch.");
                     }
                 }
                 try {
                     Thread.sleep(500); // we don't want to overload anything
                 } catch (InterruptedException ex) {
-                    Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
+                    //Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
                 }
             });
             
             if (allNotReady()) {
                 try {
-                    log.println("Main thread sleeping for a moment");
+                    //log.println("Main thread sleeping for a moment");
                     Thread.sleep(15 * 1000);
                 } catch (InterruptedException e) {
-                    log.println("Sleep was interrupted, anding wait and stopping build");
+                    //log.println("Sleep was interrupted, anding wait and stopping build");
                     return false;
                 }            
             }
         } while (allNotReady());
-        log.println("All results in, returning to perform()");
+        log.println("Received all results from Protecode SC");
         return true;
     }
     
@@ -326,33 +340,27 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * @param log for printing to Jenkins build console.
      */
     private void waitForUploadResponses(int fileCount, PrintStream log) {
-        log.println("Starting wait");
+        //log.println("Waiting for upload responses");
         boolean waitForResponses = true;
         // TODO: Add timeout since some files get no reponse from protecode
         while (waitForResponses) {                   
             try {                
                 Thread.sleep(30 * 1000);
                 // TODO: remove print after testing
-                log.println("Tick - remove this");
+                //log.println("Tick - remove this");
                 if (results.size() >= fileCount) {
-                    log.println(results.size() + " >= " + "fileCount: " + fileCount);
+                    //log.println(results.size() + " >= " + "fileCount: " + fileCount);
                     waitForResponses = false;
                 } else {
-                    log.println(results.size() + " < " + "fileCount: " + fileCount);
+                    //log.println(results.size() + " < " + "fileCount: " + fileCount);
                 }
             } catch (InterruptedException ie) {
                 waitForResponses = false;
-                log.println("Interrupted");
+                log.println("Interrupted while waiting for upload responses from Protecode SC");
             }
         }        
     }        
-    
-    // TODO is this truly needed?
-    private void removeOrphans() {
-        // TODO check if some are null
-        // -> add results required
-    }
-    
+      
     @Override
     public DescriptorImpl getDescriptor() {      
         return (DescriptorImpl) super.getDescriptor();
@@ -368,27 +376,27 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         @Getter @Setter private String protecodeScHost;
         @Getter @Setter private boolean dontCheckCert;
         
-        public DescriptorImpl() {           
+        public DescriptorImpl() {
             super.load();           
         }
         
         @Override
         @SuppressWarnings("ResultOfObjectAllocationIgnored")
         public boolean configure(StaplerRequest req, JSONObject formData)
-                throws Descriptor.FormException {            
+                throws Descriptor.FormException {               
             // To persist global configuration information,
             // set that to properties and call save().
             try {
                 new URL(formData.getString("protecodeScHost"));
-                protecodeScHost = formData.getString("protecodeScHost");
+                this.protecodeScHost = formData.getString("protecodeScHost");
             } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
+                
             }           
-            dontCheckCert = formData.getBoolean("dontCheckCert");
+            this.dontCheckCert = formData.getBoolean("dontCheckCert");
 
             save();
             return super.configure(req, formData);
-        }
+        }                
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {            
             // TODO Find a nice way to use this to fetch possible groups

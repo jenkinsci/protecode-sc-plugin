@@ -27,7 +27,7 @@ public final class ProtecodeConfigurationUtils {
      * TODO: Use this. Implement this fully.
      * @param descriptor
      * @param credentialsId
-     * @return 
+     * @return Standard credential types
      */
     public static StandardUsernamePasswordCredentials getCredentials(
         ProtecodeScPlugin.DescriptorImpl descriptor,
@@ -42,7 +42,7 @@ public final class ProtecodeConfigurationUtils {
                     new HostnameRequirement(host)),
                 CredentialsMatchers.withId(credentialsId));
         if (creds == null) {
-            throw new RuntimeException("no such credentials for host");
+            throw new RuntimeException("No such credentials for host");
         }
         return creds;
     }   

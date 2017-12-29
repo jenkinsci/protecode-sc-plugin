@@ -34,30 +34,23 @@ import lombok.Data;
 public @Data class ProtecodeScService {
 
     private static ProtecodeScService instance = null;
-    private static ProtecodeScApi backend = null;
-    private static String storedCredentialsId = null;
-    private static URL storedHost = null;
-    private static boolean storedCheckCertificate = true;
+    private static ProtecodeScApi backend = null;   
     
-    private ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
+    public ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
         backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
     }
     
-    public static ProtecodeScService getInstance(
-        String credentialsId, 
-        URL host, 
-        boolean checkCertificate
-    ) {        
-        // TODO, check change and make new if needed
-        if (instance == null 
-            || !credentialsId.equals(storedCredentialsId) 
-            || !host.toExternalForm().equals(storedHost.toExternalForm())
-            || storedCheckCertificate != checkCertificate
-            ) {
-            instance = new ProtecodeScService(credentialsId, host, checkCertificate);
-        }
-        return instance;
-    }       
+//    public static ProtecodeScService getInstance(
+//        String credentialsId, 
+//        URL host, 
+//        boolean checkCertificate
+//    ) {        
+//        // TODO, check change and make new if needed
+//        if (instance == null) {
+//            instance = new ProtecodeScService(credentialsId, host, checkCertificate);
+//        }
+//        return instance;
+//    }       
                     
     public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
         System.out.println("Requesting scan for: " + fileName);
