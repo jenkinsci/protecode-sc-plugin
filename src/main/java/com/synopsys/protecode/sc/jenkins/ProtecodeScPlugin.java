@@ -419,7 +419,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 URL protecodeHost = new URL(protecodeScHost);
                 this.protecodeScHost = protecodeHost.toExternalForm();
                 return FormValidation.ok();
-            } catch (NumberFormatException e) {
+            } catch (MalformedURLException e) {
                 return FormValidation.error("Please provide a valid URL");
             }
         }
