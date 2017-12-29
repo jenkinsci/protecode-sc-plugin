@@ -17,7 +17,6 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.ProtecodeScService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
@@ -33,7 +32,6 @@ import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.Run;
-import hudson.model.Run.Artifact;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
@@ -46,12 +44,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
@@ -120,7 +113,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     public boolean getConvertToSummary() {
         return convertToSummary;
     }          
-        
+            
     public boolean getResult() {
         return ProtecodeEvaluator.evaluate(results);
     }
@@ -174,7 +167,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         BuildListener listener) throws InterruptedException, IOException 
     {         
         log = listener.getLogger();
-        this.listener = (TaskListener) listener;
+        this.listener = listener;
         return doPerform(build, build.getWorkspace());
     }
     

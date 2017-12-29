@@ -12,16 +12,18 @@ package com.synopsys.protecode.sc.jenkins;
 
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
-import java.io.IOException;
-import java.net.URL;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import lombok.Data;
 
 /**
@@ -33,7 +35,7 @@ import lombok.Data;
  */
 public @Data class ProtecodeScService {
 
-    private static ProtecodeScService instance = null;
+//    private static ProtecodeScService instance = null;
     private static ProtecodeScApi backend = null;   
     
     public ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
