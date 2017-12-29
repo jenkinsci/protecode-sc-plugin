@@ -15,6 +15,9 @@ import java.io.*;
 import lombok.*;
 
 
+/**
+ * TODO, is this actually needed. Check whether this can be integrated to StreamRequestBody
+ */
 public class ReadableFile {
     @Getter @Setter private FilePath filePath = null;
 

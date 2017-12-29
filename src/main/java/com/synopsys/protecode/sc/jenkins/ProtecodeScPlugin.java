@@ -120,6 +120,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     public boolean getConvertToSummary() {
         return convertToSummary;
     }          
+        
+    public boolean getResult() {
+        return ProtecodeEvaluator.evaluate(results);
+    }
     
     private ProtecodeScService service() {
         // TODO: Add check that service is ok
@@ -426,9 +430,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         
         @Override
         public String getDisplayName() {
-            // TODO: give a nicer name
-            // This name is such to distinguish it clearly from the old plugin (whcih I also have)
-            return "New Plugin!";
+            return "Protecode SC";
         }          
 
         @Override

@@ -4,10 +4,10 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.37</version>
+        <version>3.2</version>
         <relativePath />
     </parent>
-    <artifactId>protecodesc-ng</artifactId>
+    <artifactId>protecodesc-pipeline</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
@@ -22,13 +22,13 @@
         <junit.platform.version>1.0.1</junit.platform.version>
         <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
-    <name>New Plugin!</name>
-    <description>Jenkins integration to Protecode SC</description>
+    <name>ProtecodeSC Pipeline</name>
+    <description>Jenkins integration to Protecode SC with pipeline support</description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>    
     <licenses>
         <license>
-            <name>TODO</name>
-            <url></url>
+            <name>Eclipse Public License v1.0</name>
+            <url>http://www.eclipse.org/legal/epl-v10.html</url>
         </license>
     </licenses>
     <build>
@@ -74,19 +74,17 @@
     <!-- If you want this to appear on the wiki page:
     <developers>
       <developer>
-        <id>bhacker</id>
-        <name>Bob Q. Hacker</name>
-        <email>bhacker@nowhere.net</email>
+        <id>Rukkanen</id>
+        <name>-</name>
+        <email>-</email>
       </developer>
     </developers> -->
-
-    <!-- Assuming you want to host on @jenkinsci:
+   
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-    </scm>
-    -->    
+    </scm>        
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
