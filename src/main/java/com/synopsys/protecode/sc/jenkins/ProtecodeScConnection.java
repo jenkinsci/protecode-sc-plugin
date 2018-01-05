@@ -24,6 +24,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import hudson.security.ACL;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import okhttp3.CipherSuite;
 import okhttp3.ConnectionSpec;
@@ -32,6 +34,9 @@ import okhttp3.TlsVersion;
 
 
 public class ProtecodeScConnection {
+    
+    private static final Logger LOGGER = Logger.getLogger(ProtecodeScConnection.class.getName());   
+    
     private ProtecodeScConnection() {
         // Don't instantiate me.
     }
@@ -55,7 +60,9 @@ public class ProtecodeScConnection {
         // Leave these here for convenience of debugging. They bleed memory _badly_ though
         // HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         // interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-        // ... ).addInterceptor(interceptor).build();                
+        // ... ).addInterceptor(interceptor).build();  
+        
+        int timeoutSeconds = 5000;
         
         OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
             (Interceptor.Chain chain) -> 
@@ -84,7 +91,8 @@ public class ProtecodeScConnection {
                 Request newRequest = builder.build();
                 return chain.proceed(newRequest);
             }        
-        ).build();                
+        ).readTimeout(timeoutSeconds, TimeUnit.SECONDS)
+            .connectTimeout(timeoutSeconds, TimeUnit.SECONDS).build();                
         
         Retrofit retrofit = new Retrofit.Builder()
             .baseUrl(url.toString())
@@ -96,18 +104,16 @@ public class ProtecodeScConnection {
     }
     
     private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {          
-        if (checkCertificate) {
-            System.out.println("Building secure connection");
+        if (checkCertificate) {            
             ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)  
                 .tlsVersions(TlsVersion.TLS_1_2)
                 .cipherSuites(
                       CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
                       CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
                       CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256)                
-                .build();            
+                .build();
             return new OkHttpClient.Builder().connectionSpecs(Collections.singletonList(spec));
         } else {
-            System.out.println("Building UNSECURE connection");
             return UnsafeOkHttpClient.getUnsafeOkHttpClient().newBuilder();
         }                
     }

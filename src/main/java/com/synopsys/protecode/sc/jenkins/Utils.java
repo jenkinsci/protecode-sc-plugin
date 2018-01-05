@@ -11,7 +11,6 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import hudson.FilePath;
-import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.File;
@@ -24,9 +23,12 @@ import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 
 public class Utils {
+    
+    private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
     
     private Utils(){
         // don't instantiate me...
@@ -50,24 +52,17 @@ public class Utils {
         }
         PrintStream log = listener.getLogger();
         List<ReadableFile> readableFiles = new ArrayList<>();
-        log.println("Reading from directory: " + fileDirectory);
+        
         if (!StringUtils.isEmpty(fileDirectory)) {
             @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
             List<FilePath> files = workspace.child(fileDirectory)
                     .list(new ScanFileFilter());
             if (!files.isEmpty()) {
                 for (FilePath file : files) {
-                    readableFiles.add(new ReadableFile(file));
-                    log.println("Adding file " + file.getName()
-                            + " for Protecode SC scan");
+                    readableFiles.add(new ReadableFile(file));                    
                 }
             } else {
-                log.println(
-                    String.format(
-                        "Could not get files to scan from %s", 
-                        fileDirectory
-                    )
-                );
+                LOGGER.warning("No reports to summarise");
             }
         } else {
             log.print("Directory empty, no files to scan with ProtecodeSC");
@@ -83,6 +78,7 @@ public class Utils {
     
     public static String replaceSpaceWithUnderscore(String line) {
         // TODO, use something which is certainly not used in other files. Underscore isn't good.
+        // Currently underscore is accepted in protecode SC so it's in use.
         return line.replace(" ", "_");
     }
     

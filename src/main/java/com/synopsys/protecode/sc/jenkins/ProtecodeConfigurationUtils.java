@@ -15,10 +15,14 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import hudson.security.ACL;
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 
 
 public final class ProtecodeConfigurationUtils {
+    
+    private static final Logger LOGGER = Logger.getLogger(ProtecodeConfigurationUtils.class.getName());   
+    
     private ProtecodeConfigurationUtils() {
         // don't instantiate me
     }

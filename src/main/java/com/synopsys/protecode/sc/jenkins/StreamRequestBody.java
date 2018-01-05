@@ -12,6 +12,7 @@ package com.synopsys.protecode.sc.jenkins;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import lombok.NonNull;
 import okhttp3.MediaType;
@@ -26,6 +27,8 @@ public class StreamRequestBody extends RequestBody {
     private final InputStream inputStream;
     private final MediaType contentType;    
     private final long size;
+    
+    private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
 
     public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {
         if (file.read() == null) {
@@ -44,7 +47,6 @@ public class StreamRequestBody extends RequestBody {
 
     @Override
     public long contentLength() throws IOException {
-        // TODO, this must be tested with a slave
         return this.size;
     }
 
@@ -60,7 +62,7 @@ public class StreamRequestBody extends RequestBody {
                 writeAmount = inputStream.available();            
             }
         } catch (Exception e) {
-            
+            LOGGER.warning("Error while sending file.");
         }
         finally {
             Util.closeQuietly(source);

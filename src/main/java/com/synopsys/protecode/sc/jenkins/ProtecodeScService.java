@@ -35,24 +35,11 @@ import lombok.Data;
  */
 public @Data class ProtecodeScService {
 
-//    private static ProtecodeScService instance = null;
     private static ProtecodeScApi backend = null;   
     
     public ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
         backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
-    }
-    
-//    public static ProtecodeScService getInstance(
-//        String credentialsId, 
-//        URL host, 
-//        boolean checkCertificate
-//    ) {        
-//        // TODO, check change and make new if needed
-//        if (instance == null) {
-//            instance = new ProtecodeScService(credentialsId, host, checkCertificate);
-//        }
-//        return instance;
-//    }       
+    } 
                     
     public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
         System.out.println("Requesting scan for: " + fileName);
@@ -70,22 +57,22 @@ public @Data class ProtecodeScService {
                 if (response.isSuccessful()) {
                     listener.processUploadResult(response.body());            
                 } else {
-                    try {
-                        System.out.println("scan Response error: " + response.errorBody().string() + " for file: " + fileName);
-                        listener.setError("Protecode SC returned error for file scan request: " + fileName);
-                    } catch (IOException ex) {
-                        Logger.getLogger(ProtecodeScService.class.getName()).log(Level.SEVERE, null, ex);
-                        listener.setError("Protecode SC returned generic error without error message");
+                    try {                        
+                        listener.setError("Protecode SC returned error for " + 
+                            response.errorBody().string() + " for file: " + fileName);
+                        System.out.println("error: " + response.errorBody().string());
+                    } catch (IOException ex) {                                                
+                        listener.setError("Protecode SC returned generic error without error message"
+                            + " for file: " + fileName);
+                        System.out.println("error - no message " + fileName);
                     }
                 }
             }
             @Override
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
                 // something went completely south (like no internet connection)
-                // TODO: Should we handle this somehow
-                //listener.setError("Protecode SC returned error for file scan request: " + fileName);
-                System.out.println("scan full error: " + t.getLocalizedMessage());
-                System.out.println("error: " +  t.getMessage());
+                listener.setError("Protecode SC returned error for file scan request: " + fileName + 
+                    ": " + t.getLocalizedMessage());                             
             }
         });
     }
@@ -94,17 +81,23 @@ public @Data class ProtecodeScService {
         Call<HttpTypes.UploadResponse> call = backend.poll(scanId);                        
         call.enqueue(new Callback<HttpTypes.UploadResponse>() {  
             @Override
-            public void onResponse(Call<HttpTypes.UploadResponse> call, Response<HttpTypes.UploadResponse> response) {
+            public void onResponse(Call<HttpTypes.UploadResponse> call, 
+                Response<HttpTypes.UploadResponse> response) {
                 if (response.isSuccessful()) {
                     listener.setScanStatus(response.body());            
                 } else {
-                    // error response, no access to resource?
-                    // TODO: Should we handle this somehow
+                    try {                        
+                        listener.setError("Protecode SC returned error for " + 
+                            response.errorBody().string() + " for scan id: " + scanId);
+                    } catch (IOException ex) {                        
+                        listener.setError("Protecode SC returned generic error without error message "
+                            + "for scan id: " + scanId);
+                    }
                 }
             }
             @Override
             public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
-                // something went completely south (like no internet connection)                
+                listener.setError("Poll request returned with error for scan id: " + scanId + ". Error was: " + t.getLocalizedMessage());
             }
         });
     }
@@ -127,6 +120,10 @@ public @Data class ProtecodeScService {
         });
     }  
     
+    /**
+     * 
+     * @param listener 
+     */
     public void groups(GroupService listener) {                
         Call<HttpTypes.Groups> call = backend.groups();
         call.enqueue(new Callback<HttpTypes.Groups>() {  

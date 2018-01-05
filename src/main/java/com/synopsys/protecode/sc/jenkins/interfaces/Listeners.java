@@ -23,10 +23,12 @@ public class Listeners {
     
     public static interface PollService {
         public void setScanStatus(HttpTypes.UploadResponse status);
+        public void setError(String reason);
     }
     
     public static interface ResultService {
         public void setScanResult(HttpTypes.ScanResultResponse result);
+        public void setError(String reason);
     }
     
     public static interface GroupService {

@@ -7,8 +7,8 @@
         <version>3.2</version>
         <relativePath />
     </parent>
-    <artifactId>protecodesc-pipeline</artifactId>
-    <version>0.9</version>
+    <artifactId>protecode-sc</artifactId>
+    <version>0.15-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <gson.version>2.8.2</gson.version>
@@ -24,7 +24,7 @@
     </properties>
     <name>ProtecodeSC Pipeline</name>
     <description>Jenkins integration to Protecode SC with pipeline support</description>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>    
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/Protecode+SC+Plugin</url>    
     <licenses>
         <license>
             <name>Eclipse Public License v1.0</name>

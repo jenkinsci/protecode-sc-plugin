@@ -17,6 +17,8 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
@@ -44,6 +46,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 import jenkins.tasks.SimpleBuildStep;
@@ -57,6 +61,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+
 
 public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @Getter private String credentialsId;
@@ -84,6 +89,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     public static final String REPORT_DIRECTORY = "reports";
     public static final String NO_ERROR = "";
     
+    private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
+    
     @DataBoundConstructor   
     public ProtecodeScPlugin(
         String credentialsId, 
@@ -94,7 +101,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         boolean leaveArtifacts, 
         int scanTimeout
     ) {
-        System.out.println("constructing");
         this.credentialsId = credentialsId;
         this.protecodeScGroup = protecodeScGroup;
         this.filesToScanDirectory = filesToScanDirectory;
@@ -126,17 +132,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
             || getDescriptor().isDontCheckCert() != storedDontCheckCertificate) {            
             try {
-            storedHost = new URL(getDescriptor().getProtecodeScHost());
+                storedHost = new URL(getDescriptor().getProtecodeScHost());
             } catch (Exception e) {
                 // cleaned at config time
             }
             storedDontCheckCertificate = getDescriptor().isDontCheckCert();
             try {
-            service = new ProtecodeScService(
-                credentialsId,
-                new URL(getDescriptor().getProtecodeScHost()),
-                !getDescriptor().isDontCheckCert()
-            );
+                service = new ProtecodeScService(
+                    credentialsId,
+                    new URL(getDescriptor().getProtecodeScHost()),
+                    !getDescriptor().isDontCheckCert()
+                );
             } catch (MalformedURLException e) {
                 // this url is already cleaned when getting it from the configuration page
             }
@@ -174,6 +180,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     public boolean doPerform(Run<?, ?> run, FilePath workspace) 
         throws IOException, InterruptedException 
     {        
+        log.println("Starting ProtecodeSC scan");
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
         List<ReadableFile> filesToScan = Utils.getFiles(
@@ -192,8 +199,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         
         //log.println("Sending files");        
         
+        long start = System.currentTimeMillis();
+        long end;
+        
         for (ReadableFile file: filesToScan) {
-            //log.println("Sending file: " + file.name());            
+            LOGGER.log(Level.FINE, "Sending file: {0}", file.name());           
             serv.scan(
                 protecodeScGroup, 
                 file.name(), 
@@ -215,13 +225,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 }
             );
             Thread.sleep(500); // we don't want to overload anything
-        }
+        }              
         
         // Then we wait and continue only when we have as many UploadResponses as we have 
         // filesToScan. Sad but true       
-        //log.println("Calling wait");
         waitForUploadResponses(filesToScan.size(), log);            
-        //log.println("Wait over");
+               
+        long time = (System.currentTimeMillis() - start)/1000;                
+        LOGGER.log(Level.FINE, "Uploading files to protecode sc took: {0}", time);
         
         // start polling for reponses to scans                
         if (!poll()) {
@@ -267,37 +278,47 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         startPollTimer();        
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
-        do {
-            log.println("Fetching results from Protecode SC");
+        log.println("Fetching results from Protecode SC");
+        do {            
             if (isTimeout()) {
                 return false;
             }
             results.forEach((FileAndResult fileAndResult) -> {
                 // TODO: Add check if the result never was reached
                 if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
-                    //log.println("no result received yet for " + fileAndResult.getFilename());
                     if (fileAndResult.uploadHTTPStatus() == 200) {
-                        //log.println("HTTP Status for " + fileAndResult.getFilename() + " is 200, proceding");
                         if ("R".equals(fileAndResult.getState())) {
-                            //log.println("status 'Ready' for " + fileAndResult.getFilename());
                             if (!fileAndResult.isResultBeingFetched()) {
-                                //log.println("Result for " + fileAndResult.getFilename() + " hasn't been asked for yet, getting.");
                                 fileAndResult.setResultBeingFetched(true);
                                 serv.scanResult(
                                     fileAndResult.getUploadResponse().getResults().getSha1sum(),
-                                    (ScanResultResponse scanResult) -> {
-                                        log.println("Received Protecode SC scan result for file: " + fileAndResult.getFilename());
-                                        fileAndResult.setResultResponse(scanResult);
-                                    }
+                                    new ResultService() {                                    
+                                        @Override
+                                        public void setScanResult(ScanResultResponse result) {
+                                            log.println("Received Protecode SC scan result for file: " + fileAndResult.getFilename());
+                                            fileAndResult.setResultResponse(result);
+                                        }
+
+                                        @Override
+                                        public void setError(String reason) {
+                                            fileAndResult.setError(reason);
+                                        }
+                                    }                                    
                                 );
                             }
-                        } else {
-                            //log.println("status NOT 'Ready' for " + fileAndResult.getFilename() + ", polling.");
+                        } else {                            
                             serv.poll(
                                 fileAndResult.getUploadResponse().getResults().getId(),
-                                (UploadResponse uploadResponse) -> {
-                                    //log.println("server responded for poll of " + fileAndResult.getFilename() + ": " + uploadResponse.getResults().getStatus());
-                                    fileAndResult.setUploadResponse(uploadResponse);
+                                new PollService() {
+                                    @Override
+                                    public void setScanStatus(UploadResponse status) {
+                                        fileAndResult.setUploadResponse(status);
+                                    }
+
+                                    @Override
+                                    public void setError(String reason) {
+                                        fileAndResult.setError(reason);
+                                    }
                                 }
                             );
                         }
@@ -307,18 +328,16 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                     }
                 }
                 try {
-                    Thread.sleep(500); // we don't want to overload anything
+                    Thread.sleep(500); // we don't want to overload the network with bulk requests
                 } catch (InterruptedException ex) {
-                    //Logger.getLogger(ProtecodeScPlugin.class.getName()).log(Level.SEVERE, null, ex);
+                    // Do nothing. Maybe the build has been canceled.
                 }
             });
             
             if (allNotReady()) {
                 try {
-                    //log.println("Main thread sleeping for a moment");
                     Thread.sleep(15 * 1000);
                 } catch (InterruptedException e) {
-                    //log.println("Sleep was interrupted, anding wait and stopping build");
                     return false;
                 }            
             }
@@ -337,19 +356,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      * @param log for printing to Jenkins build console.
      */
     private void waitForUploadResponses(int fileCount, PrintStream log) {
-        //log.println("Waiting for upload responses");
         boolean waitForResponses = true;
         // TODO: Add timeout since some files get no reponse from protecode
         while (waitForResponses) {                   
             try {                
                 Thread.sleep(30 * 1000);
                 // TODO: remove print after testing
-                //log.println("Tick - remove this");
                 if (results.size() >= fileCount) {
-                    //log.println(results.size() + " >= " + "fileCount: " + fileCount);
                     waitForResponses = false;
-                } else {
-                    //log.println(results.size() + " < " + "fileCount: " + fileCount);
                 }
             } catch (InterruptedException ie) {
                 waitForResponses = false;
