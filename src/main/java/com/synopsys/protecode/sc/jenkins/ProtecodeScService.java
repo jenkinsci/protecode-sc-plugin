@@ -42,7 +42,6 @@ public @Data class ProtecodeScService {
     } 
                     
     public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {  
-        System.out.println("Requesting scan for: " + fileName);
         Call<HttpTypes.UploadResponse> call = backend.scan(
             group, 
             Utils.replaceSpaceWithUnderscore(fileName), 
@@ -60,11 +59,9 @@ public @Data class ProtecodeScService {
                     try {                        
                         listener.setError("Protecode SC returned error for " + 
                             response.errorBody().string() + " for file: " + fileName);
-                        System.out.println("error: " + response.errorBody().string());
                     } catch (IOException ex) {                                                
                         listener.setError("Protecode SC returned generic error without error message"
                             + " for file: " + fileName);
-                        System.out.println("error - no message " + fileName);
                     }
                 }
             }

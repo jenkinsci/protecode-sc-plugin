@@ -52,13 +52,7 @@
                         <include>**/*TestCase.java</include>
                     </includes>
                     <properties>
-                        <!-- <includeTags>fast</includeTags> -->
                         <excludeTags>slow</excludeTags>
-                        <!--
-                        <configurationParameters>
-                                junit.jupiter.conditions.deactivate = *
-                        </configurationParameters>
-                        -->
                     </properties>
                 </configuration>
                 <dependencies>
@@ -71,15 +65,13 @@
             </plugin>
         </plugins>
     </build>
-    <!-- If you want this to appear on the wiki page:
     <developers>
       <developer>
         <id>Rukkanen</id>
-        <name>-</name>
+        <name>Rukkanen</name>
         <email>-</email>
       </developer>
-    </developers> -->
-   
+    </developers>   
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>

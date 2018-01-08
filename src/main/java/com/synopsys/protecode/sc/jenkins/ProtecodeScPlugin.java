@@ -200,8 +200,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         } else {
             //log.println("Directory for files to scan was not empty, proceding");            
         }
-        
-        //log.println("Sending files");        
+            
         
         long start = System.currentTimeMillis();
         long end;
