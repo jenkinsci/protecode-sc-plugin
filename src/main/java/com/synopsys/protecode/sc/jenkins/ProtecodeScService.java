@@ -35,7 +35,7 @@ import lombok.Data;
  */
 public @Data class ProtecodeScService {
 
-    private static ProtecodeScApi backend = null;   
+    private ProtecodeScApi backend = null;   
     
     public ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
         backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);

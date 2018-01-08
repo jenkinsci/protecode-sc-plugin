@@ -78,13 +78,9 @@ public class InternalTypes {
             return resultResponse.getResults().getSummary().getVulnCount().getExact() > 0;
         }                        
          
-        public SerializableResult getSerializableResult() {
-            if (resultResponse != null) {
-                // TODO implement error handling for misbuilt responses
-                return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
-            } else {                
-                return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
-            }
+        public SerializableResult getSerializableResult() {            
+            // TODO implement error handling for misbuilt responses
+            return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());            
         }
     }
     
