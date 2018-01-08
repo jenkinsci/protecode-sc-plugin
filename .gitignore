@@ -1,5 +1,7 @@
-/target/
-.classpath
+target/
+work/
+**/.DS_Store
+nb-configuration.xml
 .project
-.settings
 .idea
+.settings

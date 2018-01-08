@@ -8,14 +8,10 @@
 * Contributors:
 *    Synopsys, Inc - initial implementation and documentation
 *******************************************************************************/
-
 package com.synopsys.protecode.sc.jenkins.exceptions;
 
-public class ApiException extends RuntimeException {
 
-    public ApiException() { super(); }
-
-    public ApiException(String message) { super(message); }
-
-    public ApiException(Throwable t) { super(t); }
+public class MalformedSha1SumException extends RuntimeException {
+    public MalformedSha1SumException() { super(); }
+    public MalformedSha1SumException(String message) { super(message); }
 }

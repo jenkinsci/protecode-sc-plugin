@@ -9,7 +9,7 @@ http://www.synopsys.com/software/protecode/Pages/default.aspx
 
 ## Build instructions
 
-The plugin works with Jenkins 1.597 or newer and it is written to be Java 1.7
+The plugin works with Jenkins 2.83 or newer and it is written to be Java 1.8
 compatible.
 
 The plugin is built with Maven 3.x. The command to create the package to be
@@ -25,9 +25,9 @@ This will compile, test and package the plugin into an Jenkins plugin installati
 ## Installation
 
 1. Install dependencies
-    - [Credentials plugin](https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Plugin) for storing Protecode SC credentials
-    - [Copy Artifact Plugin](http://wiki.jenkins-ci.org/display/JENKINS/Copy+Artifact+Plugin) for copying build artifacts for uploading to Protecode SC
+    - [Credentials plugin](https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Plugin) for storing Protecode SC credentials    
     - [Summary Display plugin](https://wiki.jenkins-ci.org/display/JENKINS/Summary+Display+Plugin) for rendering reports from Protecode SC scans
+    (Copy Artifact Plugin IS NOT NEEDED anymore.)
 2. Upload and install Protecode SC Plugin `protecode-sc-plugin.hpi`
 3. Restart Jenkins
 

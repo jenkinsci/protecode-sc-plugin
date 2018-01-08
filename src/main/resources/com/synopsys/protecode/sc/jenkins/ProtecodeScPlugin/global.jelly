@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
   <!--
     This Jelly script is used to produce the global configuration option.
 
@@ -11,13 +11,14 @@
     It's also often useful to just check other similar scripts to see what
     tags they use. Views are always organized according to its owner class,
     so it should be straightforward to find them.
+    
   -->
   <f:section title="Protecode SC">
     <f:entry title="Server" field="protecodeScHost">
       <f:textbox />
-    </f:entry>
+    </f:entry>    
     <f:entry title="Disable certificate validation" field="dontCheckCert">
-      <f:checkbox />
+        <f:checkbox />
     </f:entry>
   </f:section>
 </j:jelly>

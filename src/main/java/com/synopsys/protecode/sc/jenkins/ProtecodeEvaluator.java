@@ -8,14 +8,16 @@
 * Contributors:
 *    Synopsys, Inc - initial implementation and documentation
 *******************************************************************************/
+package com.synopsys.protecode.sc.jenkins;
 
-package com.synopsys.protecode.sc.jenkins.exceptions;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
+import java.util.List;
 
-public class ApiException extends RuntimeException {
 
-    public ApiException() { super(); }
-
-    public ApiException(String message) { super(message); }
-
-    public ApiException(Throwable t) { super(t); }
+public class ProtecodeEvaluator {
+    public static boolean evaluate(
+        List<InternalTypes.FileAndResult> results
+    ) {        
+        return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.verdict()));               
+    }
 }
