@@ -183,6 +183,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         log.println("Starting ProtecodeSC scan");
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
+        if (serv == null) {
+            listener.error("Cannot connect to Protecode SC");
+            return false;
+        }
         List<ReadableFile> filesToScan = Utils.getFiles(
             filesToScanDirectory, 
             workspace, 
