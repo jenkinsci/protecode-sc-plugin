@@ -22,7 +22,7 @@
         <junit.platform.version>1.0.1</junit.platform.version>
         <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
-    <name>ProtecodeSC Pipeline</name>
+    <name>Protecode SC</name>
     <description>Jenkins integration to Protecode SC with pipeline support</description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/Protecode+SC+Plugin</url>    
     <licenses>
