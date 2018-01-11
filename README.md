@@ -26,8 +26,7 @@ This will compile, test and package the plugin into an Jenkins plugin installati
 
 1. Install dependencies
     - [Credentials plugin](https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Plugin) for storing Protecode SC credentials    
-    - [Summary Display plugin](https://wiki.jenkins-ci.org/display/JENKINS/Summary+Display+Plugin) for rendering reports from Protecode SC scans
-    (Copy Artifact Plugin IS NOT NEEDED anymore.)
+    - Optional: [Summary Display plugin](https://wiki.jenkins-ci.org/display/JENKINS/Summary+Display+Plugin) for rendering reports from Protecode SC scans    
 2. Upload and install Protecode SC Plugin `protecode-sc-plugin.hpi`
 3. Restart Jenkins
 
@@ -44,13 +43,9 @@ Configure system wide Protecode SC server address.
 
 ### Build configuration
 
-Configure build with the following post build actions.
-Order of the post build actions is important; first archive artifacts to be scanned, then scan artifacts with Protecode SC and finally generate a report using the returned results.
+Configure a build step as follows:
 
-1. Archive the artifacts
-    - *Files to archive*
-        - Set to `*`
-2. Protecode SC
+1. Protecode SC
     - *Credentials*
         - (new) Add
             - Select "Global" and "Username with password"
@@ -60,15 +55,17 @@ Order of the post build actions is important; first archive artifacts to be scan
         - Specify the Protecode SC Group ID where the artifacts should be uploaded to. Group ID can be found from the Protecode SC service by looking at the URL when browsing an individual group: https://protecode-sc.mydomain.com/group/1234/ or with Groups API https://protecode-sc.mydomain.com/api/groups/.
     - *Fail build if vulnerabilities*
         - Trigger build failure if Protecode SC finds vulnerabilities from the artifacts.
-    - *Additional artifact directory*
-        - You can use Copy Artifact Plugin to copy artifacts from another job. The directory specified here must match the directory specifed in Copy artifact plugin. If this job generates artifacts, they are always included in the scan.
-    - *Keep copied artifacts after build*
+    - *Directory for files to scan*
+        - The directory to scan. There is no automatic scanning of artifacts yet (as of 0.15.1)
+    - *Keep copied artifacts after build - (Legacy feature, not in active use)*
         - Check this if you want to keep artifacts that are copied using Copy Artifact plugin. Note that if artifacts are not overwritten during copy phase, they accumulate and the same artifacts are scanned again in subsequent runs.
+    - *Scanning timeout (minutes*
+        - The timeout for the scanning build step. If the scan operation in protecode lasts longer than the given value, the build step will exit.
     - *Convert results to Summary plugin format*
         - Set to `true`
         - The summary can be shown using Summary Display Plugin of Jenkins.
       The report file name to publish is protecodesc.xml.
-3. Publish XML Summary Reports
+2. Publish XML Summary Reports
     - *Files to parse*
         - Set to `**/protecodesc.xml`
     - *Show on Project page*
