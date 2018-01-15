@@ -59,7 +59,7 @@ Configure a build step as follows:
         - The directory to scan. There is no automatic scanning of artifacts yet (as of 0.15.1)
     - *Keep copied artifacts after build - (Legacy feature, not in active use)*
         - Check this if you want to keep artifacts that are copied using Copy Artifact plugin. Note that if artifacts are not overwritten during copy phase, they accumulate and the same artifacts are scanned again in subsequent runs.
-    - *Scanning timeout (minutes*
+    - *Scanning timeout (minutes)*
         - The timeout for the scanning build step. If the scan operation in protecode lasts longer than the given value, the build step will exit.
     - *Convert results to Summary plugin format*
         - Set to `true`
