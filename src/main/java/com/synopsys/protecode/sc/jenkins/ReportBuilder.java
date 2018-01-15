@@ -54,7 +54,7 @@ public class ReportBuilder {
             try {
                 writeJson(log, mapper, jsonReportDirectory, result.getSerializableResult());
             } catch (Exception e) {
-                log.println("there is a result which cannot be written to a report: " + result.getFilename());
+                log.println("No results for: " + result.getFilename());
             }            
         });
         

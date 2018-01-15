@@ -268,6 +268,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             //log.println("adding upload response for file: " + name);
             results.add(new FileAndResult(name, response));
         } else {
+            // TODO, if en error which will stop the build from happening we should stop the build.
+            log.println("Error to scan request for file: " + name + ": " + error);
             //log.println("adding upload response with ERROR for file: " + name);
             results.add(new FileAndResult(name, error));
         }
