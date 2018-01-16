@@ -39,7 +39,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
-                    <compatibleSinceVersion>1.0</compatibleSinceVersion>
+                    <compatibleSinceVersion>0.15.1</compatibleSinceVersion>
                 </configuration>
             </plugin>
             <plugin>
