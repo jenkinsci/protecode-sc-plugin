@@ -5,3 +5,4 @@ nb-configuration.xml
 .project
 .idea
 .settings
+push.sh
