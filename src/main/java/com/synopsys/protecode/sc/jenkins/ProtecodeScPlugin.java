@@ -79,7 +79,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     private static boolean storedDontCheckCertificate = true;
     
     // Below used in the scan process
-    private final List<FileAndResult> results = new ArrayList<>(); 
+    private List<FileAndResult> results; 
     private long stopAt = 0;
     
     // used for printing to the jenkins console
@@ -180,13 +180,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     public boolean doPerform(Run<?, ?> run, FilePath workspace) 
         throws IOException, InterruptedException 
     {        
-        log.println("Starting ProtecodeSC scan");
+        log.println("Starting ProtecodeSC scan");        
+        
         // use shortened word to distinguish from possibly null service
         ProtecodeScService serv = service();
         if (serv == null) {
             listener.error("Cannot connect to Protecode SC");
             return false;
         }
+        
+        results = new ArrayList<>(); // clean array for use.
+        
         List<ReadableFile> filesToScan = Utils.getFiles(
             filesToScanDirectory, 
             workspace, 
@@ -203,7 +207,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             
         
         long start = System.currentTimeMillis();
-        long end;
         
         for (ReadableFile file: filesToScan) {
             LOGGER.log(Level.FINE, "Sending file: {0}", file.name());           
@@ -223,6 +226,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                     @Override
                     public void setError(String reason) {
                         // TODO: use Optional
+                        log.println("received upload response ERROR for: " + file.name());
                         addUploadResponse(log, file.name(), null, reason);
                     }
                 }
@@ -265,12 +269,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
      */
     private void addUploadResponse(PrintStream log, String name, UploadResponse response, String error) {
         if (NO_ERROR.equals(error)) {
-            //log.println("adding upload response for file: " + name);
             results.add(new FileAndResult(name, response));
         } else {
             // TODO, if en error which will stop the build from happening we should stop the build.
             log.println("Error to scan request for file: " + name + ": " + error);
-            //log.println("adding upload response with ERROR for file: " + name);
             results.add(new FileAndResult(name, error));
         }
     }
@@ -299,13 +301,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                                     fileAndResult.getUploadResponse().getResults().getSha1sum(),
                                     new ResultService() {                                    
                                         @Override
-                                        public void setScanResult(ScanResultResponse result) {
-                                            log.println("Received Protecode SC scan result for file: " + fileAndResult.getFilename());
+                                        public void setScanResult(ScanResultResponse result) {                                            
                                             fileAndResult.setResultResponse(result);
                                         }
 
                                         @Override
                                         public void setError(String reason) {
+                                            log.println("Received Protecode SC scan result ERROR for file: " + fileAndResult.getFilename());                                            
                                             fileAndResult.setError(reason);
                                         }
                                     }                                    
@@ -316,12 +318,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                                 fileAndResult.getUploadResponse().getResults().getId(),
                                 new PollService() {
                                     @Override
-                                    public void setScanStatus(UploadResponse status) {
+                                    public void setScanStatus(UploadResponse status) {                                        
                                         fileAndResult.setUploadResponse(status);
                                     }
 
                                     @Override
                                     public void setError(String reason) {
+                                        log.println("scan status ERROR: " + fileAndResult.getFilename() + ": " + fileAndResult.getState() + ": " + reason);
                                         fileAndResult.setError(reason);
                                     }
                                 }
