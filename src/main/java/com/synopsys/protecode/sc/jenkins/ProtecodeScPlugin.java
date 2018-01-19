@@ -67,7 +67,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @Getter private String credentialsId;
     @Getter private String protecodeScGroup;    
     @Getter private String filesToScanDirectory;
-    //@Getter private boolean convertToSummary = true;
     private boolean convertToSummary = true;
     @Getter private boolean failIfVulns;
     @Getter private boolean leaveArtifacts;
@@ -118,11 +117,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @CheckForNull
     public boolean getConvertToSummary() {
         return convertToSummary;
-    }          
-            
-    public boolean getResult() {
-        return ProtecodeEvaluator.evaluate(results);
-    }
+    }                     
     
     private ProtecodeScService service() {
         // TODO: Add check that service is ok
@@ -256,11 +251,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         // summarise
         if(convertToSummary) {
             ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
-        }
+        }               
+        
         if (failIfVulns) {
             return verdict;
-        }
-        return true;
+        } else {
+            return true;
+        }        
     }
     
      /**
