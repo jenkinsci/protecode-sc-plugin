@@ -9,7 +9,7 @@ http://www.synopsys.com/software/protecode/Pages/default.aspx
 
 ## Build instructions
 
-The plugin works with Jenkins 2.83 or newer and it is written to be Java 1.8
+The plugin works with Jenkins 2.60.1 or newer and it is written to be Java 1.8
 compatible.
 
 The plugin is built with Maven 3.x. The command to create the package to be
