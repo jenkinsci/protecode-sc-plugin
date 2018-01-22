@@ -1,13 +1,13 @@
-/*******************************************************************************
-* Copyright (c) 2017 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
+ /*******************************************************************************
+  * Copyright (c) 2017 Synopsys, Inc
+  * All rights reserved. This program and the accompanying materials
+  * are made available under the terms of the Eclipse Public License v1.0
+  * which accompanies this distribution, and is available at
+  * http://www.eclipse.org/legal/epl-v10.html
+  *
+  * Contributors:
+  *    Synopsys, Inc - initial implementation and documentation
+  *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
 import hudson.FilePath;
@@ -27,73 +27,73 @@ import java.util.logging.Logger;
 
 
 public class Utils {
+  
+  private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
+  
+  private Utils(){
+    // don't instantiate me...
+  }
+  
+  private static class ScanFileFilter implements FileFilter, Serializable {
+    @Override
+    public boolean accept(File pathname) {
+      return pathname.isFile();
+    }
+  }
+  
+  public static List<ReadableFile> getFiles(String fileDirectory, FilePath workspace, Run<?, ?> run,
+    TaskListener listener) throws IOException, InterruptedException {
+    // add '/' to end if absent
+    if (!fileDirectory.endsWith("/")) {
+      fileDirectory = fileDirectory + "/";
+    }
+    if (!fileDirectory.startsWith("./")) {
+      fileDirectory = "./" + fileDirectory;
+    }
+    PrintStream log = listener.getLogger();
+    List<ReadableFile> readableFiles = new ArrayList<>();
     
-    private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
-    
-    private Utils(){
-        // don't instantiate me...
+    if (!StringUtils.isEmpty(fileDirectory)) {
+      @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        List<FilePath> files = workspace.child(fileDirectory)
+          .list(new ScanFileFilter());
+      if (!files.isEmpty()) {
+        for (FilePath file : files) {
+          readableFiles.add(new ReadableFile(file));
+        }
+      } else {
+        LOGGER.warning("No reports to summarise");
+      }
+    } else {
+      log.print("Directory empty, no files to scan with ProtecodeSC");
     }
     
-    private static class ScanFileFilter implements FileFilter, Serializable {
-        @Override
-        public boolean accept(File pathname) {
-            return pathname.isFile();
-        }
+    List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
+    for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
+      readableFiles.add(new ReadableFile(buildArtifact.getFile()));
     }
     
-    public static List<ReadableFile> getFiles(String fileDirectory, FilePath workspace, Run<?, ?> run,
-            TaskListener listener) throws IOException, InterruptedException {
-        // add '/' to end if absent
-        if (!fileDirectory.endsWith("/")) {
-            fileDirectory = fileDirectory + "/";
-        }
-        if (!fileDirectory.startsWith("./")) {
-            fileDirectory = "./" + fileDirectory;
-        }
-        PrintStream log = listener.getLogger();
-        List<ReadableFile> readableFiles = new ArrayList<>();
-        
-        if (!StringUtils.isEmpty(fileDirectory)) {
-            @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-            List<FilePath> files = workspace.child(fileDirectory)
-                    .list(new ScanFileFilter());
-            if (!files.isEmpty()) {
-                for (FilePath file : files) {
-                    readableFiles.add(new ReadableFile(file));                    
-                }
-            } else {
-                LOGGER.warning("No reports to summarise");
-            }
-        } else {
-            log.print("Directory empty, no files to scan with ProtecodeSC");
-        }
-
-        List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
-        for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-            readableFiles.add(new ReadableFile(buildArtifact.getFile()));
-        }
-        
-        return readableFiles;
-    }         
-    
-    public static String replaceSpaceWithUnderscore(String line) {
-        // TODO, use something which is certainly not used in other files. Underscore isn't good.
-        // Currently underscore is accepted in protecode SC so it's in use.
-        return line.replace(" ", "_");
+    return readableFiles;
+  }
+  
+  public static String replaceSpaceWithUnderscore(String line) {
+    // TODO, use something which is certainly not used in other files. Underscore isn't good.
+    // Currently underscore is accepted in protecode SC so it's in use.
+    return line.replace(" ", "_");
+  }
+  
+  public static boolean makeDirectory(String name, FilePath workspace, TaskListener listener) {
+    PrintStream log = listener.getLogger();
+    FilePath jsonReportDirectory = workspace.child("reports");
+    try {
+      jsonReportDirectory.mkdirs();
+      if (!jsonReportDirectory.isDirectory()) {
+        log.println("Report directory could not be created.");
+        return false;
+      }
+    } catch (IOException | InterruptedException e) {
+      return false;
     }
-    
-    public static boolean makeDirectory(String name, FilePath workspace, TaskListener listener) {        
-        PrintStream log = listener.getLogger();        
-        FilePath jsonReportDirectory = workspace.child("reports");
-        try {
-            jsonReportDirectory.mkdirs();
-            if (!jsonReportDirectory.isDirectory()) {
-                log.println("Report directory could not be created.");
-                return false;
-            }
-        } catch (IOException | InterruptedException e) {
-            return false;
-        }
-        return true;
-    }
+    return true;
+  }
 }
