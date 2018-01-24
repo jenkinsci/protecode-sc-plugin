@@ -195,6 +195,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     if (filesToScan.isEmpty()) {
       // no files to scan, no failure
+      log.println("Directory for files to scan was empty. Exiting, but NOT failing build.");
       return true;
     } else {
       //log.println("Directory for files to scan was not empty, proceding");
@@ -209,10 +210,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         protecodeScGroup,
         file.name(),
         new StreamRequestBody
-                          (
-                            MediaType.parse("application/octet-stream"),
-                            file
-                          ),
+        (
+          MediaType.parse("application/octet-stream"),
+          file
+        ),
         new ScanService() {
           @Override
           public void processUploadResult(UploadResponse result) {
@@ -221,7 +222,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
           @Override
           public void setError(String reason) {
             // TODO: use Optional
-            log.println("received upload response ERROR for: " + file.name());
+            log.println(reason);
             addUploadResponse(log, file.name(), null, reason);
           }
         }
@@ -268,8 +269,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (NO_ERROR.equals(error)) {
       results.add(new FileAndResult(name, response));
     } else {
-      // TODO, if en error which will stop the build from happening we should stop the build.
-      log.println("Error to scan request for file: " + name + ": " + error);
+      // TODO, if en error which will stop the build from happening we should stop the build.     
       results.add(new FileAndResult(name, error));
     }
   }
@@ -288,48 +288,50 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         return false;
       }
       results.forEach((FileAndResult fileAndResult) -> {
-        // TODO: Add check if the result never was reached
-        if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
-          if (fileAndResult.uploadHTTPStatus() == 200) {
-            if ("R".equals(fileAndResult.getState())) {
-              if (!fileAndResult.isResultBeingFetched()) {
-                fileAndResult.setResultBeingFetched(true);
-                serv.scanResult(
-                  fileAndResult.getUploadResponse().getResults().getSha1sum(),
-                  new ResultService() {
-                    @Override
-                    public void setScanResult(ScanResultResponse result) {
-                      fileAndResult.setResultResponse(result);
+        if (!fileAndResult.hasError()) {          
+          // TODO: Add check if the result never was reached
+          if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
+            if (fileAndResult.uploadHTTPStatus() == 200) {
+              if ("R".equals(fileAndResult.getState())) {
+                if (!fileAndResult.isResultBeingFetched()) {
+                  fileAndResult.setResultBeingFetched(true);
+                  serv.scanResult(
+                    fileAndResult.getUploadResponse().getResults().getSha1sum(),
+                    new ResultService() {
+                      @Override
+                      public void setScanResult(ScanResultResponse result) {
+                        fileAndResult.setResultResponse(result);
+                      }
+
+                      @Override
+                      public void setError(String reason) {
+                        log.println("Received Protecode SC scan result ERROR for file: " + fileAndResult.getFilename());
+                        fileAndResult.setError(reason);
+                      }
                     }
-                    
+                  );
+                }
+              } else {
+                serv.poll(
+                  fileAndResult.getUploadResponse().getResults().getId(),
+                  new PollService() {
+                    @Override
+                    public void setScanStatus(UploadResponse status) {
+                      fileAndResult.setUploadResponse(status);
+                    }
+
                     @Override
                     public void setError(String reason) {
-                      log.println("Received Protecode SC scan result ERROR for file: " + fileAndResult.getFilename());
+                      log.println("scan status ERROR: " + fileAndResult.getFilename() + ": " + fileAndResult.getState() + ": " + reason);
                       fileAndResult.setError(reason);
                     }
                   }
                 );
               }
             } else {
-              serv.poll(
-                fileAndResult.getUploadResponse().getResults().getId(),
-                new PollService() {
-                  @Override
-                  public void setScanStatus(UploadResponse status) {
-                    fileAndResult.setUploadResponse(status);
-                  }
-                  
-                  @Override
-                  public void setError(String reason) {
-                    log.println("scan status ERROR: " + fileAndResult.getFilename() + ": " + fileAndResult.getState() + ": " + reason);
-                    fileAndResult.setError(reason);
-                  }
-                }
-              );
+              listener.error("Status code for file upload: '" + fileAndResult.getFilename() +
+                "' was " + fileAndResult.uploadHTTPStatus() + ". No results to fetch.");
             }
-          } else {
-            listener.error("Status code for file upload: '" + fileAndResult.getFilename() +
-              "' was " + fileAndResult.uploadHTTPStatus() + ". No results to fetch.");
           }
         }
         try {
