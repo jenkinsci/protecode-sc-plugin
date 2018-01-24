@@ -42,7 +42,7 @@ public class InternalTypes {
     }
     
     public boolean hasError() {
-      return !"".equals(error);
+      return error != null;
     }
     
     public int uploadHTTPStatus() {
@@ -68,16 +68,14 @@ public class InternalTypes {
      * @return True if the scan result or error has been fetched.
      */
     public boolean hasScanResponse() {
-      return resultResponse != null || error != null;
+      return (resultResponse != null || hasError());
     }
     
     /**
      * @return True if component does not have an error, and has no vulns.
      */
     public boolean verdict() {
-      if (!hasScanResponse()) {
-        return false;
-      }
+
       return resultResponse.getResults().getSummary().getVulnCount().getExact() > 0;
     }
     
