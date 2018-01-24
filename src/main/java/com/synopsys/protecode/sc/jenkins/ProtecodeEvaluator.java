@@ -18,6 +18,12 @@ public class ProtecodeEvaluator {
   public static boolean evaluate(
     List<InternalTypes.FileAndResult> results
   ) {
-    return results.stream().anyMatch((fileAndResult) -> (!fileAndResult.verdict()));
+    return results.stream().anyMatch((fileAndResult) -> {
+      if (!fileAndResult.hasError()) {
+        return !fileAndResult.verdict();
+      } else {
+        return false;
+      }
+    });
   }
 }
