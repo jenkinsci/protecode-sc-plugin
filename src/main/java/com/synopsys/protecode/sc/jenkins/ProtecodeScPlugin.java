@@ -279,8 +279,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
    * @param listener
    */
   private boolean poll() {
+    if (results.stream().allMatch((fileAndResult) -> (fileAndResult.hasError()))) {
+      log.println("No results found. Perhaps no uploads were succesfull.");
+      return false;
+    }
     startPollTimer();
-    // use shortened word to distinguish from possibly null service
+    // use shortened word to distinguish from possibly null service    
     ProtecodeScService serv = service();
     log.println("Fetching results from Protecode SC");
     do {
@@ -288,7 +292,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         return false;
       }
       results.forEach((FileAndResult fileAndResult) -> {
-        if (!fileAndResult.hasError()) {          
+        if (!fileAndResult.hasError()) { // if we got an error from file upload        
           // TODO: Add check if the result never was reached
           if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
             if (fileAndResult.uploadHTTPStatus() == 200) {
