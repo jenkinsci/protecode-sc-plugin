@@ -317,7 +317,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 }
               } else {
                 serv.poll(
-                  fileAndResult.getUploadResponse().getResults().getId(),
+                  fileAndResult.getUploadResponse().getResults().getProduct_id(),
                   new PollService() {
                     @Override
                     public void setScanStatus(UploadResponse status) {
