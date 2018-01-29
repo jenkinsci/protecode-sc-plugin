@@ -12,6 +12,7 @@ package com.synopsys.protecode.sc.jenkins;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import lombok.NonNull;
@@ -24,9 +25,8 @@ import okio.Source;
 
 
 public class StreamRequestBody extends RequestBody {
-  private final InputStream inputStream;
-  private final MediaType contentType;
-  private final long size;
+  private final ReadableFile file;
+  private final MediaType contentType;  
   
   private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
   
@@ -34,9 +34,8 @@ public class StreamRequestBody extends RequestBody {
     if (file.read() == null) {
       throw new NullPointerException("File inputStream == null");
     }
+    this.file = file;
     this.contentType = contentType;
-    this.inputStream = file.read();
-    this.size = file.getFilePath().length();
   }
   
   @Nullable
@@ -47,24 +46,38 @@ public class StreamRequestBody extends RequestBody {
   
   @Override
   public long contentLength() throws IOException {
-    return this.size;
+    long size = 0;
+    try {
+      size = file.getFilePath().length();      
+    } catch (IOException | InterruptedException e) {
+      // IOE = larger scane failure, IE = Interrupted build?
+    }
+    return size;
   }
   
   @Override
-  public void writeTo(@NonNull BufferedSink sink) throws IOException {
+  public void writeTo(@NonNull BufferedSink sink) {
+    InputStream inputStream = null;
     Source source = null;
     try {
+      inputStream = file.read();
       long writeAmount = inputStream.available();
       while (writeAmount != 0) {
+        LOGGER.log(Level.INFO, "writing: {0}", writeAmount);
         source = Okio.source(inputStream);
         sink.write(source, writeAmount);
         sink.flush();
         writeAmount = inputStream.available();
       }
     } catch (Exception e) {
-      LOGGER.warning("Error while sending file.");
-    }
-    finally {
+      LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
+    } finally {
+      LOGGER.info("Closing file upload pipe to Protecode SC");
+      try {
+        inputStream.close();
+      } catch (Exception e) {
+        // No action: stream might have not been opened.    
+      }
       Util.closeQuietly(source);
     }
   }
