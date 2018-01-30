@@ -277,7 +277,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       listener
     );
     
-    log.println("Sending following files to Protecode SC: ");
+    log.println("Sending following files to Protecode SC:");
     filesToScan.forEach((ReadableFile file) -> 
       (log.println(file)));
     
@@ -378,7 +378,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       }
       results.forEach((FileAndResult fileAndResult) -> {
         if (!fileAndResult.hasError()) { // if we got an error from file upload        
-          // TODO: Add check if the result never was reached
+          // TODO: Add check if the result was never reached
           if (!fileAndResult.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
             if (fileAndResult.uploadHTTPStatus() == 200) {
               if ("R".equals(fileAndResult.getState())) {

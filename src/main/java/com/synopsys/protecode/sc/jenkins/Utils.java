@@ -13,6 +13,7 @@ package com.synopsys.protecode.sc.jenkins;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import java.io.File;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -84,7 +85,12 @@ public class Utils {
     List<ReadableFile> files = new ArrayList<>();
     
     try {
-      FilePath directory = workspace.child(cleanUrl(fileDirectory));
+      FilePath directory;
+      if (!absolutePath(fileDirectory)) {
+        directory = workspace.child(cleanUrl(fileDirectory));
+      } else {
+        directory = new FilePath(new File(fileDirectory));
+      }
       PrintStream log = listener.getLogger();
       log.println("Looking for files in directory: " + directory);
       files = getFiles(directory, includeSubdirectories, pattern, log);
@@ -164,5 +170,9 @@ public class Utils {
       cleanUrl = "./" + cleanUrl;
     }
     return cleanUrl;
+  }
+  
+  private static boolean absolutePath(String path) {
+    return path.startsWith("/");
   }
 }
