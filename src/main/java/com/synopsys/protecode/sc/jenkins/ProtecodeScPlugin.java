@@ -48,9 +48,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 import jenkins.tasks.SimpleBuildStep;
+import jnr.ffi.annotations.IgnoreError;
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
@@ -63,14 +65,17 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 
-public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
-  @Getter private String credentialsId;
-  @Getter private String protecodeScGroup;
-  @Getter private String filesToScanDirectory;
-  private boolean convertToSummary = true;
-  @Getter private boolean failIfVulns;
-  @Getter private boolean leaveArtifacts;
-  @Getter private int scanTimeout;
+public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {  
+  
+  private String credentialsId;
+  // TODO: Group can be an integer
+  private String protecodeScGroup;
+  private String filesToScanDirectory = "target";
+  private boolean includeSubdirectories = false;
+  private String pattern = "";
+  private boolean convertToSummary;
+  private boolean failIfVulns;
+  private int scanTimeout;
   // don't access service directly, use service(). It checks whether this exists
   private ProtecodeScService service = null;
   // used to know whether to make a new service
@@ -82,8 +87,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private long stopAt = 0;
   
   // used for printing to the jenkins console
-  PrintStream log = null;
-  TaskListener listener = null;
+  private PrintStream log = null;
+  private TaskListener listener = null;
   
   public static final String REPORT_DIRECTORY = "reports";
   public static final String NO_ERROR = "";
@@ -93,30 +98,95 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @DataBoundConstructor
   public ProtecodeScPlugin(
     String credentialsId,
-    String protecodeScGroup,
-    String filesToScanDirectory,
-    boolean convertToSummary,
-    boolean failIfVulns,
-    boolean leaveArtifacts,
-    int scanTimeout
+    String protecodeScGroup     
   ) {
     this.credentialsId = credentialsId;
     this.protecodeScGroup = protecodeScGroup;
-    this.filesToScanDirectory = filesToScanDirectory;
-    this.convertToSummary = convertToSummary;
-    this.failIfVulns = failIfVulns;
-    this.leaveArtifacts = leaveArtifacts;
-    this.scanTimeout = scanTimeout > 10 ? scanTimeout : 10;
+    this.filesToScanDirectory = "";
+    this.pattern = "";
+    this.convertToSummary = false;
+    this.failIfVulns = true;
+    this.scanTimeout = 10;
+  }  
+  
+  @DataBoundSetter
+  public void setCredentialsId(String credentialsId) {
+    this.credentialsId = credentialsId;
   }
   
-  @DataBoundSetter // Groovy
+  @DataBoundSetter
+  public void setProtecodeScGroup(String protecodeScGroup) {
+    this.protecodeScGroup = protecodeScGroup;
+  }
+  
+  @DataBoundSetter
+  public void setFilesToScanDirectory(String filesToScanDirectory) {
+    this.filesToScanDirectory = filesToScanDirectory;
+  }
+  
+  @DataBoundSetter
+  public void setIncludeSubdirectories(boolean includeSubdirectories) {
+    this.includeSubdirectories = includeSubdirectories;
+  }
+  
+  @DataBoundSetter
+  public void setPattern(String pattern) {
+    this.pattern = pattern;
+  }
+  
+  @DataBoundSetter
   public void setConvertToSummary(boolean convertToSummary) {
     this.convertToSummary = convertToSummary;
   }
   
+  @DataBoundSetter
+  public void setFailIfVulns(boolean failIfVulns) {
+    this.failIfVulns = failIfVulns;
+  }
+  
+  @DataBoundSetter
+  public void setScanTimeout(int scanTimeout) {
+    this.scanTimeout = scanTimeout;
+  }
+    
   @CheckForNull
   public boolean getConvertToSummary() {
     return convertToSummary;
+  }
+  
+  @CheckForNull
+  public String getCredentialsId() {
+    return credentialsId;
+  }
+  
+  @CheckForNull
+  public String getFilesToScanDirectory() {
+    return filesToScanDirectory;
+  }
+  
+  @CheckForNull
+  public boolean getIncludeSubdirectories() {
+    return includeSubdirectories;
+  }
+  
+  @CheckForNull
+  public String getPattern() {    
+    return pattern;
+  }
+  
+  @CheckForNull
+  public String getProtecodeScGroup() {
+    return protecodeScGroup;
+  }
+  
+  @CheckForNull
+  public boolean getFailIfVulns() {
+    return failIfVulns;
+  }
+  
+  @CheckForNull
+  public int getScanTimeout() {
+    return scanTimeout;
   }
   
   private ProtecodeScService service() {
@@ -151,6 +221,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   
   private void startPollTimer() {
     // stopAt is set to be the moment we don't try to poll anymore
+    // TODO: For a more comprehensive timeout, this isn't enough for the whole plugin.
+    // For build timeouts, suggest to use https://plugins.jenkins.io/build-timeout
     stopAt = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
   }
   
@@ -159,6 +231,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     throws InterruptedException, IOException
   {
     log = listener.getLogger();
+    log.println("/---------- Protecode SC plugin start ----------/");
     this.listener = listener;
     doPerform(run, workspace);
   }
@@ -175,7 +248,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException
   {
-    log.println("Starting ProtecodeSC scan");
+    log.println("/---------- Protecode SC plugin start ----------/");
     
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
@@ -186,21 +259,33 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     results = new ArrayList<>(); // clean array for use.
     
-    List<ReadableFile> filesToScan = Utils.getFiles(
-      filesToScanDirectory,
-      workspace,
+    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    String directoryToScan = (null != getFilesToScanDirectory()) ? getFilesToScanDirectory() : "";
+    
+    Pattern patternToUse = "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);
+    
+    if (includeSubdirectories){ 
+      log.println("Including subdirectories");
+    }
+    
+    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    List<ReadableFile> filesToScan = Utils.getFiles(directoryToScan,
+      workspace,      
+      includeSubdirectories,
+      patternToUse,
       run,
       listener
     );
+    
+    log.println("Sending following files to Protecode SC: ");
+    filesToScan.forEach((ReadableFile file) -> 
+      (log.println(file)));
     
     if (filesToScan.isEmpty()) {
       // no files to scan, no failure
       log.println("Directory for files to scan was empty. Exiting, but NOT failing build.");
       return true;
-    } else {
-      //log.println("Directory for files to scan was not empty, proceding");
-    }
-    
+    }    
     
     long start = System.currentTimeMillis();
     
@@ -253,7 +338,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if(convertToSummary) {
       ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
     }
-    
+    log.println("/---------- Protecode SC plugin end -----------/");
     if (failIfVulns) {
       return verdict;
     } else {
@@ -317,6 +402,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
                 }
               } else {
                 serv.poll(
+                  // TODO: Use pretty annotation in type "product_id"
                   fileAndResult.getUploadResponse().getResults().getProduct_id(),
                   new PollService() {
                     @Override
@@ -393,7 +479,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   }
   
   // TODO: move to different file, this clutters
-  @Extension @Symbol("protecode")
+  @Extension @Symbol("ProtecodeSC")
   public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
     @Getter @Setter private String protecodeScHost;
     @Getter @Setter private boolean dontCheckCert;

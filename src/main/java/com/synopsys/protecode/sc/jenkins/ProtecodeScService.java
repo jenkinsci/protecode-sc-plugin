@@ -41,7 +41,7 @@ public @Data class ProtecodeScService {
     backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
   }
   
-  public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {
+  public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {   
     Call<HttpTypes.UploadResponse> call = backend.scan(
       group,
       Utils.replaceSpaceWithUnderscore(fileName),
@@ -118,8 +118,8 @@ public @Data class ProtecodeScService {
   }
   
   /**
-   *
-   * @param listener
+   * Fetch groups for a user
+   * @param listener GroupService instance to handle responses
    */
   public void groups(GroupService listener) {
     Call<HttpTypes.Groups> call = backend.groups();
@@ -128,9 +128,8 @@ public @Data class ProtecodeScService {
       public void onResponse(Call<HttpTypes.Groups> call, Response<HttpTypes.Groups> response) {
         if (response.isSuccessful()) {
           listener.setGroups(response.body());
-        } else {
-          // error response, no access to resource?
-          // TODO: Should we handle this somehow
+        } else {          
+          // TODO: Handle errors
         }
       }
       

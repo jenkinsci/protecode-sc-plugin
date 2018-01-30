@@ -31,6 +31,7 @@ import okhttp3.CipherSuite;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.TlsVersion;
+import okhttp3.logging.HttpLoggingInterceptor;
 
 
 public class ProtecodeScConnection {
@@ -58,8 +59,8 @@ public class ProtecodeScConnection {
   
   public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {
     // Leave these here for convenience of debugging. They bleed memory _badly_ though
-    // HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-    // interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+//    HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+//    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
     // ... ).addInterceptor(interceptor).build();
     
     int timeoutSeconds = 5000;
@@ -97,7 +98,7 @@ public class ProtecodeScConnection {
     Retrofit retrofit = new Retrofit.Builder()
       .baseUrl(url.toString())
       .addConverterFactory(GsonConverterFactory.create())
-      .client(okHttpClient)
+      .client(okHttpClient)      
       .build();
     
     return retrofit.create(ProtecodeScApi.class);
@@ -105,15 +106,18 @@ public class ProtecodeScConnection {
   
   private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {
     if (checkCertificate) {
+      LOGGER.info("Using safe client");
       ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
         .tlsVersions(TlsVersion.TLS_1_2)
         .cipherSuites(
           CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
           CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-          CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256)
+          CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
+          CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384)
         .build();
       return new OkHttpClient.Builder().connectionSpecs(Collections.singletonList(spec));
     } else {
+      LOGGER.info("Using UNSAFE client");
       return UnsafeOkHttpClient.getUnsafeOkHttpClient().newBuilder();
     }
   }

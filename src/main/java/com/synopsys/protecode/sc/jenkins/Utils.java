@@ -13,9 +13,6 @@ package com.synopsys.protecode.sc.jenkins;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import java.io.File;
-
-import org.apache.commons.lang.StringUtils;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -30,25 +27,22 @@ import java.util.regex.Pattern;
 public class Utils {
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
-  private static final Pattern ALL_FILES_PATTERN = Pattern.compile(".*");
+  /**
+   * Pattern used to get all files from directory or directory structure
+   * .* stands for anything but newlines
+   */
+  public static final Pattern ALL_FILES_PATTERN = Pattern.compile(".*");
   
   private Utils(){
     // don't instantiate me...
   }
-  
-  public static List<ReadableFile> getFiles(String fileDirectory, FilePath workspace, Run<?, ?> run,
-    TaskListener listener) throws IOException, InterruptedException {
-    PrintStream log = listener.getLogger();
-    return getFiles(workspace, fileDirectory, log);
-  }    
   
   /**
    * Returns any produced artifacts for the build.
    * @param run Instance of the build
    * @return List of ReadableFiles produced as artifacts
    */
-  public static List<ReadableFile> getArtifacts(Run<?, ?> run) {
-    // .* stands for anything but newlines
+  public static List<ReadableFile> getArtifacts(Run<?, ?> run) {    
     return getArtifacts(run, ALL_FILES_PATTERN);
   }
   
@@ -67,38 +61,62 @@ public class Utils {
     return readableFiles;
   }
   
-  public static  List<ReadableFile> getFiles(
-    FilePath workspace,
-    String directoryToSearch, 
-    PrintStream log
-  ) {
-    return getFiles(
-      workspace.child(directoryToSearch),
-      false,
-      ALL_FILES_PATTERN,
-      log
-    );
-  }
   /**
    * Returns files in a directory
-   * @param directoryToSearch Name of the directory to parse through for files
-   * @param recurse If true the method returns all files from the directory structure.
+   * @param fileDirectory Name of the directory to parse through for files
+   * @param workspace The workspace to look for files in
+   * @param includeSubdirectories If true the method returns all files from the directory structure.
+   * @param pattern Regexp to include only certain files. If all is required use Utils.ALL_FILES_PATTERN
+   * @param run Jenkins build run instance
+   * @param listener Jenkins console 
+   * @return list of files 
+   */
+  public static List<ReadableFile> getFiles(
+    String fileDirectory, 
+    FilePath workspace,
+    boolean includeSubdirectories,
+    Pattern pattern,
+    Run<?, ?> run,
+    TaskListener listener
+  ) {
+    // TODO: If the path begins with "/", then perhaps the user wants to access a absolute path?
+    
+    List<ReadableFile> files = new ArrayList<>();
+    
+    try {
+      FilePath directory = workspace.child(cleanUrl(fileDirectory));
+      PrintStream log = listener.getLogger();
+      log.println("Looking for files in directory: " + directory);
+      files = getFiles(directory, includeSubdirectories, pattern, log);
+    } catch (Exception e) {
+      listener.error("Could not read files from: <workspace>/" + fileDirectory);
+    }
+    return files;
+  }    
+  
+  /**
+   * Returns files in a directory which conform to the pattern
+   * @param directoryToSearch 
+   * @param recurse 
+   * @param log Jenkins log interface
    * @return Files in the specified directory
    */
   private static List<ReadableFile> getFiles(
     FilePath directoryToSearch, 
-    boolean recurse, 
+    boolean includeSubdirectories, 
     Pattern pattern,
     PrintStream log
-  ) {
+  ) {    
     List<ReadableFile> filesInFolder = new ArrayList<>();
     try {
       directoryToSearch.list().forEach((FilePath file) -> {
         try {
           if (!file.isDirectory()) {
-            filesInFolder.add(new ReadableFile(file));  
-          } else if (recurse) {
-            filesInFolder.addAll(getFiles(file, recurse, pattern, log));
+            if (pattern.matcher(file.getName()).matches()) {
+              filesInFolder.add(new ReadableFile(file));  
+            }
+          } else if (includeSubdirectories) {
+            filesInFolder.addAll(getFiles(file, includeSubdirectories, pattern, log));
           }
         } catch (IOException | InterruptedException e) {
           // just ignore, DO NOT throw upwards

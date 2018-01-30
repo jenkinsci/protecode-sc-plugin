@@ -30,7 +30,7 @@ public class StreamRequestBody extends RequestBody {
   
   private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
   
-  public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {
+  public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {   
     if (file.read() == null) {
       throw new NullPointerException("File inputStream == null");
     }
@@ -63,7 +63,6 @@ public class StreamRequestBody extends RequestBody {
       inputStream = file.read();
       long writeAmount = inputStream.available();
       while (writeAmount != 0) {
-        LOGGER.log(Level.INFO, "writing: {0}", writeAmount);
         source = Okio.source(inputStream);
         sink.write(source, writeAmount);
         sink.flush();

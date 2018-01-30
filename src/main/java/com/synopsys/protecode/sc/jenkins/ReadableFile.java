@@ -37,6 +37,11 @@ public class ReadableFile {
     return filePath.getName();
   }
   
+  @Override
+  public String toString() {
+    return filePath.getBaseName();
+  }
+  
   public InputStream read() throws IOException, InterruptedException {
     return filePath.read();
   }
