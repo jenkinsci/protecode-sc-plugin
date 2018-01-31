@@ -75,8 +75,7 @@ public class InternalTypes {
      * @return True if component does not have an error, and has no vulns.
      */
     public boolean verdict() {
-
-      return resultResponse.getResults().getSummary().getVulnCount().getExact() > 0;
+      return resultResponse.getResults().getSummary().getVulnCount().getExact() == 0;
     }
     
     public SerializableResult getSerializableResult() {
