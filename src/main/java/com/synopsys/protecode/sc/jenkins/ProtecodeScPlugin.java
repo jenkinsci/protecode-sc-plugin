@@ -52,7 +52,6 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
 import jenkins.tasks.SimpleBuildStep;
-import jnr.ffi.annotations.IgnoreError;
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
@@ -250,6 +249,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   {
     log.println("/---------- Protecode SC plugin start ----------/");
     
+    // TODO: Make a nice structured printing of build variables to the console.
+    if (failIfVulns) {
+      log.println("The build will fail if any vulnurabilities are found.");
+    } else {
+      log.println("The build will fail if any vulnurabilities are found.");
+    }
+    
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
     if (serv == null) {
@@ -262,7 +268,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     String directoryToScan = (null != getFilesToScanDirectory()) ? getFilesToScanDirectory() : "";
     
-    Pattern patternToUse = "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);
+    Pattern patternToUse = null;
+    try {
+      patternToUse = "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);
+    } catch (Exception e) {
+      listener.error("Could not parse given regular expression pattern./n"
+        + "Please see: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html");
+      return false;
+    }
     
     if (includeSubdirectories){ 
       log.println("Including subdirectories");
@@ -283,7 +296,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     if (filesToScan.isEmpty()) {
       // no files to scan, no failure
-      log.println("Directory for files to scan was empty. Exiting, but NOT failing build.");
+      log.println("No files to scan found. Protecode SC plugin exits without failing.");      
       return true;
     }    
     
@@ -317,10 +330,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     // Then we wait and continue only when we have as many UploadResponses as we have
     // filesToScan. Sad but true
+    log.println("Polling Protecode SC for scan results");
     waitForUploadResponses(filesToScan.size(), log);
     
     long time = (System.currentTimeMillis() - start)/1000;
-    LOGGER.log(Level.FINE, "Uploading files to protecode sc took: {0}", time);
+    LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);
     
     // start polling for reponses to scans
     if (!poll()) {
@@ -328,7 +342,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
     
-    //evaluate
+    //evaluate, if verdict is false, there are vulns
     boolean verdict = ProtecodeEvaluator.evaluate(results);
     
     // make results
@@ -467,7 +481,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         log.println("Interrupted while waiting for upload responses from Protecode SC");
       }
     }
-  }
+  }  
   
   @Override
   public DescriptorImpl getDescriptor() {
