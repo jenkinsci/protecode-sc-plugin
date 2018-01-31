@@ -481,7 +481,29 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         log.println("Interrupted while waiting for upload responses from Protecode SC");
       }
     }
-  }  
+  }
+  
+// TODO: move file getting/handling to own method in this or utils
+//  private List<ReadableFile> getFiles() {
+//    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+//    String directoryToScan = (null != getFilesToScanDirectory()) ? getFilesToScanDirectory() : "";
+//    
+//    Pattern patternToUse = "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);    
+//    
+//    if (includeSubdirectories){ 
+//      log.println("Including subdirectories");
+//    }
+//    
+//    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+//    return Utils.getFiles(
+//      directoryToScan,
+//      workspace,      
+//      includeSubdirectories,
+//      patternToUse,
+//      run,
+//      listener
+//    );
+//  }
   
   @Override
   public DescriptorImpl getDescriptor() {
@@ -543,6 +565,16 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         return FormValidation.ok();
       } catch (MalformedURLException e) {
         return FormValidation.error("Please provide a valid URL");
+      }
+    }
+    
+    public FormValidation doCheckPattern(@QueryParameter String pattern) {
+      try {
+        Pattern.compile(pattern);      
+        return FormValidation.ok();
+      } catch (Exception e) {
+        return FormValidation.error("Please provide a valid Java style regexp pattern or leave "
+          + "empty to include all files.");
       }
     }
     

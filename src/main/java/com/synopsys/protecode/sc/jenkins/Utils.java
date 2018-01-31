@@ -79,9 +79,7 @@ public class Utils {
     Pattern pattern,
     Run<?, ?> run,
     TaskListener listener
-  ) {
-    // TODO: If the path begins with "/", then perhaps the user wants to access a absolute path?
-    
+  ) {    
     List<ReadableFile> files = new ArrayList<>();
     
     try {
@@ -89,6 +87,7 @@ public class Utils {
       if (!absolutePath(fileDirectory)) {
         directory = workspace.child(cleanUrl(fileDirectory));
       } else {
+        // TODO: Check why there seems to be an empty file everytime this is used. Doesn't break anything.        
         directory = new FilePath(new File(fileDirectory));
       }
       PrintStream log = listener.getLogger();
