@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
-//   We need to moce the regexps, logger and such through multiple methods and that's not good.
+//   We need to move the regexps, logger and such through multiple methods and that's not good.
 //   Of course the truly atomic helpers can be left alone.
 public class UtilitiesFile {
   

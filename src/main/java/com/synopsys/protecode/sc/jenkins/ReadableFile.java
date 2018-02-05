@@ -17,6 +17,7 @@ import lombok.*;
 
 /**
  * TODO, is this actually needed. Check whether this can be integrated to StreamRequestBody
+ *       Though it should be remembered that stream != file.
  */
 public class ReadableFile {
   @Getter @Setter private FilePath filePath = null;

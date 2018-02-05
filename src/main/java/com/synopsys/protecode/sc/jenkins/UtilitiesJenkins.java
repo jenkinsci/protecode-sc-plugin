@@ -21,7 +21,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 
-
+/**
+ * Utility for Jenkins related functionality.
+ */
 public final class UtilitiesJenkins {
   
   private static final Logger LOGGER = Logger.getLogger(UtilitiesJenkins.class.getName());
@@ -48,7 +50,7 @@ public final class UtilitiesJenkins {
           Jenkins.getInstance(), ACL.SYSTEM,
           new HostnameRequirement(url.toExternalForm())),
         CredentialsMatchers.withId(credentialsId));
-    LOGGER.log(Level.ALL, "Creds: {0}", creds);
+    LOGGER.log(Level.FINE, "Creds: {0}", creds);
     return creds;         
   }
 }
