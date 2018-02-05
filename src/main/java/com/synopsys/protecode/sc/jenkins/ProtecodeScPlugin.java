@@ -17,6 +17,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
@@ -46,6 +47,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -63,25 +65,31 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-
+/**
+ * TODO: There are much too many variables stored on the object level. Maybe we could perhaps store them
+ * in a configuration object or much more preferably as temp variables being moved in the methods. 
+ * This would eliminate the danger of having a variable instantiated to an old value from an older 
+ * build.
+ */
 public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {  
   
-  private String credentialsId;
-  // TODO: Group can be an integer
-  private String protecodeScGroup;
-  private String filesToScanDirectory = "target";
-  private boolean includeSubdirectories = false;
-  private String pattern = "";
+  private String credentialsId;  
+  private String protecodeScGroup; // TODO: Group can be an integer
+  private String directoryToScan;
+  private boolean includeSubdirectories;
+  private String pattern; // Be carefull with this. 
   private boolean convertToSummary;
   private boolean failIfVulns;
   private int scanTimeout;
+  
   // don't access service directly, use service(). It checks whether this exists
   private ProtecodeScService service = null;
+  
   // used to know whether to make a new service
   private static URL storedHost = null;
   private static boolean storedDontCheckCertificate = true;
   
-  // Below used in the scan process
+  // Used in the scan process
   private List<FileAndResult> results;
   private long stopAt = 0;
   
@@ -90,130 +98,54 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private TaskListener listener = null;
   
   public static final String REPORT_DIRECTORY = "reports";
-  public static final String NO_ERROR = "";
+  public static final String NO_ERROR = ""; // TODO: Use Optional
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
+  
+  //private static Optional<Boolean> lastBuildSucces;
   
   @DataBoundConstructor
   public ProtecodeScPlugin(
     String credentialsId,
     String protecodeScGroup     
   ) {
+    LOGGER.warning("BUILDING NEW PLUGIN");
     this.credentialsId = credentialsId;
     this.protecodeScGroup = protecodeScGroup;
-    this.filesToScanDirectory = "";
+    this.includeSubdirectories = false;
+    this.directoryToScan = "";
     this.pattern = "";
     this.convertToSummary = false;
     this.failIfVulns = true;
     this.scanTimeout = 10;
   }  
-  
-  @DataBoundSetter
-  public void setCredentialsId(String credentialsId) {
-    this.credentialsId = credentialsId;
-  }
-  
-  @DataBoundSetter
-  public void setProtecodeScGroup(String protecodeScGroup) {
-    this.protecodeScGroup = protecodeScGroup;
-  }
-  
-  @DataBoundSetter
-  public void setFilesToScanDirectory(String filesToScanDirectory) {
-    this.filesToScanDirectory = filesToScanDirectory;
-  }
-  
-  @DataBoundSetter
-  public void setIncludeSubdirectories(boolean includeSubdirectories) {
-    this.includeSubdirectories = includeSubdirectories;
-  }
-  
-  @DataBoundSetter
-  public void setPattern(String pattern) {
-    this.pattern = pattern;
-  }
-  
-  @DataBoundSetter
-  public void setConvertToSummary(boolean convertToSummary) {
-    this.convertToSummary = convertToSummary;
-  }
-  
-  @DataBoundSetter
-  public void setFailIfVulns(boolean failIfVulns) {
-    this.failIfVulns = failIfVulns;
-  }
-  
-  @DataBoundSetter
-  public void setScanTimeout(int scanTimeout) {
-    this.scanTimeout = scanTimeout;
-  }
     
-  @CheckForNull
-  public boolean getConvertToSummary() {
-    return convertToSummary;
-  }
-  
-  @CheckForNull
-  public String getCredentialsId() {
-    return credentialsId;
-  }
-  
-  @CheckForNull
-  public String getFilesToScanDirectory() {
-    return filesToScanDirectory;
-  }
-  
-  @CheckForNull
-  public boolean getIncludeSubdirectories() {
-    return includeSubdirectories;
-  }
-  
-  @CheckForNull
-  public String getPattern() {    
-    return pattern;
-  }
-  
-  @CheckForNull
-  public String getProtecodeScGroup() {
-    return protecodeScGroup;
-  }
-  
-  @CheckForNull
-  public boolean getFailIfVulns() {
-    return failIfVulns;
-  }
-  
-  @CheckForNull
-  public int getScanTimeout() {
-    return scanTimeout;
-  }
-  
   private ProtecodeScService service() {
-    // TODO: Add check that service is ok
+    // TODO: Add check that service is ok. We might need to do a dummy call to the server for it.
     getDescriptor().load();
     
-    if (service == null
-      || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
-      || getDescriptor().isDontCheckCert() != storedDontCheckCertificate) {
-      try {
-        storedHost = new URL(getDescriptor().getProtecodeScHost());
-      } catch (Exception e) {
-        // cleaned at config time
-      }
-      storedDontCheckCertificate = getDescriptor().isDontCheckCert();
-      try {
+    try {
+      if (service == null
+        // We need to check whether we need a new instance of the backend.
+        || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
+        || getDescriptor().isDontCheckCert() != storedDontCheckCertificate) {       
+        storedHost = new URL(getDescriptor().getProtecodeScHost());        
+        storedDontCheckCertificate = getDescriptor().isDontCheckCert();        
+
         service = new ProtecodeScService(
           credentialsId,
-          new URL(getDescriptor().getProtecodeScHost()),
+          storedHost,
           !getDescriptor().isDontCheckCert()
-        );
-      } catch (MalformedURLException e) {
-        // this url is already cleaned when getting it from the configuration page
+        );      
       }
-    }
+    } catch (Exception e){
+      listener.error("Cannot read Protecode URL, please make sure it has been set in the Jenkins"
+          + " configuration page.");
+    }    
     return service;
   }
   
+  // TODO rewrite timer logic, this isn't good
   private boolean isTimeout() {
     return System.currentTimeMillis() > stopAt;
   }
@@ -228,9 +160,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @Override
   public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener)
     throws InterruptedException, IOException
-  {
-    log = listener.getLogger();
-    log.println("/---------- Protecode SC plugin start ----------/");
+  { 
     this.listener = listener;
     doPerform(run, workspace);
   }
@@ -239,7 +169,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
     BuildListener listener) throws InterruptedException, IOException
   {
-    log = listener.getLogger();
     this.listener = listener;
     return doPerform(build, build.getWorkspace());
   }
@@ -247,14 +176,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException
   {
-    log.println("/---------- Protecode SC plugin start ----------/");
-    
-    // TODO: Make a nice structured printing of build variables to the console.
-    if (failIfVulns) {
-      log.println("The build will fail if any vulnurabilities are found.");
-    } else {
-      log.println("The build will fail if any vulnurabilities are found.");
-    }
+    log = listener.getLogger();
+    log.println("/---------- Protecode SC plugin start ----------/");       
     
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
@@ -263,20 +186,26 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
     
+    // TODO: Fix and use
+//    BuildStepHelper buildHelper = new BuildStepHelper(listener);
+//    if (!buildHelper.connectionOk(service.connectionOk())) {
+//      listener.fatalError("Problem with connecting to Protecode SC, exiting");
+//      return false;
+//    }
+    
+    // TODO: Make a nice structured printing of build variables and other information to the 
+    // console. Right now all printing is distributed everyhere and it causes confusion.
+    if (failIfVulns) {
+      log.println("The build will fail if any vulnurabilities are found.");
+    } else {
+      log.println("The build will NOT fail if vulnurabilities are found.");
+    }
+    
     results = new ArrayList<>(); // clean array for use.
     
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    String directoryToScan = (null != getFilesToScanDirectory()) ? getFilesToScanDirectory() : "";
-    
-    Pattern patternToUse = null;
-    try {
-      patternToUse = "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);
-    } catch (Exception e) {
-      listener.error("Could not parse given regular expression pattern./n"
-        + "Please see: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html");
-      return false;
-    }
-    
+    String directoryToScan = (null != getDirectoryToScan()) ? getDirectoryToScan() : "";     
+   
     if (includeSubdirectories){ 
       log.println("Including subdirectories");
     }
@@ -285,7 +214,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     List<ReadableFile> filesToScan = Utils.getFiles(directoryToScan,
       workspace,      
       includeSubdirectories,
-      patternToUse,
+      Utils.patternOrAll(pattern),
       run,
       listener
     );
@@ -321,6 +250,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
           public void setError(String reason) {
             // TODO: use Optional
             log.println(reason);
+            // TODO: Maybe use listener.error to stop writing for more results if we get error 
+            // perhaps?
             addUploadResponse(log, file.name(), null, reason);
           }
         }
@@ -353,7 +284,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
     }
     log.println("/---------- Protecode SC plugin end -----------/");
-    if (failIfVulns) {
+    if (failIfVulns) {  
+      // TODO: Fail explicitly
+//      if (!verdict) {
+//        listener.fatalError("Vulnerabilities found.");
+//      }
       return verdict;
     } else {
       return true;
@@ -488,7 +423,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 //    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
 //    String directoryToScan = (null != getFilesToScanDirectory()) ? getFilesToScanDirectory() : "";
 //    
-//    Pattern patternToUse = "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);    
 //    
 //    if (includeSubdirectories){ 
 //      log.println("Including subdirectories");
@@ -506,24 +440,25 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 //  }
   
   @Override
-  public DescriptorImpl getDescriptor() {
-    return (DescriptorImpl) super.getDescriptor();
+  public DescriptorImplementation getDescriptor() {
+    return (DescriptorImplementation) super.getDescriptor();
   }
   
   public String getTask() {
     return "Protecode SC";
   }
   
-  // TODO: move to different file, this clutters
+  
   @Extension @Symbol("ProtecodeSC")
-  public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
-    @Getter @Setter private String protecodeScHost;
-    @Getter @Setter private boolean dontCheckCert;
-    
-    public DescriptorImpl() {
+  public static final class DescriptorImplementation extends BuildStepDescriptor<Builder> implements ExtensionPoint {
+    @Getter @Setter protected String protecodeScHost;
+    @Getter @Setter protected boolean dontCheckCert;
+
+    public DescriptorImplementation() {
+      LOGGER.warning("BUILDING NEW DESCRIPTOR, loading from super");
       super.load();
     }
-    
+
     @Override
     @SuppressWarnings("ResultOfObjectAllocationIgnored")
     public boolean configure(StaplerRequest req, JSONObject formData)
@@ -534,14 +469,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         new URL(formData.getString("protecodeScHost"));
         this.protecodeScHost = formData.getString("protecodeScHost");
       } catch (MalformedURLException e) {
-        
+
       }
       this.dontCheckCert = formData.getBoolean("dontCheckCert");
-      
+
       save();
       return super.configure(req, formData);
     }
-    
+
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
       // TODO Find a nice way to use this to fetch possible groups
       //  - this might be impossible in this scope
@@ -556,7 +491,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
           new HostnameRequirement(protecodeScHost)));
       return result;
     }
-    
+
     public FormValidation doCheckProtecodeScHost(@QueryParameter String protecodeScHost)
       throws IOException, ServletException {
       try {
@@ -567,25 +502,140 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         return FormValidation.error("Please provide a valid URL");
       }
     }
-    
+
     public FormValidation doCheckPattern(@QueryParameter String pattern) {
       try {
         Pattern.compile(pattern);      
         return FormValidation.ok();
       } catch (Exception e) {
         return FormValidation.error("Please provide a valid Java style regexp pattern or leave "
-          + "empty to include all files.");
+          + "empty to include all files. Please see: https://docs.oracle.com/javase/8/docs/api/java/"
+          + "util/regex/Pattern.html");
       }
     }
-    
+
+    public FormValidation doCheckProtecodeScGroup(@QueryParameter String protecodeScGroup) {
+      try {
+        Integer.parseInt(protecodeScGroup);    
+        return FormValidation.ok();
+      } catch (Exception e) {
+        return FormValidation.error("Please provide a valid group. The group should a plain number,"
+          + "not a URL or a name.");
+      }
+    }
+
+    public FormValidation doCheckDirectoryToScan(@QueryParameter String directoryToScan) {
+      // TODO: Make this work with empty string also... Currently börken
+//      if (directoryToScan.matches(".*[^w$ -.y].*")) {
+//        return FormValidation.ok();
+//      } else {
+//        return FormValidation.error("Cannot read given path, please double check it.");
+//      }
+      return FormValidation.ok();
+    }
+
+    public FormValidation doCheckTimeout(@QueryParameter String timeout) {
+      try {
+        Integer.parseInt(timeout);    
+        return FormValidation.ok();
+      } catch (Exception e) {
+        return FormValidation.error("Please provide a valid timeout in minutes.");
+      }
+    }
+
     @Override
     public String getDisplayName() {
       return "Protecode SC";
     }
-    
+
     @Override
     public boolean isApplicable(Class<? extends AbstractProject> jobType) {
       return true;
     }
   }
+
+  @DataBoundSetter
+  public void setCredentialsId(String credentialsId) {
+    this.credentialsId = credentialsId;
+  }
+  
+  @DataBoundSetter
+  public void setProtecodeScGroup(String protecodeScGroup) {
+    this.protecodeScGroup = protecodeScGroup;
+  }
+  
+  @DataBoundSetter
+  public void setDirectoryToScan(String directoryToScan) {
+    this.directoryToScan = directoryToScan;
+  }
+  
+  @DataBoundSetter
+  public void setIncludeSubdirectories(boolean includeSubdirectories) {
+    this.includeSubdirectories = includeSubdirectories;
+  }
+  
+  @DataBoundSetter
+  public void setPattern(String pattern) {
+    this.pattern = pattern;
+  }
+  
+  @DataBoundSetter
+  public void setConvertToSummary(boolean convertToSummary) {
+    this.convertToSummary = convertToSummary;
+  }
+  
+  @DataBoundSetter
+  public void setFailIfVulns(boolean failIfVulns) {
+    this.failIfVulns = failIfVulns;
+  }
+  
+  @DataBoundSetter
+  public void setScanTimeout(int scanTimeout) {
+    this.scanTimeout = scanTimeout;
+  }
+    
+  @CheckForNull
+  public boolean getConvertToSummary() {
+    return convertToSummary;
+  }
+  
+  @CheckForNull
+  public String getCredentialsId() {
+    return credentialsId;
+  }
+  
+  @CheckForNull
+  public String getDirectoryToScan() {
+    return directoryToScan;
+  }
+  
+  @CheckForNull
+  public boolean getIncludeSubdirectories() {
+    return includeSubdirectories;
+  }
+  
+  @CheckForNull
+  public String getPattern() {    
+    return pattern;
+  }
+  
+  @CheckForNull
+  public String getProtecodeScGroup() {
+    return protecodeScGroup;
+  }
+  
+  @CheckForNull
+  public boolean getFailIfVulns() {
+    return failIfVulns;
+  }
+  
+  @CheckForNull
+  public int getScanTimeout() {
+    return scanTimeout;
+  }
+  
+//  @Extension
+//  public static boolean lastBuildSuccess() {
+//    return true;
+//  }
 }

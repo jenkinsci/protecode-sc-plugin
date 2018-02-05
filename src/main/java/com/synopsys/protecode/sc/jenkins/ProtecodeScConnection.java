@@ -31,32 +31,47 @@ import okhttp3.CipherSuite;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
 import okhttp3.TlsVersion;
-import okhttp3.logging.HttpLoggingInterceptor;
-
 
 public class ProtecodeScConnection {
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScConnection.class.getName());
   
+  /**
+   * A service class containing only static functions. No point in making an object out of it. 
+   */
   private ProtecodeScConnection() {
     // Don't instantiate me.
   }
   
-  public static ProtecodeScApi backend(
-    String credentialsId,
-    String urlString,
-    boolean checkCertificate
-  ) {
-    URL url;
-    try {
-      url = new URL(urlString);
-    } catch (MalformedURLException ex) {
-      // Don't force try-catch, throw runtime instead
-      throw new RuntimeException(ex.getMessage());
-    }
-    return backend(credentialsId, url, checkCertificate);
-  }
+  /**
+   * Main entry point for building a backend implementation in run-time.
+   * @param credentialsId the identifier for the credentials to be used.
+   * @param urlString
+   * @param checkCertificate
+   * @return 
+   */
+//  public static ProtecodeScApi backend(
+//    String credentialsId,
+//    String urlString,
+//    boolean checkCertificate
+//  ) {
+//    URL url;
+//    try {
+//      url = new URL(urlString);
+//    } catch (MalformedURLException ex) {
+//      // Don't force try-catch, throw runtime instead
+//      throw new RuntimeException(ex.getMessage());
+//    }
+//    return backend(credentialsId, url, checkCertificate);
+//  }
   
+  /**
+   * Main entry point for building a backend implementation in run-time.
+   * @param credentialsId the identifier for the credentials to be used.
+   * @param url The url which points to the protecode-sc instance.
+   * @param checkCertificate whether or not to check the server certificate.
+   * @return the backend to use while communicating to the server
+   */
   public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {
     // Leave these here for convenience of debugging. They bleed memory _badly_ though
 //    HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
@@ -70,15 +85,21 @@ public class ProtecodeScConnection {
       {
         Request originalRequest = chain.request();
         
-        // TODO: Use service
-        StandardUsernamePasswordCredentials credentials = CredentialsMatchers
-          .firstOrNull(
-            CredentialsProvider.lookupCredentials(
-              StandardUsernamePasswordCredentials.class,
-              Jenkins.getInstance(), ACL.SYSTEM,
-              new HostnameRequirement(url.toExternalForm())),
-            CredentialsMatchers.withId(credentialsId));
+        LOGGER.warning("URL URL URL: " + url);
         
+        // TODO: Use service
+        StandardUsernamePasswordCredentials credentials 
+          = ConfigurationUtils.getCredentials(url, credentialsId);
+//        StandardUsernamePasswordCredentials credentials = CredentialsMatchers
+//          .firstOrNull(
+//            CredentialsProvider.lookupCredentials(
+//              StandardUsernamePasswordCredentials.class,
+//              Jenkins.getInstance(), ACL.SYSTEM,
+//              new HostnameRequirement(url.toExternalForm())),
+//            CredentialsMatchers.withId(credentialsId));
+        
+        LOGGER.warning("Fetched creds: " + credentials.getDescription());
+
         // Right now we can't provide credentials "as is" to protecode so we need to extract to
         // contents
         String protecodeScUser = credentials.getUsername();
@@ -96,7 +117,7 @@ public class ProtecodeScConnection {
       .connectTimeout(timeoutSeconds, TimeUnit.SECONDS).build();
     
     Retrofit retrofit = new Retrofit.Builder()
-      .baseUrl(url.toString())
+      .baseUrl(url.toExternalForm())
       .addConverterFactory(GsonConverterFactory.create())
       .client(okHttpClient)      
       .build();

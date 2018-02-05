@@ -31,6 +31,11 @@ public class Listeners {
     public void setError(String reason);
   }
   
+  public static interface ConnectionStateService {
+    public void setConnectionStatus(boolean serverOk);
+    public void setConnectionError(String reason);
+  }
+  
   public static interface GroupService {
     public void setGroups(HttpTypes.Groups groups);
   }

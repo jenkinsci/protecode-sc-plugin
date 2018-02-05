@@ -20,20 +20,21 @@ public class ProtecodeEvaluator {
   private static final Logger LOGGER = Logger.getLogger(ProtecodeEvaluator.class.getName());
   
   /**
-   * 
+   * Evaluates the results. Any vulnerabilities or errors associated to file scans will cause false
+   * to be returned.
    * @param results All the results for the given scan.
-   * @return false if any vuln was found. Otherwise true
+   * @return false if any errors or vulns were found. Otherwise true
    */
   public static boolean evaluate(
     List<InternalTypes.FileAndResult> results
   ) {
-    LOGGER.log(Level.ALL, "Evaluating");
+    LOGGER.log(Level.ALL, "Evaluating scan results");
     return !results.stream().anyMatch((fileAndResult) -> {
       if (!fileAndResult.hasError()) {
-        LOGGER.log(Level.ALL, fileAndResult.getFilename() + "has result: " + fileAndResult.verdict());
+        LOGGER.log(Level.FINER, fileAndResult.getFilename() + "has result: " + fileAndResult.verdict());
         return !fileAndResult.verdict();
       } else {
-        LOGGER.log(Level.ALL, fileAndResult.getFilename() + "has error: " + fileAndResult.getError());
+        LOGGER.log(Level.FINER, fileAndResult.getFilename() + "has error: " + fileAndResult.getError());
         return false;
       }
     });

@@ -77,7 +77,7 @@ public class ReportBuilder {
     ObjectMapper mapper = getObjectMapper();
     try {
       FilePath[] jsonFiles = jsonReportDirectory.list("*-" + PROTECODE_FILE_TAG + ".json");
-      log.println(jsonFiles.length + " files found");
+      log.println(jsonFiles.length + " report files found");
       File xmlReportDir = run.getArtifactsDir();
       if (!xmlReportDir.exists()) {
         boolean xmlReportDirCreated = xmlReportDir.mkdirs();

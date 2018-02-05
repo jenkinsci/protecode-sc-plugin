@@ -18,6 +18,9 @@ import retrofit2.http.*;
 
 public interface ProtecodeScApi {
   
+  @HEAD("/")
+  public Call<Void> head();
+  
   @PUT("/api/upload/{filename}")
   public Call<HttpTypes.UploadResponse> scan(
     @Header("Group") String groupName,

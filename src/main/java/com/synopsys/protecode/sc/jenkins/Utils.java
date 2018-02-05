@@ -134,12 +134,31 @@ public class Utils {
     return filesInFolder;
   }
   
+  /**
+   * Replaces spaces with underscore in the given line. This is used to format the query parameter
+   * in the call to Protecode SC. The problem is that Protecode SC has a limited acceptable chars 
+   * group.
+   * 
+   * TODO: Use perhaps a regexp maybe?
+   * TODO: There is a slight possiblity that the user will give a file with underscores and a file 
+   * with spaces which are otherwise identical. This will then not work. 
+   * 
+   * @param line The string to format
+   * @return A string with spaces replaced with underscore
+   */
   public static String replaceSpaceWithUnderscore(String line) {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
     // Currently underscore is accepted in protecode SC so it's in use.
     return line.replace(" ", "_");
   }
   
+  /**
+   * Creates a directory in the specified workspace.
+   * @param name The name of the directory to create
+   * @param workspace The workspace in which to create the directory
+   * @param listener The build listener for logging information and possible errors to build console.
+   * @return true if creating the directing was successful.
+   */
   public static boolean makeDirectory(String name, FilePath workspace, TaskListener listener) {
     PrintStream log = listener.getLogger();
     FilePath jsonReportDirectory = workspace.child("reports");
@@ -154,6 +173,27 @@ public class Utils {
     }
     return true;
   }
+  
+  /**
+   * A convenience method which either returns a pattern which includes all files or a pattern for 
+   * the given string. If the String object "pattern" is empty then the method will return a pattern
+   * which includes all.
+   * @param pattern The string representation of the pattern. 
+   * @return Either a Pattern object with the given string or a pattern for all
+   */
+  public static Pattern patternOrAll(String pattern) {
+    return "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);    
+  }
+  
+  /**
+   * Method builds the path to the working directory. 
+   * @param filesToScanDirectory
+   * @return 
+   */
+//  public static String directoryToScan(String filesToScanDirectory) {
+//    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+//    return "".equalsfilesToScanDirectory) ? filesToScanDirectory : "";
+//  }
   
   /**
    * A method to add ./ to the start and / to the end of the address if missing

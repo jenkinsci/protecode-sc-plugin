@@ -13,10 +13,17 @@ package com.synopsys.protecode.sc.jenkins.types;
 import com.synopsys.protecode.sc.jenkins.exceptions.MalformedSha1SumException;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import lombok.Data;
+import retrofit2.Response;
 
 
 public class InternalTypes {
+  
+  private static final Logger LOGGER = Logger.getLogger(InternalTypes.class.getName());
   
   public static @Data class FileAndResult {
     private String filename = null;
@@ -136,5 +143,33 @@ public class InternalTypes {
   
   public static @Data class Group {
     private String name;
+  }
+  
+  public static @Data class ConnectionStatus {
+    private Response response;
+    private Optional<String> error = Optional.empty();
+    
+    public ConnectionStatus(Response response) {
+      this.response = response;
+      if (!response.isSuccessful()) {
+        try {
+          error = Optional.of(response.errorBody().string());
+        } catch (IOException ex) {
+          // No throw, since this is a storage class. It's not its job to inform anything.          
+        }
+      }
+    }
+    
+    public ConnectionStatus(IOException exception) {
+      error = Optional.ofNullable(exception.getMessage());
+    }
+    
+    public int code() {
+      return response.code();
+    }
+    
+    public boolean ok() {
+      return !error.isPresent();
+    }
   }
 }

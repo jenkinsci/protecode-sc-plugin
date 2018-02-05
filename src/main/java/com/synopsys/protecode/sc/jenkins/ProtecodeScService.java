@@ -13,10 +13,10 @@ package com.synopsys.protecode.sc.jenkins;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import okhttp3.RequestBody;
@@ -116,6 +116,20 @@ public @Data class ProtecodeScService {
         // something went completely south (like no internet connection)
       }
     });
+  }
+  
+  /**
+   * Test the connection with a HEAD call.
+   * @return ConnectionStatus object for the current connection.
+   */
+  public ConnectionStatus connectionOk() {    
+    Call<Void> call = backend.head();
+    try {
+      Response response = call.execute();
+      return new ConnectionStatus(response);
+    } catch (IOException ex) {
+      return new ConnectionStatus(ex);
+    }
   }
   
   /**
