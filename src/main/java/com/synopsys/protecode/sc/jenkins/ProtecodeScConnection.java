@@ -89,7 +89,7 @@ public class ProtecodeScConnection {
         
         // TODO: Use service
         StandardUsernamePasswordCredentials credentials 
-          = ConfigurationUtils.getCredentials(url, credentialsId);
+          = UtilitiesJenkins.getCredentials(url, credentialsId);
 //        StandardUsernamePasswordCredentials credentials = CredentialsMatchers
 //          .firstOrNull(
 //            CredentialsProvider.lookupCredentials(

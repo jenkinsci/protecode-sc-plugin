@@ -185,13 +185,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       listener.error("Cannot connect to Protecode SC");
       return false;
     }
-    
-    // TODO: Fix and use
-//    BuildStepHelper buildHelper = new BuildStepHelper(listener);
-//    if (!buildHelper.connectionOk(service.connectionOk())) {
-//      listener.fatalError("Problem with connecting to Protecode SC, exiting");
-//      return false;
-//    }
+      
+    if (!UtilitiesGeneral.connectionOk(service.connectionOk())) {
+      listener.fatalError("Problem with connecting to Protecode SC, exiting");
+      return false;
+    }
     
     // TODO: Make a nice structured printing of build variables and other information to the 
     // console. Right now all printing is distributed everyhere and it causes confusion.
@@ -211,10 +209,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
     
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    List<ReadableFile> filesToScan = Utils.getFiles(directoryToScan,
+    List<ReadableFile> filesToScan = UtilitiesFile.getFiles(directoryToScan,
       workspace,      
       includeSubdirectories,
-      Utils.patternOrAll(pattern),
+      UtilitiesFile.patternOrAll(pattern),
       run,
       listener
     );
@@ -429,7 +427,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 //    }
 //    
 //    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-//    return Utils.getFiles(
+//    return UtilitiesFile.getFiles(
 //      directoryToScan,
 //      workspace,      
 //      includeSubdirectories,

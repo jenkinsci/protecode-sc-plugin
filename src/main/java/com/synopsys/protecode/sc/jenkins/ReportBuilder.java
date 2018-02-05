@@ -42,7 +42,7 @@ public class ReportBuilder {
     FilePath workspace
   ) {
     
-    if (!Utils.makeDirectory(reportDirectory, workspace, listener)) {
+    if (!UtilitiesFile.makeDirectory(reportDirectory, workspace, listener)) {
       listener.error("Couldn't create report directory.");
       return false;
     }

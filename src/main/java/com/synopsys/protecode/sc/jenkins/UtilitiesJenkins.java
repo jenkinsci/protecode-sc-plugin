@@ -22,16 +22,16 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 
 
-public final class ConfigurationUtils {
+public final class UtilitiesJenkins {
   
-  private static final Logger LOGGER = Logger.getLogger(ConfigurationUtils.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(UtilitiesJenkins.class.getName());
   
-  private ConfigurationUtils() {
+  private UtilitiesJenkins() {
     // don't instantiate me
   }
   
   /**
-   * Returns 
+   * Returns The first suitable credential for the id.
    * @param url Host to associate the credentials with
    * @param credentialsId The id of the credentials
    * @return Standard credential types

@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
 //   We need to moce the regexps, logger and such through multiple methods and that's not good.
 //   Of course the truly atomic helpers can be left alone.
-public class Utils {
+public class UtilitiesFile {
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
   /**
@@ -34,7 +34,7 @@ public class Utils {
    */
   public static final Pattern ALL_FILES_PATTERN = Pattern.compile(".*");
   
-  private Utils(){
+  private UtilitiesFile(){
     // don't instantiate me...
   }
   
@@ -67,7 +67,7 @@ public class Utils {
    * @param fileDirectory Name of the directory to parse through for files
    * @param workspace The workspace to look for files in
    * @param includeSubdirectories If true the method returns all files from the directory structure.
-   * @param pattern Regexp to include only certain files. If all is required use Utils.ALL_FILES_PATTERN
+   * @param pattern Regexp to include only certain files. If all is required use UtilitiesFile.ALL_FILES_PATTERN
    * @param run Jenkins build run instance
    * @param listener Jenkins console 
    * @return list of files 
@@ -132,25 +132,7 @@ public class Utils {
       log.print("Error while reading folder: " + directoryToSearch.getName());
     }
     return filesInFolder;
-  }
-  
-  /**
-   * Replaces spaces with underscore in the given line. This is used to format the query parameter
-   * in the call to Protecode SC. The problem is that Protecode SC has a limited acceptable chars 
-   * group.
-   * 
-   * TODO: Use perhaps a regexp maybe?
-   * TODO: There is a slight possiblity that the user will give a file with underscores and a file 
-   * with spaces which are otherwise identical. This will then not work. 
-   * 
-   * @param line The string to format
-   * @return A string with spaces replaced with underscore
-   */
-  public static String replaceSpaceWithUnderscore(String line) {
-    // TODO, use something which is certainly not used in other files. Underscore isn't good.
-    // Currently underscore is accepted in protecode SC so it's in use.
-    return line.replace(" ", "_");
-  }
+  }    
   
   /**
    * Creates a directory in the specified workspace.
@@ -182,7 +164,7 @@ public class Utils {
    * @return Either a Pattern object with the given string or a pattern for all
    */
   public static Pattern patternOrAll(String pattern) {
-    return "".equals(pattern) ? Utils.ALL_FILES_PATTERN : Pattern.compile(pattern);    
+    return "".equals(pattern) ? UtilitiesFile.ALL_FILES_PATTERN : Pattern.compile(pattern);    
   }
   
   /**

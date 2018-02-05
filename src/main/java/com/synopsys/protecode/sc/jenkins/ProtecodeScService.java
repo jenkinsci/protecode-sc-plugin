@@ -45,7 +45,7 @@ public @Data class ProtecodeScService {
   public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {   
     Call<HttpTypes.UploadResponse> call = backend.scan(
       group,
-      Utils.replaceSpaceWithUnderscore(fileName),
+      UtilitiesGeneral.replaceSpaceWithUnderscore(fileName),
       requestBody
     );
     call.enqueue(new Callback<HttpTypes.UploadResponse>() {
@@ -125,8 +125,7 @@ public @Data class ProtecodeScService {
   public ConnectionStatus connectionOk() {    
     Call<Void> call = backend.head();
     try {
-      Response response = call.execute();
-      return new ConnectionStatus(response);
+      return new ConnectionStatus(call.execute());
     } catch (IOException ex) {
       return new ConnectionStatus(ex);
     }
