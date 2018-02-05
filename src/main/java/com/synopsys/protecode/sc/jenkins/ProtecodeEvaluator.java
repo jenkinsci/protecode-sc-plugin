@@ -28,7 +28,7 @@ public class ProtecodeEvaluator {
   public static boolean evaluate(
     List<InternalTypes.FileAndResult> results
   ) {
-    LOGGER.log(Level.ALL, "Evaluating scan results");
+    LOGGER.log(Level.FINER, "Evaluating scan results");
     return !results.stream().anyMatch((fileAndResult) -> {
       if (!fileAndResult.hasError()) {
         LOGGER.log(Level.FINER, fileAndResult.getFilename() + "has result: " + fileAndResult.verdict());

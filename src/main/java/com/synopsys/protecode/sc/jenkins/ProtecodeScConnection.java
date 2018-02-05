@@ -25,6 +25,7 @@ import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import hudson.security.ACL;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import okhttp3.CipherSuite;
@@ -46,28 +47,6 @@ public class ProtecodeScConnection {
   /**
    * Main entry point for building a backend implementation in run-time.
    * @param credentialsId the identifier for the credentials to be used.
-   * @param urlString
-   * @param checkCertificate
-   * @return 
-   */
-//  public static ProtecodeScApi backend(
-//    String credentialsId,
-//    String urlString,
-//    boolean checkCertificate
-//  ) {
-//    URL url;
-//    try {
-//      url = new URL(urlString);
-//    } catch (MalformedURLException ex) {
-//      // Don't force try-catch, throw runtime instead
-//      throw new RuntimeException(ex.getMessage());
-//    }
-//    return backend(credentialsId, url, checkCertificate);
-//  }
-  
-  /**
-   * Main entry point for building a backend implementation in run-time.
-   * @param credentialsId the identifier for the credentials to be used.
    * @param url The url which points to the protecode-sc instance.
    * @param checkCertificate whether or not to check the server certificate.
    * @return the backend to use while communicating to the server
@@ -83,22 +62,10 @@ public class ProtecodeScConnection {
     OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
       (Interceptor.Chain chain) ->
       {
-        Request originalRequest = chain.request();
+        Request originalRequest = chain.request();       
         
-        LOGGER.warning("URL URL URL: " + url);
-        
-        // TODO: Use service
         StandardUsernamePasswordCredentials credentials 
-          = UtilitiesJenkins.getCredentials(url, credentialsId);
-//        StandardUsernamePasswordCredentials credentials = CredentialsMatchers
-//          .firstOrNull(
-//            CredentialsProvider.lookupCredentials(
-//              StandardUsernamePasswordCredentials.class,
-//              Jenkins.getInstance(), ACL.SYSTEM,
-//              new HostnameRequirement(url.toExternalForm())),
-//            CredentialsMatchers.withId(credentialsId));
-        
-        LOGGER.warning("Fetched creds: " + credentials.getDescription());
+          = UtilitiesJenkins.getCredentials(url, credentialsId);  
 
         // Right now we can't provide credentials "as is" to protecode so we need to extract to
         // contents
