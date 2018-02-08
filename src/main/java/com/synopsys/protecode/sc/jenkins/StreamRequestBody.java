@@ -59,6 +59,7 @@ public class StreamRequestBody extends RequestBody {
   public void writeTo(@NonNull BufferedSink sink) {
     InputStream inputStream = null;
     Source source = null;
+    LOGGER.info("Reading file.");
     try {
       inputStream = file.read();
       long writeAmount = inputStream.available();
@@ -70,8 +71,7 @@ public class StreamRequestBody extends RequestBody {
       }
     } catch (Exception e) {
       LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
-    } finally {
-      LOGGER.info("Closing file upload pipe to Protecode SC");
+    } finally {      
       try {
         inputStream.close();
       } catch (Exception e) {

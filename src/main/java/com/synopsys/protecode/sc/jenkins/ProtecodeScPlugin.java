@@ -17,7 +17,6 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
@@ -34,6 +33,7 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Item;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
@@ -47,7 +47,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -109,7 +108,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     String credentialsId,
     String protecodeScGroup     
   ) {
-    LOGGER.warning("BUILDING NEW PLUGIN");
     this.credentialsId = credentialsId;
     this.protecodeScGroup = protecodeScGroup;
     this.includeSubdirectories = false;
@@ -122,6 +120,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
   private ProtecodeScService service() {
     // TODO: Add check that service is ok. We might need to do a dummy call to the server for it.
+    
+    // TODO: Is this needed? 
     getDescriptor().load();
     
     try {
@@ -139,7 +139,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         );      
       }
     } catch (Exception e){
-      listener.error("Cannot read Protecode URL, please make sure it has been set in the Jenkins"
+      listener.error("Cannot read Protecode SC URL, please make sure it has been set in the Jenkins"
           + " configuration page.");
     }    
     return service;
@@ -175,7 +175,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   
   public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException
-  {
+  {        
     log = listener.getLogger();
     log.println("/---------- Protecode SC plugin start ----------/");       
     
@@ -183,13 +183,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     ProtecodeScService serv = service();
     if (serv == null) {
       listener.error("Cannot connect to Protecode SC");
+      run.setResult(Result.FAILURE);      
       return false;
     }
       
-    if (!UtilitiesGeneral.connectionOk(service.connectionOk())) {
-      listener.fatalError("Problem with connecting to Protecode SC, exiting");
-      return false;
-    }
+//    if (!UtilitiesGeneral.connectionOk(service.connectionOk())) {
+//      listener.fatalError("Problem with connecting to Protecode SC, exiting");
+//      return false;
+//    }
     
     // TODO: Make a nice structured printing of build variables and other information to the 
     // console. Right now all printing is distributed everyhere and it causes confusion.
@@ -217,9 +218,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       listener
     );
     
+    // TODO: Order files by size, so the smaller are sent first. This will cause possible errors 
+    // to be seen early
+    
     log.println("Sending following files to Protecode SC:");
     filesToScan.forEach((ReadableFile file) -> 
-      (log.println(file)));
+      (log.println(file.name())));
     
     if (filesToScan.isEmpty()) {
       // no files to scan, no failure
@@ -281,16 +285,24 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if(convertToSummary) {
       ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
     }
-    log.println("/---------- Protecode SC plugin end -----------/");
+                
+    boolean buildStatus = false;
     if (failIfVulns) {  
       // TODO: Fail explicitly
-//      if (!verdict) {
-//        listener.fatalError("Vulnerabilities found.");
-//      }
-      return verdict;
+      if (!verdict) {
+        // TODO: Print vulns to console
+        log.println(UtilitiesGeneral.buildReportString(results));
+        listener.fatalError("Vulnerabilities found.");
+        run.setResult(Result.FAILURE);
+      }
+      buildStatus = verdict;
     } else {
-      return true;
+      log.println("NO vulnerabilities found.");
+      buildStatus = true;
     }
+    
+    log.println("/---------- Protecode SC plugin end -----------/");
+    return buildStatus;
   }
   
   /**
@@ -307,7 +319,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   }
   
   /**
-   * TODO clean up depth, move logic to other methods.
+   * TODO clean up depth, move logic to other methods. This is staggeringly awful.
    * @param listener
    */
   private boolean poll() {
@@ -447,13 +459,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   }
   
   
-  @Extension @Symbol("ProtecodeSC")
+  @Extension @Symbol("protecodesc")
   public static final class DescriptorImplementation extends BuildStepDescriptor<Builder> implements ExtensionPoint {
     @Getter @Setter protected String protecodeScHost;
     @Getter @Setter protected boolean dontCheckCert;
 
     public DescriptorImplementation() {
-      LOGGER.warning("BUILDING NEW DESCRIPTOR, loading from super");
+      //LOGGER.warning("BUILDING NEW DESCRIPTOR, loading from super");
       super.load();
     }
 

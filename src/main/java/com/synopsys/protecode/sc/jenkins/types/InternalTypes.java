@@ -15,7 +15,6 @@ import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import java.io.IOException;
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Data;
 import retrofit2.Response;
@@ -82,7 +81,13 @@ public class InternalTypes {
      * @return True if component does not have an error, and has no vulns.
      */
     public boolean verdict() {
-      return resultResponse.getResults().getSummary().getVulnCount().getExact() == 0;
+      try {
+        return resultResponse.getResults().getSummary().getVulnCount().getExact() == 0;
+      } catch (NullPointerException npe) {
+        // TODO: USE OPTIONAL. This is referenced so often that it's stupidity not just make sure
+        // once and for all.
+        return false; 
+      }
     }
     
     public SerializableResult getSerializableResult() {
@@ -150,6 +155,7 @@ public class InternalTypes {
     private Optional<String> error = Optional.empty();
     
     public ConnectionStatus(Response response) {
+      LOGGER.warning(response.toString());
       this.response = response;
       if (!response.isSuccessful()) {
         try {

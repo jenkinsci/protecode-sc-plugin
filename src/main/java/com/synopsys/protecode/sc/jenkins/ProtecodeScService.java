@@ -13,6 +13,7 @@ package com.synopsys.protecode.sc.jenkins;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
+import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
 
 import java.io.IOException;
@@ -37,9 +38,11 @@ public @Data class ProtecodeScService {
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScService.class.getName());
   private ProtecodeScApi backend = null;
+  private ProtecodeScServicesApi serviceBackend = null;
   
   public ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
     backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
+    serviceBackend = ProtecodeScConnection.serviceBackend(host, checkCertificate);
   }
   
   public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {   
@@ -123,7 +126,7 @@ public @Data class ProtecodeScService {
    * @return ConnectionStatus object for the current connection.
    */
   public ConnectionStatus connectionOk() {    
-    Call<Void> call = backend.head();
+    Call<Void> call = serviceBackend.head();
     try {
       return new ConnectionStatus(call.execute());
     } catch (IOException ex) {

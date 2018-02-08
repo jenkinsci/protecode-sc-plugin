@@ -10,7 +10,9 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins;
 
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
+import java.util.List;
 import okhttp3.Headers;
 
 class UtilitiesGeneral {
@@ -56,5 +58,16 @@ class UtilitiesGeneral {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
     // Currently underscore is accepted in protecode SC so it's in use.
     return line.replace(" ", "_");
+  }
+  
+  public static String buildReportString(List<InternalTypes.FileAndResult> results) {
+    String report = "Following files have vulnerabilities:\n";
+    for (InternalTypes.FileAndResult result : results) 
+    {
+      if (!result.verdict()) {
+        report = report + result.getFilename() + "\n";
+      }
+    }
+    return report;
   }
 }
