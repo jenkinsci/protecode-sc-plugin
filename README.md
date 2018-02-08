@@ -33,44 +33,35 @@ This will compile, test and package the plugin into an Jenkins plugin installati
 
 ### Jenkins configuration
 
-Configure system wide Protecode SC server address.
+See https://plugins.jenkins.io/protecode-sc
 
-- Manage Jenkins > Configure System
-    - **Protecode SC: Server address**
-        - Specify the HTTP address of the Protecode SC installation here, such as https://protecode-sc.mydomain.com/.
-    - **Protecode SC: Disable certificate validation**
-        - Allow connections to Protecode SC server without certificate validation. It is not recommended to use this option. Instead you should consider getting a valid certificate for your server.
+## Possible plugins to use with Protecode SC Jenkins plugin
 
-### Build configuration
-
-Configure a build step as follows:
-
-1. Protecode SC
-    - *Credentials*
-        - (new) Add
-            - Select "Global" and "Username with password"
-            - Enter your user Protecode SC user details
-        - (existing) Select suitable credentials
-    - *Group ID*
-        - Specify the Protecode SC Group ID where the artifacts should be uploaded to. Group ID can be found from the Protecode SC service by looking at the URL when browsing an individual group: https://protecode-sc.mydomain.com/group/1234/ or with Groups API https://protecode-sc.mydomain.com/api/groups/.
-    - *Fail build if vulnerabilities*
-        - Trigger build failure if Protecode SC finds vulnerabilities from the artifacts.
-    - *Directory for files to scan*
-        - The directory to scan. There is no automatic scanning of artifacts yet (as of 0.15.1)
-    - *Keep copied artifacts after build - (Legacy feature, not in active use)*
-        - Check this if you want to keep artifacts that are copied using Copy Artifact plugin. Note that if artifacts are not overwritten during copy phase, they accumulate and the same artifacts are scanned again in subsequent runs.
-    - *Scanning timeout (minutes)*
-        - The timeout for the scanning build step. If the scan operation in protecode lasts longer than the given value, the build step will exit.
-    - *Convert results to Summary plugin format*
-        - Set to `true`
-        - The summary can be shown using Summary Display Plugin of Jenkins.
-      The report file name to publish is protecodesc.xml.
-2. Publish XML Summary Reports
-    - *Files to parse*
-        - Set to `**/protecodesc.xml`
-    - *Show on Project page*
-        - Set to `true`
-
+https://plugins.jenkins.io/confluence-publisher
+https://plugins.jenkins.io/mock-slave
+https://plugins.jenkins.io/http-post
+https://plugins.jenkins.io/http_request
+https://plugins.jenkins.io/publish-over-ssh
+https://plugins.jenkins.io/hudson-pview-plugin
+https://plugins.jenkins.io/device-watcher
+https://plugins.jenkins.io/hipchat
+https://plugins.jenkins.io/coverity
+https://plugins.jenkins.io/disk-usage
+https://plugins.jenkins.io/findbugs
+https://plugins.jenkins.io/robot
+https://plugins.jenkins.io/copyartifact
+https://plugins.jenkins.io/text-file-operations
+https://plugins.jenkins.io/build-timeout
+https://plugins.jenkins.io/exclusive-execution
+https://plugins.jenkins.io/versionnumber
+https://plugins.jenkins.io/files-found-trigger
+https://plugins.jenkins.io/artifact-diff-plugin
+https://plugins.jenkins.io/blackduck-detect
+https://plugins.jenkins.io/blackduck-hub
+https://plugins.jenkins.io/downstream-buildview
+https://plugins.jenkins.io/project-inheritance
+https://plugins.jenkins.io/build-monitor-plugin
+https://plugins.jenkins.io/htmlresource	
 
 ## License
 
