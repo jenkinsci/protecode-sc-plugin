@@ -60,14 +60,12 @@ class UtilitiesGeneral {
     return line.replace(" ", "_");
   }
   
-  public static String buildReportString(List<InternalTypes.FileAndResult> results) {
-    String report = "Following files have vulnerabilities:\n";
-    for (InternalTypes.FileAndResult result : results) 
-    {
-      if (!result.verdict()) {
-        report = report + result.getFilename() + "\n";
-      }
-    }
-    return report;
+  public static String buildReportString(List<InternalTypes.FileAndResult> results) {    
+    StringBuilder report = new StringBuilder();
+    report.append("--------- Following files have vulnerabilities ---------\n");
+    results.stream().filter((result) -> (!result.verdict())).forEachOrdered((result) -> {
+      report.append(result.getFilename()).append("\n");
+    });
+    return report.toString();
   }
 }

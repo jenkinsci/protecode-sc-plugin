@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Copyright (c) 2017 Synopsys, Inc
+* Copyright (c) 2018 Synopsys, Inc
 * All rights reserved. This program and the accompanying materials
 * are made available under the terms of the Eclipse Public License v1.0
 * which accompanies this distribution, and is available at
@@ -12,13 +12,12 @@
 package com.synopsys.protecode.sc.jenkins;
 
 /**
- *
- * 
+ * A convenient location to store variables which can easily be found and edited 
  */
 public class Configuration {
   /** 
    * The maximum simultaneous requests to Protecode SC backend. Current maximum is 4, more requests 
    * will throw 503, "service unavailable" sometimes
    */
-  public static int MAX_REQUESTS_TO_PROTECODE = 4;
+  public static final int MAX_REQUESTS_TO_PROTECODE = 4;
 }
