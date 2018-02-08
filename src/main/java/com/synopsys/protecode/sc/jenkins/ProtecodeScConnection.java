@@ -10,11 +10,7 @@
  *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import java.net.MalformedURLException;
 import java.net.URL;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -22,12 +18,11 @@ import okhttp3.Request;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
-import hudson.security.ACL;
+import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.model.Jenkins;
 import okhttp3.CipherSuite;
 import okhttp3.ConnectionSpec;
 import okhttp3.Credentials;
@@ -42,6 +37,21 @@ public class ProtecodeScConnection {
    */
   private ProtecodeScConnection() {
     // Don't instantiate me.
+  }
+  
+  /**
+   * Simple backend for checking the server and such. This backend doesn't use authentication. It 
+   * does not have declarations for any Protecode SC API calls, only server level calls.
+   * @param checkCertificate whether or not to check the server certificate.
+   * @param url The URL which points to the Protecode SC instance.
+   * @return the backend to use while communicating to the server with no authentication 
+   */
+  public static ProtecodeScServicesApi serviceBackend(URL url, boolean checkCertificate) {
+    Retrofit retrofit = new Retrofit.Builder()
+    .baseUrl(url.toExternalForm())
+    .build();
+    
+    return retrofit.create(ProtecodeScServicesApi.class);
   }
   
   /**
@@ -83,6 +93,10 @@ public class ProtecodeScConnection {
     ).readTimeout(timeoutSeconds, TimeUnit.SECONDS)
       .connectTimeout(timeoutSeconds, TimeUnit.SECONDS).build();
     
+    okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);
+    LOGGER.log(Level.ALL, "Max simultaneous requests to protecode limited to: {0}", 
+      okHttpClient.dispatcher().getMaxRequests());
+   
     Retrofit retrofit = new Retrofit.Builder()
       .baseUrl(url.toExternalForm())
       .addConverterFactory(GsonConverterFactory.create())
