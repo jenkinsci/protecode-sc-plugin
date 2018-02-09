@@ -187,6 +187,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
       
+    // TODO: Fix connection test. Eventually write an interceptor
 //    if (!UtilitiesGeneral.connectionOk(service.connectionOk())) {
 //      listener.fatalError("Problem with connecting to Protecode SC, exiting");
 //      return false;
