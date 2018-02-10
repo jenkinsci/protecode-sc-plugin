@@ -37,31 +37,31 @@ See https://plugins.jenkins.io/protecode-sc
 
 ## Possible plugins to use with Protecode SC Jenkins plugin
 
-https://plugins.jenkins.io/confluence-publisher
-https://plugins.jenkins.io/mock-slave
-https://plugins.jenkins.io/http-post
-https://plugins.jenkins.io/http_request
-https://plugins.jenkins.io/publish-over-ssh
-https://plugins.jenkins.io/hudson-pview-plugin
-https://plugins.jenkins.io/device-watcher
-https://plugins.jenkins.io/hipchat
-https://plugins.jenkins.io/coverity
-https://plugins.jenkins.io/disk-usage
-https://plugins.jenkins.io/findbugs
-https://plugins.jenkins.io/robot
-https://plugins.jenkins.io/copyartifact
-https://plugins.jenkins.io/text-file-operations
-https://plugins.jenkins.io/build-timeout
-https://plugins.jenkins.io/exclusive-execution
-https://plugins.jenkins.io/versionnumber
-https://plugins.jenkins.io/files-found-trigger
-https://plugins.jenkins.io/artifact-diff-plugin
-https://plugins.jenkins.io/blackduck-detect
-https://plugins.jenkins.io/blackduck-hub
-https://plugins.jenkins.io/downstream-buildview
-https://plugins.jenkins.io/project-inheritance
-https://plugins.jenkins.io/build-monitor-plugin
-https://plugins.jenkins.io/htmlresource	
+* https://plugins.jenkins.io/confluence-publisher
+* https://plugins.jenkins.io/mock-slave
+* https://plugins.jenkins.io/http-post
+* https://plugins.jenkins.io/http_request
+* https://plugins.jenkins.io/publish-over-ssh
+* https://plugins.jenkins.io/hudson-pview-plugin
+* https://plugins.jenkins.io/device-watcher
+* https://plugins.jenkins.io/hipchat
+* https://plugins.jenkins.io/coverity
+* https://plugins.jenkins.io/disk-usage
+* https://plugins.jenkins.io/findbugs
+* https://plugins.jenkins.io/robot
+* https://plugins.jenkins.io/copyartifact
+* https://plugins.jenkins.io/text-file-operations
+* https://plugins.jenkins.io/build-timeout
+* https://plugins.jenkins.io/exclusive-execution
+* https://plugins.jenkins.io/versionnumber
+* https://plugins.jenkins.io/files-found-trigger
+* https://plugins.jenkins.io/artifact-diff-plugin
+* https://plugins.jenkins.io/blackduck-detect
+* https://plugins.jenkins.io/blackduck-hub
+* https://plugins.jenkins.io/downstream-buildview
+* https://plugins.jenkins.io/project-inheritance
+* https://plugins.jenkins.io/build-monitor-plugin
+* https://plugins.jenkins.io/htmlresource	
 
 ## License
 

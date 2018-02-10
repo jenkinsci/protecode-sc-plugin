@@ -37,7 +37,6 @@ public final class UtilitiesJenkins {
    * @param url Host to associate the credentials with
    * @param credentialsId The id of the credentials
    * @return Standard credential types
-   * @throws java.net.MalformedURLException 
    */
   public static StandardUsernamePasswordCredentials getCredentials(
     URL url, 
