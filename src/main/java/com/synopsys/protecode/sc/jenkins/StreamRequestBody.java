@@ -59,7 +59,6 @@ public class StreamRequestBody extends RequestBody {
   public void writeTo(@NonNull BufferedSink sink) {
     InputStream inputStream = null;
     Source source = null;
-    LOGGER.info("Reading file.");
     try {
       inputStream = file.read();
       long writeAmount = inputStream.available();
