@@ -101,8 +101,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
   
-  //private static Optional<Boolean> lastBuildSucces;
-  
   @DataBoundConstructor
   public ProtecodeScPlugin(
     String credentialsId,
@@ -466,7 +464,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     @Getter @Setter protected boolean dontCheckCert;
 
     public DescriptorImplementation() {
-      //LOGGER.warning("BUILDING NEW DESCRIPTOR, loading from super");
       super.load();
     }
 
@@ -644,9 +641,4 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public int getScanTimeout() {
     return scanTimeout;
   }
-  
-//  @Extension
-//  public static boolean lastBuildSuccess() {
-//    return true;
-//  }
 }
