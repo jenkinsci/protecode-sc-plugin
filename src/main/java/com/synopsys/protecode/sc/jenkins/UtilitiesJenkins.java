@@ -41,7 +41,7 @@ public final class UtilitiesJenkins {
   public static StandardUsernamePasswordCredentials getCredentials(
     URL url, 
     String credentialsId
-  ) throws MalformedURLException{
+  ) {
     StandardUsernamePasswordCredentials creds = CredentialsMatchers
       .firstOrNull(
         CredentialsProvider.lookupCredentials(
