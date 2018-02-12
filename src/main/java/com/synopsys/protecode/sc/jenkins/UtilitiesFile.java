@@ -193,7 +193,13 @@ public class UtilitiesFile {
     return cleanUrl;
   }
   
+  /**
+   * Checks whether the path is absolute or only a path "in" the workspace
+   * @param path the path to check
+   * @return true if path seems to be an absolute path, not a relative path in the workspace
+   */
   private static boolean absolutePath(String path) {
+    // TODO: Check for windows style path, eg. C: or D:
     return path.startsWith("/");
   }
 }

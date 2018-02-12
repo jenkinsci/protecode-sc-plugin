@@ -14,7 +14,7 @@ import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
+import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 
 import java.io.IOException;
 import java.net.URL;

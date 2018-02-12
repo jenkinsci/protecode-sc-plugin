@@ -10,8 +10,10 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
+import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
 import hudson.FilePath;
 import java.io.*;
+import java.util.Optional;
 import lombok.*;
 
 
@@ -21,6 +23,7 @@ import lombok.*;
  */
 public class ReadableFile {
   @Getter @Setter private FilePath filePath = null;
+  @Getter @Setter private Optional<Sha1Sum> sha1sum = Optional.empty();
   
   public ReadableFile(String path) {
     this.filePath = new FilePath(new File(path));
@@ -28,6 +31,11 @@ public class ReadableFile {
   
   public ReadableFile (FilePath file){
     this.filePath = file;
+  }
+  
+  public ReadableFile (FilePath file, Sha1Sum sha1sum){
+    this.filePath = file;
+    this.sha1sum = Optional.ofNullable(sha1sum);
   }
   
   public ReadableFile(File file) {

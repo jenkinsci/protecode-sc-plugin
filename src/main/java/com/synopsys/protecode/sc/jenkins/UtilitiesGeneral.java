@@ -11,7 +11,7 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
+import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import java.util.List;
 import okhttp3.Headers;
 

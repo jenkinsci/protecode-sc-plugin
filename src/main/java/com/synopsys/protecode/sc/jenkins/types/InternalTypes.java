@@ -13,11 +13,8 @@ package com.synopsys.protecode.sc.jenkins.types;
 import com.synopsys.protecode.sc.jenkins.exceptions.MalformedSha1SumException;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
-import java.io.IOException;
-import java.util.Optional;
 import java.util.logging.Logger;
 import lombok.Data;
-import retrofit2.Response;
 
 
 public class InternalTypes {
@@ -123,59 +120,7 @@ public class InternalTypes {
     }
   }
   
-  /**
-   * Must be 40 characters long
-   * "sha1sum": "3fcdbdb04baa29ce695ff36af81eaac496364e82"
-   */
-  public static @Data class Sha1Sum {
-    private final String sha1sum;
-    
-    public Sha1Sum(String sum) {
-      // TODO: add regex for this.
-      if (sum.length() == 40) {
-        sha1sum = sum;
-      } else {
-        throw new MalformedSha1SumException("incorrect length of sha1sum, "
-          + "must be 40 characters long");
-      }
-    }
-    
-    @Override
-    public String toString() {
-      return sha1sum;
-    }
-  }
-  
   public static @Data class Group {
-    private String name;
-  }
-  
-  public static @Data class ConnectionStatus {
-    private Response response;
-    private Optional<String> error = Optional.empty();
-    
-    public ConnectionStatus(Response response) {
-      LOGGER.warning(response.toString());
-      this.response = response;
-      if (!response.isSuccessful()) {
-        try {
-          error = Optional.of(response.errorBody().string());
-        } catch (IOException ex) {
-          // No throw, since this is a storage class. It's not its job to inform anything.          
-        }
-      }
-    }
-    
-    public ConnectionStatus(IOException exception) {
-      error = Optional.ofNullable(exception.getMessage());
-    }
-    
-    public int code() {
-      return response.code();
-    }
-    
-    public boolean ok() {
-      return !error.isPresent();
-    }
-  }
+   private String name;
+ }
 }
