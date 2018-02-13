@@ -33,7 +33,6 @@ import lombok.Data;
  *
  * As a service class it won't know what it's calling, so the backend must be provided
  * for it.
- * @author pajunen
  */
 public @Data class ProtecodeScService {
   
