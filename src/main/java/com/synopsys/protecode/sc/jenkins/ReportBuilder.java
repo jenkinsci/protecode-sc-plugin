@@ -161,6 +161,7 @@ public class ReportBuilder {
   
   private static void writeField(PrintStream out, String name, String value,
     Color valueColor, String cdata) {
+    // TODO: Add a space between the name and value
     out.append("<field name=\"" + name + "\" titlecolor=\"black\" value=\""
       + value + "\" ");
     out.append("detailcolor=\"" + valueColor.getValue() + "\">\n");
