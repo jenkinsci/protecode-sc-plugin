@@ -286,10 +286,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
                 
     boolean buildStatus = false;
-    if (failIfVulns) {  
-      // TODO: Fail explicitly
-      if (!verdict) {
-        // TODO: Print vulns to console
+    if (failIfVulns) {        
+      if (!verdict) {        
         log.println(UtilitiesGeneral.buildReportString(results));
         listener.fatalError("Vulnerabilities found.");
         run.setResult(Result.FAILURE);
@@ -309,6 +307,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
    * @param response The responses fetched from Protecode SC
    */
   private void addUploadResponse(PrintStream log, String name, UploadResponse response, String error) {
+    // TODO: compare the sha1sum and send again if incorrect
     if (NO_ERROR.equals(error)) {
       results.add(new FileAndResult(name, response));
     } else {

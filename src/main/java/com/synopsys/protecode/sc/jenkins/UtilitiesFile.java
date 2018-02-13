@@ -118,6 +118,7 @@ public class UtilitiesFile {
         try {
           if (!file.isDirectory()) {
             if (pattern.matcher(file.getName()).matches()) {
+              // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)              
               filesInFolder.add(new ReadableFile(file));  
             }
           } else if (includeSubdirectories) {
