@@ -72,8 +72,9 @@ public @Data class ProtecodeScService {
       @Override
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
         // something went completely south (like no internet connection)
-        listener.setError("Protecode SC returned error for file scan request: " + fileName +
-          ": " + t.getLocalizedMessage());
+        String error = "Protecode SC returned error for file scan request: " + fileName +
+          ": " + t.getLocalizedMessage();  
+        fail(error, listener);
       }
     });
   }
@@ -98,7 +99,8 @@ public @Data class ProtecodeScService {
       }
       @Override
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
-        listener.setError("Poll request returned with error for scan id: " + scanId + ". Error was: " + t.getLocalizedMessage());
+        String error = "Poll request returned with error for scan id: " + scanId + ". Error was: " + t.getLocalizedMessage();
+        fail(error, listener);
       }
     });
   }
@@ -111,12 +113,14 @@ public @Data class ProtecodeScService {
         if (response.isSuccessful()) {
           listener.setScanResult(response.body());
         } else {
-          // error response, no access to resource?
+          String error = "Fetching the scan result for sha1sum: " + sha1sum + " failed.";
+          fail(error, listener);
         }
       }
       @Override
       public void onFailure(Call<HttpTypes.ScanResultResponse> call, Throwable t) {
-        // something went completely south (like no internet connection)
+        String error = "Fetching the scan result for sha1sum: " + sha1sum + " failed with error: " + t.getMessage();
+        fail(error, listener);
       }
     });
   }
@@ -125,7 +129,8 @@ public @Data class ProtecodeScService {
    * Test the connection with a HEAD call.
    * @return ConnectionStatus object for the current connection.
    */
-  public ConnectionStatus connectionOk() {    
+  public ConnectionStatus connectionOk() {
+    // TODO: Fix, this doesn't seem to work
     Call<Void> call = serviceBackend.head();
     try {
       return new ConnectionStatus(call.execute());
@@ -146,15 +151,21 @@ public @Data class ProtecodeScService {
         if (response.isSuccessful()) {
           listener.setGroups(response.body());
         } else {          
-          // TODO: Handle errors
+          String error = "Fetching groups failed";
+          fail(error, listener);
         }
       }
       
       @Override
       public void onFailure(Call<HttpTypes.Groups> call, Throwable t) {
-        // something went completely south (like no internet connection)
-        // TODO: Should we handle this somehow
+        String error = "Fetching groups failed with error: " + t.getMessage();
+        fail(error, listener);
       }
     });
+  }
+  
+  private void fail(String error, ErrorService listener) {
+    listener.setError(error);
+    LOGGER.warning(error);
   }
 }
