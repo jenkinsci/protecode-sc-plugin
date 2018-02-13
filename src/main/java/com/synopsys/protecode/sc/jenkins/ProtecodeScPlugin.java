@@ -12,6 +12,8 @@
 package com.synopsys.protecode.sc.jenkins;
 
 
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;

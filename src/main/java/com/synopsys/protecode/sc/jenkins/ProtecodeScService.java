@@ -10,6 +10,7 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;

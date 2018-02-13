@@ -10,7 +10,6 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins.types;
 
-import com.synopsys.protecode.sc.jenkins.exceptions.MalformedSha1SumException;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import java.util.logging.Logger;

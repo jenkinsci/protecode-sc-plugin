@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesJenkins;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import java.net.URL;
 import okhttp3.Interceptor;

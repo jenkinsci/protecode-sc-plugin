@@ -8,8 +8,10 @@
   * Contributors:
   *    Synopsys, Inc - initial implementation and documentation
   *******************************************************************************/
-package com.synopsys.protecode.sc.jenkins;
+package com.synopsys.protecode.sc.jenkins.utils;
 
+import com.synopsys.protecode.sc.jenkins.ProtecodeScPlugin;
+import com.synopsys.protecode.sc.jenkins.ReadableFile;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -25,7 +27,7 @@ import java.util.regex.Pattern;
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
 //   We need to move the regexps, logger and such through multiple methods and that's not good.
 //   Of course the truly atomic helpers can be left alone.
-public class UtilitiesFile {
+public final class UtilitiesFile {
   
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
   /**

@@ -8,14 +8,14 @@
  * Contributors:
  *    Synopsys, Inc - initial implementation and documentation
  ****************************************************************************** */
-package com.synopsys.protecode.sc.jenkins;
+package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
 import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import java.util.List;
 import okhttp3.Headers;
 
-class UtilitiesGeneral {
+public final class UtilitiesGeneral {
 
   /**
    * Checks connection status for errors. 
