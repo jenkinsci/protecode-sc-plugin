@@ -116,13 +116,19 @@ public final class HttpTypes {
   
   public static @Data class Vulns {
     private boolean exact;
-    private Vuln vuln;
+    private Vuln vuln; // has cve
+    private Collection<Triage> triage; // check for matching cve
   }
   
   public static @Data class Vuln {
     private String cve;
     private String cvss;
     private String summary;
+  }
+  
+  public static @Data class Triage {
+    private String id;
+    private String scope;
   }
   
   public static @Data class License {
