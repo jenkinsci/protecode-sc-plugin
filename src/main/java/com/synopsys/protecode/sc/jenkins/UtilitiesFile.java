@@ -25,14 +25,23 @@ import java.util.regex.Pattern;
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
 //   We need to move the regexps, logger and such through multiple methods and that's not good.
 //   Of course the truly atomic helpers can be left alone.
-public class UtilitiesFile {
+public class UtilitiesFile {  
+  /**
+   * String used as regexp to get all files from directory or directory structure
+   * .* stands for anything but newlines.
+   * 
+   * The string is used to make sure of backward compatibility, since it's stored as string not 
+   * pattern.
+   */
+  public static final String ALL_FILES_REGEX_STRING = ".*";
   
-  private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
   /**
    * Pattern used to get all files from directory or directory structure
-   * .* stands for anything but newlines
+   * .* stands for anything but newlines.
    */
   public static final Pattern ALL_FILES_PATTERN = Pattern.compile(".*");
+  
+  private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
   
   private UtilitiesFile(){
     // don't instantiate me...
@@ -164,6 +173,9 @@ public class UtilitiesFile {
    * @return Either a Pattern object with the given string or a pattern for all
    */
   public static Pattern patternOrAll(String pattern) {
+    if (null == pattern) {
+      return UtilitiesFile.ALL_FILES_PATTERN;
+    }
     return "".equals(pattern) ? UtilitiesFile.ALL_FILES_PATTERN : Pattern.compile(pattern);    
   }
   
