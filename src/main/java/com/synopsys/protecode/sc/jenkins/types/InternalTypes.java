@@ -10,8 +10,8 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins.types;
 
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.*;
+import java.util.Collection;
 import java.util.logging.Logger;
 import lombok.Data;
 
@@ -26,12 +26,6 @@ public class InternalTypes {
     private ScanResultResponse resultResponse = null;
     private boolean resultBeingFetched = false;
     private String error = null;
-    
-    public FileAndResult(String filename, UploadResponse uploadResponse, String error) {
-      this.filename = filename;
-      this.uploadResponse = uploadResponse;
-      this.error = error;
-    }
     
     public FileAndResult(String filename, UploadResponse uploadResponse) {
       this.filename = filename;
@@ -52,6 +46,7 @@ public class InternalTypes {
     }
     
     public String getState() {
+      // TODO: See if this work quite as designed. This might lead to a situation where we poll forever
       if (uploadResponse != null) {
         return uploadResponse.getResults().getStatus();
       } else {
@@ -74,6 +69,7 @@ public class InternalTypes {
     }
     
     /**
+     * TODO: Get rid off this. The exact isn't to be trusted.
      * @return True if component does not have an error, and has no vulns.
      */
     public boolean verdict() {
@@ -84,6 +80,28 @@ public class InternalTypes {
         // once and for all.
         return false; 
       }
+    }
+    
+    private boolean hasUntriagedVulns() {
+      long untriagedVulns = 0;
+      
+      Collection<Component> components = resultResponse.getResults().getComponents();      
+      for (Component component: components) {
+        Collection<Vulns> vulnss = component.getVulns();
+        for (Vulns vulns: vulnss) {
+          try {
+            String cve = vulns.getVuln().getCve();          
+            Collection<Triage> triages = vulns.getTriage();
+            boolean triaged = triages.stream().anyMatch((triage) -> {
+              return triage.getId().equals(cve);            
+            });
+          } catch (Exception e) {
+            
+          }
+        }
+      }
+      
+      return false;
     }
     
     public SerializableResult getSerializableResult() {
