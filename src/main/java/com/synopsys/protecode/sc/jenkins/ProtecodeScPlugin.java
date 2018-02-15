@@ -47,7 +47,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,6 +85,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private boolean failIfVulns;
   private int scanTimeout;
   
+  // transients for old conf
+  private transient String filesToScanDirectory;
+  private transient String artifactDir;
+  private transient boolean leaveArtifacts;
+  
   // don't access service directly, use service(). It checks whether this exists
   private ProtecodeScService service = null;
   
@@ -116,7 +123,27 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.convertToSummary = false;
     this.failIfVulns = true;
     this.scanTimeout = 10;
-  }  
+  }
+  
+  /**
+   * For backward compatibility. The XML persistence will build the instance in memory
+   * with out much logic and since some values are empty, they will default to null. This method is
+   * called right after the "resurrection" of the object and checks all non-trivial values.
+   * @return a ProtecodeScPlugin object with values which might be null.
+   */
+  public Object readResolve() {
+    // Pattern
+    if (pattern == null) {
+      pattern = UtilitiesFile.ALL_FILES_REGEX_STRING;
+    }
+    
+    // filesToScanDirectory -> directoryToScan
+    if (filesToScanDirectory != null && directoryToScan == null) {
+      this.directoryToScan = this.filesToScanDirectory;
+    }
+    
+    return this;
+  }
     
   private ProtecodeScService service() {
     // TODO: Add check that service is ok. We might need to do a dummy call to the server for it.
@@ -291,12 +318,16 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (failIfVulns) {        
       if (!verdict) {        
         log.println(UtilitiesGeneral.buildReportString(results));
-        listener.fatalError("Vulnerabilities found.");
+        listener.fatalError("Vulnerabilities found. Failing build.");
         run.setResult(Result.FAILURE);
       }
       buildStatus = verdict;
     } else {
-      log.println("NO vulnerabilities found.");
+      if (!verdict) {
+        log.println("Vulnerabilities found! Not failing build due to configuration.");
+      } else {
+        log.println("NO vulnerabilities found.");
+      }
       buildStatus = true;
     }
     
@@ -428,30 +459,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
   }
   
-// TODO: move file getting/handling to own method in this or utils
-//  private List<ReadableFile> getFiles() {
-//    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-//    String directoryToScan = (null != getFilesToScanDirectory()) ? getFilesToScanDirectory() : "";
-//    
-//    
-//    if (includeSubdirectories){ 
-//      log.println("Including subdirectories");
-//    }
-//    
-//    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-//    return UtilitiesFile.getFiles(
-//      directoryToScan,
-//      workspace,      
-//      includeSubdirectories,
-//      patternToUse,
-//      run,
-//      listener
-//    );
-//  }
-  
   @Override
-  public DescriptorImplementation getDescriptor() {
-    return (DescriptorImplementation) super.getDescriptor();
+  public DescriptorImpl getDescriptor() {
+    return (DescriptorImpl) super.getDescriptor();
   }
   
   public String getTask() {
@@ -460,11 +470,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   
   
   @Extension @Symbol("protecodesc")
-  public static final class DescriptorImplementation extends BuildStepDescriptor<Builder> implements ExtensionPoint {
+  public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
     @Getter @Setter protected String protecodeScHost;
     @Getter @Setter protected boolean dontCheckCert;
 
-    public DescriptorImplementation() {
+    public DescriptorImpl() {
       super.load();
     }
 
@@ -489,6 +499,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
       // TODO Find a nice way to use this to fetch possible groups
       //  - this might be impossible in this scope
+      // https://groups.google.com/forum/?hl=en#!searchin/jenkinsci-dev/store$20configuration|sort:date/jenkinsci-dev/-DosteCUiu8/18-HvlAsAAAJ
       StandardListBoxModel result = new StandardListBoxModel();
       result.withEmptySelection();
       result.withMatching(
@@ -642,4 +653,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public int getScanTimeout() {
     return scanTimeout;
   }
+  
+  
 }
