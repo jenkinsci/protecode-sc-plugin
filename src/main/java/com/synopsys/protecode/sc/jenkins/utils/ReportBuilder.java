@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Results;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.*;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.SerializableResult;
 import hudson.FilePath;
@@ -63,7 +62,7 @@ public class ReportBuilder {
     FilePath workspace
   ) throws IOException, InterruptedException {
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-      FilePath jsonReportDirectory = workspace.child(reportDirectory);
+    FilePath jsonReportDirectory = workspace.child(reportDirectory);
     
     PrintStream log = listener.getLogger();
     
