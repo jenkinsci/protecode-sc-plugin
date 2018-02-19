@@ -47,9 +47,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -188,6 +186,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener)
     throws InterruptedException, IOException
   { 
+    // TODO add try - catch (Interrupted) to call abort scan in protecode sc (remember to throw the
+    // same exception upward)
     this.listener = listener;
     doPerform(run, workspace);
   }
@@ -196,6 +196,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
     BuildListener listener) throws InterruptedException, IOException
   {
+    // TODO add try - catch (Interrupted) to call abort scan in protecode sc (remember to throw the
+    // same exception upward)
     this.listener = listener;
     return doPerform(build, build.getWorkspace());
   }
