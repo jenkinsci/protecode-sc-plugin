@@ -12,14 +12,19 @@
 package com.synopsys.protecode.sc.jenkins.utils;
 
 import hudson.model.TaskListener;
+import lombok.NonNull;
 
 
+/**
+ * Values left to package visibility for testing.
+ */
 public class JenkinsConsoler {
   
   /**
-   * Edit this to choose formatted line lengths in console print.
+   * Edit this to choose formatted message format.
    */
-  private final static int LINE_LENGTH = 80;
+  final static int LINE_LENGTH = 80;
+  final static String STRING_EDGE_CHAR = "|";
 
   private final TaskListener listener;
   
@@ -27,6 +32,9 @@ public class JenkinsConsoler {
     this.listener = listener;
   }
   
+  /**
+   * Print start Protecode SC Jenkins plugin message
+   */
   public void start() {
     
   }
@@ -36,19 +44,20 @@ public class JenkinsConsoler {
    * @param msg message to wrap
    * @return wrapped message
    */
-  private String wrap(String msg) {        
-    int fillerLength = (LINE_LENGTH - msg.length())/2; // might drop 0.5
+  String wrapper(String msg) {    
+    String fillerStart = (msg.length()% 2 == 0) ? " " : " -";
+    // leave 2 for | and 2 for spaces around the message.
+    int fillerLength = (LINE_LENGTH - msg.length() - 4)/2; // might drop 0.5
+    String filler = getCharacters(fillerLength, "-");
     StringBuilder wrappedMsg = new StringBuilder(LINE_LENGTH);
-    wrappedMsg.append("|")
-      .append(getCharacters(fillerLength-1, "-"))
+    
+    return wrappedMsg.append(STRING_EDGE_CHAR)
+      .append(filler)      
       .append(" ")
       .append(msg)
-      .append(" ")
-      .append(getCharacters(fillerLength-1, "-"));
-    if (msg.length()% 2 != 0) {
-      wrappedMsg.append("-");      
-    }
-    return wrappedMsg.append("|").toString();
+      .append(fillerStart)
+      .append(filler)
+      .append(STRING_EDGE_CHAR).toString();    
   }
   
   /**
@@ -56,7 +65,7 @@ public class JenkinsConsoler {
    * @param length the length of the string of given chars
    * @return A string containing the given amount of the given char.
    */
-  private String getCharacters(int length, String chars) {
+  String getCharacters(int length, @NonNull String chars) {
     if ((length % chars.length()) != 0) {
       // TODO: do somethign. Perhaps trunk to return buffer length...
     }
