@@ -68,6 +68,7 @@ public class InternalTypes {
       this.error = error;
     }
     
+    // TODO: This should be a model, this is a bit over the limit what it should have.
     public void setResultResponse(ScanResultResponse resultResponse) {
       this.resultResponse = resultResponse;
 
@@ -81,13 +82,11 @@ public class InternalTypes {
             String vuln_cve = vulnContext.getVuln().getCve();
             if (vulnContext.isExact()) {
               LOGGER.warning("Component has EXACT vulns: " + component.getLib());
-              try {
-                Collection<Triage> triages = vulnContext.getTriage(); // can throw an exception
-                if (triages == null ) {
-                  LOGGER.warning(component.getLib() + ": No triage for: " + vulnContext.getVuln().getCve());
-                } else {
-                  LOGGER.warning("Triage present: " + component.getLib());
-                }
+              Collection<Triage> triages = vulnContext.getTriage();
+              if (triages == null ) {
+                vulnStatus.addUntriagedVuln(vulnContext.getVuln());
+                LOGGER.warning(component.getLib() + ": No triage for: " + vulnContext.getVuln().getCve());
+              } else {
                 boolean triaged = triages.stream().anyMatch((triage) ->
                   (triage.getVulnId().equals(vuln_cve))
                 );
@@ -96,13 +95,15 @@ public class InternalTypes {
                 } else {
                   LOGGER.warning("Found vuln with triages, but no matching cve!");
                 }
-              } catch (Exception e) {
-                LOGGER.warning("");
-                vulnStatus.addUntriagedVuln(vulnContext.getVuln());
+                LOGGER.warning("Triage present: " + component.getLib());
               }
             } else { // LEAVE THIS, it might be handy
               if (vulnContext.getTriage() != null) {
-                LOGGER.log(Level.WARNING, "Component: {0}: exact is false, but has triages!", component.getLib());
+                LOGGER.log(
+                  Level.WARNING,
+                  "Component: {0}: exact is false, but it has triages!",
+                  component.getLib()
+                );
               }
             }
           }
