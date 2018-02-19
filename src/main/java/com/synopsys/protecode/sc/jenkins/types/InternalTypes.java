@@ -11,7 +11,12 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.*;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Data;
 
@@ -20,12 +25,38 @@ public class InternalTypes {
   
   private static final Logger LOGGER = Logger.getLogger(InternalTypes.class.getName());
   
+  public static @Data class VulnStatus {
+    private ArrayList<Vuln> untriagedVulns = new ArrayList();
+    private ArrayList<Vuln> triagedVulns = new ArrayList();
+    
+    public void addTriagedVuln(Vuln vuln) {
+      triagedVulns.add(vuln);
+    }
+    
+    public void addUntriagedVuln(Vuln vuln) {
+      untriagedVulns.add(vuln);
+    }
+    
+    public int untriagedVulnsCount() {
+      return untriagedVulns.size();
+    }
+    
+    public int triagedVulnsCount() {
+      return triagedVulns.size();
+    }
+  }
+  
+  /**
+   * TODO, this class is an example of nullpointer fest.
+   */
   public static @Data class FileAndResult {
     private String filename = null;
     private UploadResponse uploadResponse = null;
-    private ScanResultResponse resultResponse = null;
     private boolean resultBeingFetched = false;
     private String error = null;
+
+    private ScanResultResponse resultResponse = null;
+    private Map<Component, VulnStatus> components = new HashMap<>();
     
     public FileAndResult(String filename, UploadResponse uploadResponse) {
       this.filename = filename;
@@ -37,6 +68,55 @@ public class InternalTypes {
       this.error = error;
     }
     
+    public void setResultResponse(ScanResultResponse resultResponse) {
+      this.resultResponse = resultResponse;
+
+      for (Component component: resultResponse.getResults().getComponents()) {
+        LOGGER.warning("Component: " + component.getLib());
+        VulnStatus vulnStatus = new VulnStatus();
+        if (!component.getVulns().isEmpty()) { // Component has vulns
+          LOGGER.warning("Component has some vulns: " + component.getLib());
+          Collection<VulnContext> vulnContexts = component.getVulns();
+          for (VulnContext vulnContext: vulnContexts) {
+            String vuln_cve = vulnContext.getVuln().getCve();
+            if (vulnContext.isExact()) {
+              LOGGER.warning("Component has EXACT vulns: " + component.getLib());
+              try {
+                Collection<Triage> triages = vulnContext.getTriage(); // can throw an exception
+                if (triages == null ) {
+                  LOGGER.warning(component.getLib() + ": No triage for: " + vulnContext.getVuln().getCve());
+                } else {
+                  LOGGER.warning("Triage present: " + component.getLib());
+                }
+                boolean triaged = triages.stream().anyMatch((triage) ->
+                  (triage.getVulnId().equals(vuln_cve))
+                );
+                if (triaged) {
+                  vulnStatus.addTriagedVuln(vulnContext.getVuln());
+                } else {
+                  LOGGER.warning("Found vuln with triages, but no matching cve!");
+                }
+              } catch (Exception e) {
+                LOGGER.warning("");
+                vulnStatus.addUntriagedVuln(vulnContext.getVuln());
+              }
+            } else { // LEAVE THIS, it might be handy
+              if (vulnContext.getTriage() != null) {
+                LOGGER.log(Level.WARNING, "Component: {0}: exact is false, but has triages!", component.getLib());
+              }
+            }
+          }
+        }
+        components.put(component, vulnStatus);
+      }
+    }
+
+    private boolean hasUntriagedVulns() {
+      return components.values().stream().anyMatch(
+        (vulnStatus) -> (vulnStatus.untriagedVulnsCount() > 0)
+      );
+    }
+
     public boolean hasError() {
       return error != null;
     }
@@ -69,44 +149,28 @@ public class InternalTypes {
     }
     
     /**
-     * TODO: Get rid off this. The exact isn't to be trusted.
      * @return True if component does not have an error, and has no vulns.
      */
     public boolean verdict() {
-      try {
-        return resultResponse.getResults().getSummary().getVulnCount().getExact() == 0;
-      } catch (NullPointerException npe) {
+      //try {
+        //return resultResponse.getResults().getSummary().getVulnCount().getExact() == 0;
+        return !hasUntriagedVulns() && !hasError();
+      //} catch (NullPointerException npe) {
         // TODO: USE OPTIONAL. This is referenced so often that it's stupidity not just make sure
         // once and for all.
-        return false; 
-      }
-    }
-    
-    private boolean hasUntriagedVulns() {
-      long untriagedVulns = 0;
-      
-      Collection<Component> components = resultResponse.getResults().getComponents();      
-      for (Component component: components) {
-        Collection<Vulns> vulnss = component.getVulns();
-        for (Vulns vulns: vulnss) {
-          try {
-            String cve = vulns.getVuln().getCve();          
-            Collection<Triage> triages = vulns.getTriage();
-            boolean triaged = triages.stream().anyMatch((triage) -> {
-              return triage.getId().equals(cve);            
-            });
-          } catch (Exception e) {
-            
-          }
-        }
-      }
-      
-      return false;
+      //  return false;
+      //}
     }
     
     public SerializableResult getSerializableResult() {
       // TODO implement error handling for misbuilt responses
       return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
+    }
+
+    public Map<String, Map<Component, VulnStatus>> getStorableResult() {
+      Map<String, Map<Component, VulnStatus>> map = new HashMap<>();
+      map.put(this.filename, components);
+      return map;
     }
   }
   
