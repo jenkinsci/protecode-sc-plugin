@@ -104,7 +104,7 @@ public final class HttpTypes {
   public static @Data class Component {
     private License license;
     private Collection<String> tags;
-    private Collection<Vulns> vulns;
+    private Collection<VulnContext> vulns;
     private String version;
     private String lib;
     @SerializedName("vuln-count")
@@ -114,7 +114,7 @@ public final class HttpTypes {
     private String subcomponent;
   }
   
-  public static @Data class Vulns {
+  public static @Data class VulnContext {
     private boolean exact;
     private Vuln vuln; // has cve
     private Collection<Triage> triage; // check for matching cve
@@ -127,6 +127,8 @@ public final class HttpTypes {
   }
   
   public static @Data class Triage {
+    @SerializedName("vuln_id")
+    private String vulnId;
     private String id;
     private String scope;
   }
