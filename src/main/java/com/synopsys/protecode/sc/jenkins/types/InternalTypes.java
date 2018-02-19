@@ -158,14 +158,7 @@ public class InternalTypes {
      * @return True if component does not have an error, and has no vulns.
      */
     public boolean verdict() {
-      //try {
-        //return resultResponse.getResults().getSummary().getVulnCount().getExact() == 0;
-        return !hasUntriagedVulns() && !hasError();
-      //} catch (NullPointerException npe) {
-        // TODO: USE OPTIONAL. This is referenced so often that it's stupidity not just make sure
-        // once and for all.
-      //  return false;
-      //}
+      return !hasUntriagedVulns() && !hasError();
     }
     
     public SerializableResult getSerializableResult() {
