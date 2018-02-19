@@ -8,7 +8,7 @@
   * Contributors:
   *    Synopsys, Inc - initial implementation and documentation
   *******************************************************************************/
-package com.synopsys.protecode.sc.jenkins;
+package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;

@@ -8,8 +8,9 @@
   * Contributors:
   *    Synopsys, Inc - initial implementation and documentation
   *******************************************************************************/
-package com.synopsys.protecode.sc.jenkins;
+package com.synopsys.protecode.sc.jenkins.types;
 
+import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;

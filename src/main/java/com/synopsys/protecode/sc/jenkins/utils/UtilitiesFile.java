@@ -11,7 +11,7 @@
 package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.ProtecodeScPlugin;
-import com.synopsys.protecode.sc.jenkins.ReadableFile;
+import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;

@@ -12,6 +12,9 @@
 package com.synopsys.protecode.sc.jenkins;
 
 
+import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
+import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
+import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
