@@ -11,11 +11,16 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.*;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Component;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Triage;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Vuln;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes.VulnContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Data;

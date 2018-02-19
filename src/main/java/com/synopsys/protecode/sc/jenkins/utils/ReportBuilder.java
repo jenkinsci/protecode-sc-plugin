@@ -10,7 +10,6 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins.utils;
 
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,17 +17,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Results;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.*;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes.SerializableResult;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.List;
 
 

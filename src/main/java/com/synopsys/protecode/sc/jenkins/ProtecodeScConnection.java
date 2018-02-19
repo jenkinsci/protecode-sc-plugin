@@ -10,24 +10,18 @@
  *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesJenkins;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import java.net.URL;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesJenkins;
+import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import okhttp3.CipherSuite;
-import okhttp3.ConnectionSpec;
-import okhttp3.Credentials;
-import okhttp3.TlsVersion;
+import okhttp3.*;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProtecodeScConnection {
   

@@ -10,23 +10,25 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ErrorService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.GroupService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
 import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
-
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Logger;
-
+import lombok.Data;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
-import lombok.Data;
 
 /**
  * This class implements and encapsulates the interface towards Protecode.

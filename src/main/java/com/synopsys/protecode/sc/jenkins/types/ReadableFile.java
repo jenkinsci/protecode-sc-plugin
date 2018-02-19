@@ -10,11 +10,13 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins.types;
 
-import com.synopsys.protecode.sc.jenkins.types.Sha1Sum;
 import hudson.FilePath;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
 
 /**

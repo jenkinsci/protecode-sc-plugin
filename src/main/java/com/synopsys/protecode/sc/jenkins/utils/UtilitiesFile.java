@@ -16,7 +16,6 @@ import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.File;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;

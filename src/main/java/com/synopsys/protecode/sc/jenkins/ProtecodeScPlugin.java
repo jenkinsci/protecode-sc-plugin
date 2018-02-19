@@ -12,11 +12,6 @@
 package com.synopsys.protecode.sc.jenkins;
 
 
-import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
-import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
-import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -28,19 +23,16 @@ import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
-
+import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
+import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
+import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Descriptor;
-import hudson.model.Item;
-import hudson.model.Result;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -63,11 +55,7 @@ import lombok.Setter;
 import net.sf.json.JSONObject;
 import okhttp3.MediaType;
 import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.*;
 
 /**
  * TODO: There are much too many variables stored on the object level. Maybe we could perhaps store them
