@@ -103,27 +103,23 @@ public class ReportBuilder {
         "<section name=\"Protecode SC analysis result\" fontcolor=\"#000000\">");
       for (FilePath jsonFile : jsonFiles) {
         try (InputStream in = new BufferedInputStream(jsonFile.read())) {
-          Results readResult = mapper.readValue(in, Results.class);
-          Long exact = readResult.getSummary().getVulnCount()
-            .getExact();
-          String verdict = readResult.getSummary().getVerdict()
-            .getShortDesc();
-          String verdict_detailed = readResult.getSummary().getVerdict()
-            .getDetailed();
+          SerializableResult readResult = mapper.readValue(in, SerializableResult.class);
+          Long untriagedVulns = readResult.getUntriagedVulns();
+          Long triagedVulns = readResult.getTriagedVulns();
+          String verdict = readResult.getVerdict();
+          String verdict_detailed = readResult.getDetails();
+          String fileName = readResult.getFilename();
+          String title = !"".equals(verdict) ? fileName + " (" + verdict + ")" : fileName;
           
-          // TODO: Provide name more nicely
-          String fileName = jsonFile.getName().substring(
-            0,
-            jsonFile.getName().indexOf(PROTECODE_FILE_TAG) - 1
-          );
-          out.println("<accordion name =\"" + fileName + " (" + verdict + ")\">");
+          out.println("<accordion name =\"" + title + "\">");
           
-          Color color = exact > 0L ? Color.RED : Color.GREEN;
-          writeField(out, "Verdict", verdict_detailed, color);
-          writeField(out, "Vulnerabilities", exact.toString(), Color.BLACK);
+          Color color = untriagedVulns > 0L ? Color.RED : Color.GREEN;
+          writeField(out, "Verdict", " " + verdict_detailed, color);
+          writeField(out, "Untriaged vulnerabilities", " " + untriagedVulns.toString(), Color.BLACK);
+          writeField(out, "Triaged vulnerabilities", " " + triagedVulns.toString(), Color.BLACK);
           writeField(out, "Report", "", Color.BLACK,
             "<a target=\"_blank\" href=\""
-              + readResult.getReport_url()
+              + readResult.getReportUrl()
               + "\">View full report in Protecode SC </a>");
           out.println("</accordion>");
         }
@@ -175,8 +171,9 @@ public class ReportBuilder {
   
   private static void writeJson(PrintStream log, ObjectMapper mapper,
     FilePath workspaceJsonReportDirectory, SerializableResult result) {
-    if (result.getResults() == null) {
-      log.println("No scan result for file: " + result.getFilename());
+    if (result == null) {
+      //log.println("No scan result for file: " + result.getFilename());
+      log.println("No scan result for a file");
       return;
     }
     FilePath jsonFile = workspaceJsonReportDirectory.child(
@@ -184,7 +181,7 @@ public class ReportBuilder {
     );
     
     try (OutputStream out = new BufferedOutputStream(jsonFile.write())) {
-      mapper.writeValue(out, result.getResults());
+      mapper.writeValue(out, result);
     } catch (IOException | InterruptedException e) {
       log.println(e.toString());
     }

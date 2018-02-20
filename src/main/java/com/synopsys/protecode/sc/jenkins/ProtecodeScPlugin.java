@@ -325,6 +325,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
     
     log.println("/---------- Protecode SC plugin end -----------/");
+    // TODO: Use perhaps unstable also
     return buildStatus;
   }
   

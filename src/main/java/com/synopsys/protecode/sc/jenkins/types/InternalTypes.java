@@ -10,6 +10,7 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins.types;
 
+import com.synopsys.protecode.sc.jenkins.UIResources;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.*;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Component;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
@@ -123,6 +124,18 @@ public class InternalTypes {
       );
     }
 
+    public long untriagedVulnsCount() {
+      return components.values().stream().filter(
+        (vulnStatus) -> (vulnStatus.untriagedVulnsCount() > 0)
+      ).count();
+    }
+    
+    public long triagedVulnsCount() {
+      return components.values().stream().filter(
+        (vulnStatus) -> (vulnStatus.triagedVulnsCount() > 0)
+      ).count();
+    }
+    
     public boolean hasError() {
       return error != null;
     }
@@ -163,28 +176,27 @@ public class InternalTypes {
     
     public SerializableResult getSerializableResult() {
       // TODO implement error handling for misbuilt responses
-      return new SerializableResult(filename, resultResponse.getResults(), uploadResponse.getMeta());
-    }
-
-    public Map<String, Map<Component, VulnStatus>> getStorableResult() {
-      Map<String, Map<Component, VulnStatus>> map = new HashMap<>();
-      map.put(this.filename, components);
-      return map;
-    }
+      
+      System.out.println("LINK: " + resultResponse.getResults().getReport_url());
+      
+      return new SerializableResult(
+        filename,
+        untriagedVulnsCount(),
+        triagedVulnsCount(),
+        hasUntriagedVulns() ? UIResources.VULNS : "", 
+        hasUntriagedVulns() ? UIResources.HAS_VULNS_DETAILED : UIResources.NO_VULNS_DETAILED,
+        resultResponse.getResults().getReport_url()
+      );
+    }    
   }
   
   public static @Data class SerializableResult {
-    public SerializableResult() {
-      // left empty
-    }
-    public SerializableResult(String filename, HttpTypes.Results results, HttpTypes.Meta meta) {
-      this.filename = filename;
-      this.results = results;
-      this.meta = meta;
-    }
-    private String filename;
-    private HttpTypes.Results results;
-    private HttpTypes.Meta meta;
+    private final String filename;    
+    private final long untriagedVulns;
+    private final long triagedVulns;
+    private final String verdict;
+    private final String details;
+    private final String reportUrl;
   }
   
   public static @Data class Secret {
