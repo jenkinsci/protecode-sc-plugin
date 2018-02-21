@@ -13,8 +13,10 @@ package com.synopsys.protecode.sc.jenkins.utils;
 import com.synopsys.protecode.sc.jenkins.ProtecodeScPlugin;
 import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
 import hudson.FilePath;
+import hudson.FilePath.FileCallable;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.remoting.VirtualChannel;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -22,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import jenkins.MasterToSlaveFileCallable;
+import org.jenkinsci.remoting.RoleChecker;
 
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
 //   We need to move the regexps, logger and such through multiple methods and that's not good.
@@ -152,18 +156,25 @@ public final class UtilitiesFile {
    * @return true if creating the directing was successful.
    */
   public static boolean makeDirectory(String name, FilePath workspace, TaskListener listener) {
-    PrintStream log = listener.getLogger();
-    FilePath jsonReportDirectory = workspace.child("reports");
     try {
-      jsonReportDirectory.mkdirs();
-      if (!jsonReportDirectory.isDirectory()) {
-        log.println("Report directory could not be created.");
-        return false;
-      }
+      FilePath directory = workspace.child(name);
+      directory.act(new DirectoryMaker());
     } catch (IOException | InterruptedException e) {
       return false;
     }
     return true;
+  }
+  
+  // if 'file' is on a different node, this FileCallable will
+  // be transferred to that node and executed there.
+  // http://javadoc.jenkins-ci.org/hudson/FilePath.html
+  private static final class DirectoryMaker extends MasterToSlaveFileCallable<Void>{
+    private static final long serialVersionUID = 1;
+    @Override public Void invoke(File f, VirtualChannel channel) {
+      // f and file represent the same thing
+      f.mkdirs();
+      return null;
+    }
   }
   
   /**
