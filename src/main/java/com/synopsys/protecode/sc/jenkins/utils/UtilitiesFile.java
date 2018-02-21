@@ -89,7 +89,7 @@ public final class UtilitiesFile {
     Pattern pattern,
     Run<?, ?> run,
     TaskListener listener
-  ) {    
+  ) {
     List<ReadableFile> files = new ArrayList<>();
     
     try {
@@ -97,7 +97,6 @@ public final class UtilitiesFile {
       if (!absolutePath(fileDirectory)) {
         directory = workspace.child(cleanUrl(fileDirectory));
       } else {
-        // TODO: Check why there seems to be an empty file everytime this is used. Doesn't break anything.        
         directory = new FilePath(new File(fileDirectory));
       }
       PrintStream log = listener.getLogger();
@@ -121,7 +120,7 @@ public final class UtilitiesFile {
     boolean includeSubdirectories, 
     Pattern pattern,
     PrintStream log
-  ) {    
+  ) {
     List<ReadableFile> filesInFolder = new ArrayList<>();
     try {
       directoryToSearch.list().forEach((FilePath file) -> {
@@ -143,7 +142,7 @@ public final class UtilitiesFile {
       log.print("Error while reading folder: " + directoryToSearch.getName());
     }
     return filesInFolder;
-  }    
+  }
   
   /**
    * Creates a directory in the specified workspace.
