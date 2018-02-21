@@ -291,7 +291,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);
     
     // start polling for reponses to scans
-    if (!poll()) {
+    if (!poll(run)) {
       // maybe we were interrupted or something failed, ending phase
       return false;
     }
@@ -347,7 +347,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
    * TODO clean up depth, move logic to other methods. This is staggeringly awful.
    * @param listener
    */
-  private boolean poll() {
+  private boolean poll(Run<?, ?> run) {
     if (results.stream().allMatch((fileAndResult) -> (fileAndResult.hasError()))) {
       log.println("No results found. Perhaps no uploads were succesfull.");
       return false;
@@ -358,6 +358,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     log.println("Fetching results from Protecode SC");
     do {
       if (isTimeout()) {
+        listener.error("Timeout while fetching files");
+        run.setResult(Result.FAILURE);
         return false;
       }
       results.forEach((FileAndResult fileAndResult) -> {
@@ -465,6 +467,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   
   @Extension @Symbol("protecodesc")
   public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
+    public static final int defaultTimeout = 10;
+    public static final boolean defaultFailIfVulns = true;
+
     @Getter @Setter protected String protecodeScHost;
     @Getter @Setter protected boolean dontCheckCert;
 
@@ -647,6 +652,4 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public int getScanTimeout() {
     return scanTimeout;
   }
-  
-  
 }

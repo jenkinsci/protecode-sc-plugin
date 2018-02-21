@@ -7,7 +7,7 @@
         <f:textbox />
     </f:entry>
     <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
-        <f:checkbox/>
+        <f:checkbox default="${descriptor.defaultFailIfVulns}" />
     </f:entry>
     <!--<f:entry title="Scan all produced artifacts" field="scanAllArtifacts">
         <f:checkbox/>
@@ -22,7 +22,7 @@
         <f:textbox />
     </f:entry>
     <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
-        <f:textbox />
+        <f:textbox default="${descriptor.defaultTimeout}" />
     </f:entry>
     <!--<f:entry title="Keep copied artifacts after build" field="leaveArtifacts">
         <f:checkbox/>
