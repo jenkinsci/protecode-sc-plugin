@@ -88,7 +88,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   
   // Used in the scan process
   private List<FileAndResult> results;
-  private long stopAt = 0;
   
   // used for printing to the jenkins console
   private PrintStream log = null;
@@ -159,18 +158,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
           + " configuration page.");
     }    
     return service;
-  }
-  
-  // TODO rewrite timer logic, this isn't good
-  private boolean isTimeout() {
-    return System.currentTimeMillis() > stopAt;
-  }
-  
-  private void startPollTimer() {
-    // stopAt is set to be the moment we don't try to poll anymore
-    // TODO: For a more comprehensive timeout, this isn't enough for the whole plugin.
-    // For build timeouts, suggest to use https://plugins.jenkins.io/build-timeout
-    stopAt = System.currentTimeMillis() + 1000L * 60 * scanTimeout;
   }
   
   @Override
@@ -352,12 +339,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       log.println("No results found. Perhaps no uploads were succesfull.");
       return false;
     }
-    startPollTimer();
+    // TODO: Make better timeout, which encapsulates the whole step
+    long endAt = System.currentTimeMillis() + (this.scanTimeout * 60 * 1000);
     // use shortened word to distinguish from possibly null service    
     ProtecodeScService serv = service();
     log.println("Fetching results from Protecode SC");
     do {
-      if (isTimeout()) {
+      if (System.currentTimeMillis() > endAt) {
         listener.error("Timeout while fetching files");
         run.setResult(Result.FAILURE);
         return false;
