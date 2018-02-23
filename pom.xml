@@ -21,7 +21,7 @@
         <junit.jupiter.version>5.0.1</junit.jupiter.version>
         <junit.vintage.version>${junit.version}.1</junit.vintage.version>
         <junit.platform.version>1.0.1</junit.platform.version>
-        <findbugs.failOnError>true</findbugs.failOnError>
+        <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
     <name>Protecode SC</name>
     <description>Jenkins integration to Protecode SC with pipeline support</description>

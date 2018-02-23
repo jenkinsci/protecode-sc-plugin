@@ -10,14 +10,12 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins.types;
 
-import hudson.remoting.VirtualChannel;
-import java.io.File;
+import hudson.FilePath;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.BufferedInputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
-import jenkins.MasterToSlaveFileCallable;
 import lombok.NonNull;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
@@ -28,12 +26,12 @@ import okio.Source;
 
 
 public class StreamRequestBody extends RequestBody {
-  private final ReadableFile file;
+  private final FilePath file;
   private final MediaType contentType;  
   
   private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
   
-  public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {   
+  public StreamRequestBody(MediaType contentType, FilePath file) throws IOException, InterruptedException {   
     if (file.read() == null) {
       throw new NullPointerException("File inputStream == null");
     }
@@ -51,7 +49,7 @@ public class StreamRequestBody extends RequestBody {
   public long contentLength() throws IOException {
     long size = 0;
     try {
-      size = file.getFilePath().length();      
+      size = file.length();      
     } catch (IOException | InterruptedException e) {
       // IOE = larger scane failure, IE = Interrupted build?
     }
@@ -61,46 +59,41 @@ public class StreamRequestBody extends RequestBody {
   @Override
   public void writeTo(@NonNull BufferedSink sink) {
     try {
-    file.getFilePath().act(new PipeWriterCallable(sink, file));
-    } catch (IOException | InterruptedException ioe) {
-      LOGGER.log(Level.WARNING, "Serializing pipewriter error: {0}", ioe.getMessage());
-    }
-  }
-
-  // Slave support
-  private static class PipeWriterCallable extends MasterToSlaveFileCallable<Void> {
-    private static final long serialVersionUID = 2;
-    private final BufferedSink sink;
-    private final ReadableFile file;
-
-    public PipeWriterCallable(BufferedSink sink, ReadableFile file) {
-      this.sink = sink;
-      this.file = file;
-    }
-
-    @Override public Void invoke(File f, VirtualChannel channel) {
-      InputStream inputStream = null;
+      LOGGER.warning("-----------------filelength: " + file.length());
+      BufferedInputStream inputStream = new BufferedInputStream(file.read());
+      LOGGER.warning("bob");
       Source source = null;
       try {
-        inputStream = file.read();
-        long writeAmount = inputStream.available();
-        while (writeAmount != 0) {
-          source = Okio.source(inputStream);
-          sink.write(source, writeAmount);
-          sink.flush();
-          writeAmount = inputStream.available();
+        long writeAmount = 8196;
+        source = Okio.source(inputStream);
+        while (true) {
+          try {
+            sink.write(source, writeAmount);            
+            sink.flush();
+          } catch (Exception e) {
+            e.printStackTrace();
+            LOGGER.warning("end of write");
+            break;
+          }                              
         }
+      LOGGER.warning("bob6");
       } catch (Exception e) {
+        LOGGER.warning("bob7");
         LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
       } finally {
+        LOGGER.warning("bob8");
         try {
+          LOGGER.warning("bob9");
           inputStream.close();
         } catch (Exception e) {
+          LOGGER.warning("bob10");
           // No action: stream might have not been opened.
         }
+        LOGGER.warning("bob11");
         Util.closeQuietly(source);
-      }
-      return null;
+      }        
+    } catch (IOException | InterruptedException ioe) {
+      LOGGER.log(Level.WARNING, "Serializing pipewriter error: {0}", ioe.getMessage());
     }
   }
 }

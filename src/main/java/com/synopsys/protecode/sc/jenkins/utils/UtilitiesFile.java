@@ -11,9 +11,7 @@
 package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.ProtecodeScPlugin;
-import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
 import hudson.FilePath;
-import hudson.FilePath.FileCallable;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import jenkins.MasterToSlaveFileCallable;
-import org.jenkinsci.remoting.RoleChecker;
 
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
 //   We need to move the regexps, logger and such through multiple methods and that's not good.
@@ -57,9 +54,9 @@ public final class UtilitiesFile {
    * @param run Instance of the build
    * @return List of ReadableFiles produced as artifacts
    */
-  public static List<ReadableFile> getArtifacts(Run<?, ?> run) {    
-    return getArtifacts(run, ALL_FILES_PATTERN);
-  }
+//  public static List<ReadableFile> getArtifacts(Run<?, ?> run) {    
+//    return getArtifacts(run, ALL_FILES_PATTERN);
+//  }
   
   /**
    * Returns any produced artifacts for the build.
@@ -67,14 +64,14 @@ public final class UtilitiesFile {
    * @param pattern Regexp pattern used for including only certain artifacts
    * @return List of ReadableFiles produced as artifacts
    */
-  public static List<ReadableFile> getArtifacts(Run<?, ?> run, Pattern pattern) {
-    List<ReadableFile> readableFiles = new ArrayList<>();
-    List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
-    for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-      readableFiles.add(new ReadableFile(buildArtifact.getFile()));
-    }
-    return readableFiles;
-  }
+//  public static List<ReadableFile> getArtifacts(Run<?, ?> run, Pattern pattern) {
+//    List<ReadableFile> readableFiles = new ArrayList<>();
+//    List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
+//    for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
+//      readableFiles.add(new ReadableFile(buildArtifact.getFile()));
+//    }
+//    return readableFiles;
+//  }
   
   /**
    * Returns files in a directory
@@ -86,7 +83,7 @@ public final class UtilitiesFile {
    * @param listener Jenkins console 
    * @return list of files 
    */
-  public static List<ReadableFile> getFiles(
+  public static List<FilePath> getFiles(
     String fileDirectory, 
     FilePath workspace,
     boolean includeSubdirectories,
@@ -94,7 +91,7 @@ public final class UtilitiesFile {
     Run<?, ?> run,
     TaskListener listener
   ) {
-    List<ReadableFile> files = new ArrayList<>();
+    List<FilePath> files = new ArrayList<>();
     
     try {
       FilePath directory;
@@ -119,20 +116,20 @@ public final class UtilitiesFile {
    * @param log Jenkins log interface
    * @return Files in the specified directory
    */
-  private static List<ReadableFile> getFiles(
+  private static List<FilePath> getFiles(
     FilePath directoryToSearch, 
     boolean includeSubdirectories, 
     Pattern pattern,
     PrintStream log
   ) {
-    List<ReadableFile> filesInFolder = new ArrayList<>();
+    List<FilePath> filesInFolder = new ArrayList<>();
     try {
       directoryToSearch.list().forEach((FilePath file) -> {
         try {
           if (!file.isDirectory()) {
             if (pattern.matcher(file.getName()).matches()) {
               // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)              
-              filesInFolder.add(new ReadableFile(file));  
+              filesInFolder.add(file);  
             }
           } else if (includeSubdirectories) {
             filesInFolder.addAll(getFiles(file, includeSubdirectories, pattern, log));
@@ -158,7 +155,11 @@ public final class UtilitiesFile {
   public static boolean makeDirectory(String name, FilePath workspace, TaskListener listener) {
     try {
       FilePath directory = workspace.child(name);
-      directory.act(new DirectoryMaker());
+      directory.mkdirs();
+      if (!directory.isDirectory()) {
+        LOGGER.warning("Report directory could not be created.");
+        return false;
+      }
     } catch (IOException | InterruptedException e) {
       return false;
     }
@@ -190,16 +191,6 @@ public final class UtilitiesFile {
     }
     return "".equals(pattern) ? UtilitiesFile.ALL_FILES_PATTERN : Pattern.compile(pattern);    
   }
-  
-  /**
-   * Method builds the path to the working directory. 
-   * @param filesToScanDirectory
-   * @return 
-   */
-//  public static String directoryToScan(String filesToScanDirectory) {
-//    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-//    return "".equalsfilesToScanDirectory) ? filesToScanDirectory : "";
-//  }
   
   /**
    * A method to add ./ to the start and / to the end of the address if missing

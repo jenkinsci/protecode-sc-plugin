@@ -23,7 +23,6 @@ import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
-import com.synopsys.protecode.sc.jenkins.types.ReadableFile;
 import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
 import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
@@ -218,7 +217,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
     
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    List<ReadableFile> filesToScan = UtilitiesFile.getFiles(directoryToScan,
+    List<FilePath> filesToScan = UtilitiesFile.getFiles(directoryToScan,
       workspace,      
       includeSubdirectories,
       UtilitiesFile.patternOrAll(pattern),
@@ -230,8 +229,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // to be seen early
     
     log.println("Sending following files to Protecode SC:");
-    filesToScan.forEach((ReadableFile file) -> 
-      (log.println(file.name())));
+    filesToScan.forEach((FilePath file) -> 
+      (log.println(file.getRemote())));
     
     if (filesToScan.isEmpty()) {
       // no files to scan, no failure
@@ -241,11 +240,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     long start = System.currentTimeMillis();
     
-    for (ReadableFile file: filesToScan) {
-      LOGGER.log(Level.FINE, "Sending file: {0}", file.name());
+    for (FilePath file: filesToScan) {
+      LOGGER.log(Level.FINE, "Sending file: {0}", file.getRemote());
       serv.scan(
         protecodeScGroup,
-        file.name(),
+        file.getRemote(),
         new StreamRequestBody
         (
           MediaType.parse("application/octet-stream"),
@@ -254,7 +253,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         new ScanService() {
           @Override
           public void processUploadResult(UploadResponse result) {
-            addUploadResponse(log, file.name(), result, NO_ERROR);
+            addUploadResponse(log, file.getRemote(), result, NO_ERROR);
           }
           @Override
           public void setError(String reason) {
@@ -262,7 +261,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
             log.println(reason);
             // TODO: Maybe use listener.error to stop writing for more results if we get error 
             // perhaps?
-            addUploadResponse(log, file.name(), null, reason);
+            addUploadResponse(log, file.getRemote(), null, reason);
           }
         }
       );
@@ -291,7 +290,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     // summarise
     if(convertToSummary) {
+      log.println("Writing dummary for summary plugin to protecodesc.xml");
       ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
+    } else {
+      log.println("No summary requested.");
     }
                 
     boolean buildStatus = false;
