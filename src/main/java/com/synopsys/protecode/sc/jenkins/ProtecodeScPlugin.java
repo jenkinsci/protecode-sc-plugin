@@ -270,7 +270,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     // Then we wait and continue only when we have as many UploadResponses as we have
     // filesToScan. Sad but true
-    log.println("Polling Protecode SC for scan results");
+    log.println("Uploading files. This may take a while.");
     waitForUploadResponses(filesToScan.size(), log);
     
     long time = (System.currentTimeMillis() - start)/1000;

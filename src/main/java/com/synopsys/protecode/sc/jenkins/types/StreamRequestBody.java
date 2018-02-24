@@ -12,7 +12,7 @@ package com.synopsys.protecode.sc.jenkins.types;
 
 import hudson.FilePath;
 import java.io.IOException;
-import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -60,14 +60,14 @@ public class StreamRequestBody extends RequestBody {
   public void writeTo(@NonNull BufferedSink sink) {
     try {
       LOGGER.warning("-----------------filelength: " + file.length());
-      BufferedInputStream inputStream = new BufferedInputStream(file.read());
+      InputStream inputStream = file.read();
       LOGGER.warning("bob");
       Source source = null;
       try {
-        long writeAmount = 8196;
+        long writeAmount = 8196L;
         source = Okio.source(inputStream);
-        while (true) {
-          try {
+        while (true) {          
+          try {            
             sink.write(source, writeAmount);            
             sink.flush();
           } catch (Exception e) {
@@ -80,8 +80,7 @@ public class StreamRequestBody extends RequestBody {
       } catch (Exception e) {
         LOGGER.warning("bob7");
         LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
-      } finally {
-        LOGGER.warning("bob8");
+      } finally {        
         try {
           LOGGER.warning("bob9");
           inputStream.close();
