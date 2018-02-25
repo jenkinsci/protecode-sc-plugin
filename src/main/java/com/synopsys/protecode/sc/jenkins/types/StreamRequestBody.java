@@ -12,7 +12,6 @@ package com.synopsys.protecode.sc.jenkins.types;
 
 import hudson.FilePath;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -52,47 +51,40 @@ public class StreamRequestBody extends RequestBody {
       size = file.length();      
     } catch (IOException | InterruptedException e) {
       // IOE = larger scane failure, IE = Interrupted build?
+      LOGGER.log(
+        Level.WARNING, 
+        "Could not read file size for FilePath object: {0}", 
+        file.getRemote()
+      );
     }
     return size;
   }
   
   @Override
   public void writeTo(@NonNull BufferedSink sink) {
-    try {
-      LOGGER.warning("-----------------filelength: " + file.length());
-      InputStream inputStream = file.read();
-      LOGGER.warning("bob");
-      Source source = null;
-      try {
-        long writeAmount = 8196L;
-        source = Okio.source(inputStream);
-        while (true) {          
-          try {            
-            sink.write(source, writeAmount);            
-            sink.flush();
-          } catch (Exception e) {
-            e.printStackTrace();
-            LOGGER.warning("end of write");
-            break;
-          }                              
-        }
-      LOGGER.warning("bob6");
-      } catch (Exception e) {
-        LOGGER.warning("bob7");
-        LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
-      } finally {        
+    Source source = null;
+    // TODO: Study if other amount would be better... This is just a number-out-of-a-hat.
+    long writeAmount = 8192L;  // arbitratry nice number. 
+    try {      
+      source = Okio.source(file.read());
+      while (true) {          
         try {
-          LOGGER.warning("bob9");
-          inputStream.close();
+          // Do not use writeAll, since it depends on the source(inputstream) knowing how much it
+          // still has. In this case it seems the stream doesnt know how much it has and returns 
+          // zero.
+          sink.write(source, writeAmount);            
+          sink.flush();
         } catch (Exception e) {
-          LOGGER.warning("bob10");
-          // No action: stream might have not been opened.
-        }
-        LOGGER.warning("bob11");
-        Util.closeQuietly(source);
-      }        
-    } catch (IOException | InterruptedException ioe) {
-      LOGGER.log(Level.WARNING, "Serializing pipewriter error: {0}", ioe.getMessage());
-    }
+          // Okio throws exception when attempting to read more than there is in a stream. Why we do 
+          // not use sink.writeAll() is because it relies on source.available which returns zero due 
+          // to lack of implementation or okio/jenkins compatibility
+          break;
+        }                              
+      }
+    } catch (Exception e) {
+      LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
+    } finally {      
+      Util.closeQuietly(source);
+    }        
   }
 }

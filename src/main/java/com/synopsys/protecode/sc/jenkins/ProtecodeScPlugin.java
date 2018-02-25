@@ -159,6 +159,19 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     return service;
   }
   
+  // TODO: Use and add support for build status and pipelines.
+//  @Override
+//  public boolean prebuild(AbstractBuild<?, ?> build, BuildListener listener) {
+//    if (getDescriptor().getProtecodeScHost() == null) {
+//      listener.error(
+//        "Protecode SC host not defined. Please configure it in the global plugin properties"
+//      );
+//      return false;
+//    }
+//
+//    return true;
+//  }
+  
   @Override
   public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener)
     throws InterruptedException, IOException
@@ -272,6 +285,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // filesToScan. Sad but true
     log.println("Uploading files. This may take a while.");
     waitForUploadResponses(filesToScan.size(), log);
+    log.println("Upload of files complete.");
     
     long time = (System.currentTimeMillis() - start)/1000;
     LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);
@@ -290,10 +304,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     // summarise
     if(convertToSummary) {
-      log.println("Writing dummary for summary plugin to protecodesc.xml");
+      log.println("Writing summary for summary plugin to protecodesc.xml");
       ReportBuilder.makeSummary(results, run, listener, REPORT_DIRECTORY, workspace);
-    } else {
-      log.println("No summary requested.");
     }
                 
     boolean buildStatus = false;
