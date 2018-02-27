@@ -86,7 +86,9 @@ public class ProtecodeScConnection {
         return chain.proceed(newRequest);
       }
     ).readTimeout(timeoutSeconds, TimeUnit.SECONDS)
-      .connectTimeout(timeoutSeconds, TimeUnit.SECONDS).build();
+      .connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
+      // TODO: Evaluate if .retryOnConnectionFailure(true) should be added.
+      .build();
     
     okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);
     LOGGER.log(Level.ALL, "Max simultaneous requests to protecode limited to: {0}", 
