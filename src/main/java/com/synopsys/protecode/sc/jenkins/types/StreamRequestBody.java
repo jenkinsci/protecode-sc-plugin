@@ -1,17 +1,18 @@
- /*******************************************************************************
-  * Copyright (c) 2017 Synopsys, Inc
-  * All rights reserved. This program and the accompanying materials
-  * are made available under the terms of the Eclipse Public License v1.0
-  * which accompanies this distribution, and is available at
-  * http://www.eclipse.org/legal/epl-v10.html
-  *
-  * Contributors:
-  *    Synopsys, Inc - initial implementation and documentation
-  *******************************************************************************/
+/** *****************************************************************************
+ * Copyright (c) 2017 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
 import hudson.FilePath;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
@@ -23,43 +24,42 @@ import okio.BufferedSink;
 import okio.Okio;
 import okio.Source;
 
-
 public class StreamRequestBody extends RequestBody {
   private final FilePath file;
-  private final MediaType contentType;  
-  
+  private final MediaType contentType;
+
   private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
-  
-  public StreamRequestBody(MediaType contentType, FilePath file) throws IOException, InterruptedException {   
+
+  public StreamRequestBody(MediaType contentType, FilePath file) throws IOException, InterruptedException {
     if (file.read() == null) {
       throw new NullPointerException("File inputStream == null");
     }
     this.file = file;
     this.contentType = contentType;
   }
-  
+
   @Nullable
   @Override
   public MediaType contentType() {
     return contentType;
   }
-  
+
   @Override
   public long contentLength() throws IOException {
     long size = 0;
     try {
-      size = file.length();      
+      size = file.length();
     } catch (IOException | InterruptedException e) {
       // IOE = larger scane failure, IE = Interrupted build?
       LOGGER.log(
-        Level.WARNING, 
-        "Could not read file size for FilePath object: {0}", 
+        Level.WARNING,
+        "Could not read file size for FilePath object: {0}",
         file.getRemote()
       );
     }
     return size;
   }
-  
+
   @Override
   public void writeTo(@NonNull BufferedSink sink) {
     Source source = null;
@@ -67,24 +67,24 @@ public class StreamRequestBody extends RequestBody {
     long writeAmount = 8192L;  // arbitratry nice number. 
     try {      
       source = Okio.source(file.read());
-      while (true) {          
+      while (true) {
         try {
           // Do not use writeAll, since it depends on the source(inputstream) knowing how much it
           // still has. In this case it seems the stream doesnt know how much it has and returns 
           // zero.
-          sink.write(source, writeAmount);            
+          sink.write(source, writeAmount);
           sink.flush();
-        } catch (Exception e) {
+        } catch (IOException e) {
           // Okio throws exception when attempting to read more than there is in a stream. Why we do 
           // not use sink.writeAll() is because it relies on source.available which returns zero due 
           // to lack of implementation or okio/jenkins compatibility
           break;
-        }                              
-      }
+        }
+      }      
     } catch (Exception e) {
       LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
-    } finally {      
+    } finally {
       Util.closeQuietly(source);
-    }        
+    }
   }
 }
