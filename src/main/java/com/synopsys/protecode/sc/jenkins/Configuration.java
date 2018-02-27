@@ -20,4 +20,7 @@ public class Configuration {
    * will throw 503, "service unavailable" sometimes
    */
   public static final int MAX_REQUESTS_TO_PROTECODE = 4;
+  
+  
+  public static final String REPORT_DIRECTORY = "reports";
 }
