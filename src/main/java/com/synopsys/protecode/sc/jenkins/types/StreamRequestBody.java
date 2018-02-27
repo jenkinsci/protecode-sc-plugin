@@ -12,7 +12,6 @@ package com.synopsys.protecode.sc.jenkins.types;
 
 import hudson.FilePath;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
