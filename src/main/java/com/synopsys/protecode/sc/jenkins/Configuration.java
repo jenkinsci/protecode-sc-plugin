@@ -21,6 +21,13 @@ public class Configuration {
    */
   public static final int MAX_REQUESTS_TO_PROTECODE = 4;
   
-  
+  /**
+   * Directory to store json reports for scans
+   */
   public static final String REPORT_DIRECTORY = "reports";
+  
+  /**
+   * Connection read/write timeout.
+   */
+  public static final int TIMEOUT_SECONDS = 5000;
 }
