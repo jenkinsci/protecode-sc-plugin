@@ -1,23 +1,20 @@
- /*******************************************************************************
-  * Copyright (c) 2017 Synopsys, Inc
-  * All rights reserved. This program and the accompanying materials
-  * are made available under the terms of the Eclipse Public License v1.0
-  * which accompanies this distribution, and is available at
-  * http://www.eclipse.org/legal/epl-v10.html
-  *
-  * Contributors:
-  *    Synopsys, Inc - initial implementation and documentation
-  *******************************************************************************/
+/** *****************************************************************************
+ * Copyright (c) 2017 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
-import hudson.remoting.VirtualChannel;
-import java.io.File;
+import hudson.FilePath;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
-import jenkins.MasterToSlaveFileCallable;
 import lombok.NonNull;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
@@ -26,81 +23,67 @@ import okio.BufferedSink;
 import okio.Okio;
 import okio.Source;
 
-
 public class StreamRequestBody extends RequestBody {
-  private final ReadableFile file;
-  private final MediaType contentType;  
-  
+  private final FilePath file;
+  private final MediaType contentType;
+
   private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
-  
-  public StreamRequestBody(MediaType contentType, ReadableFile file) throws IOException, InterruptedException {   
+
+  public StreamRequestBody(MediaType contentType, FilePath file) throws IOException, InterruptedException {
     if (file.read() == null) {
       throw new NullPointerException("File inputStream == null");
     }
     this.file = file;
     this.contentType = contentType;
   }
-  
+
   @Nullable
   @Override
   public MediaType contentType() {
     return contentType;
   }
-  
+
   @Override
   public long contentLength() throws IOException {
     long size = 0;
     try {
-      size = file.getFilePath().length();      
+      size = file.length();
     } catch (IOException | InterruptedException e) {
       // IOE = larger scane failure, IE = Interrupted build?
+      LOGGER.log(
+        Level.WARNING,
+        "Could not read file size for FilePath object: {0}",
+        file.getRemote()
+      );
     }
     return size;
   }
-  
+
   @Override
   public void writeTo(@NonNull BufferedSink sink) {
-    try {
-    file.getFilePath().act(new PipeWriterCallable(sink, file));
-    } catch (IOException | InterruptedException ioe) {
-      LOGGER.log(Level.WARNING, "Serializing pipewriter error: {0}", ioe.getMessage());
-    }
-  }
-
-  // Slave support
-  private static class PipeWriterCallable extends MasterToSlaveFileCallable<Void> {
-    private static final long serialVersionUID = 2;
-    private final BufferedSink sink;
-    private final ReadableFile file;
-
-    public PipeWriterCallable(BufferedSink sink, ReadableFile file) {
-      this.sink = sink;
-      this.file = file;
-    }
-
-    @Override public Void invoke(File f, VirtualChannel channel) {
-      InputStream inputStream = null;
-      Source source = null;
-      try {
-        inputStream = file.read();
-        long writeAmount = inputStream.available();
-        while (writeAmount != 0) {
-          source = Okio.source(inputStream);
+    Source source = null;
+    // TODO: Study if other amount would be better... This is just a number-out-of-a-hat.
+    long writeAmount = 8192L;  // arbitratry nice number. 
+    try {      
+      source = Okio.source(file.read());
+      while (true) {
+        try {
+          // Do not use writeAll, since it depends on the source(inputstream) knowing how much it
+          // still has. In this case it seems the stream doesnt know how much it has and returns 
+          // zero.
           sink.write(source, writeAmount);
           sink.flush();
-          writeAmount = inputStream.available();
+        } catch (IOException e) {
+          // Okio throws exception when attempting to read more than there is in a stream. Why we do 
+          // not use sink.writeAll() is because it relies on source.available which returns zero due 
+          // to lack of implementation or okio/jenkins compatibility
+          break;
         }
-      } catch (Exception e) {
-        LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
-      } finally {
-        try {
-          inputStream.close();
-        } catch (Exception e) {
-          // No action: stream might have not been opened.
-        }
-        Util.closeQuietly(source);
-      }
-      return null;
+      }      
+    } catch (Exception e) {
+      LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
+    } finally {
+      Util.closeQuietly(source);
     }
   }
 }

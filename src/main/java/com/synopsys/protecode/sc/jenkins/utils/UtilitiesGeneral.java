@@ -12,6 +12,8 @@ package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import okhttp3.Headers;
 
@@ -67,5 +69,17 @@ public final class UtilitiesGeneral {
       report.append(result.getFilename()).append("\n");
     });
     return report.toString();
+  }
+
+  /**
+   * Method for getting a nicely formated timestamp.
+   * TODO: This might already be implemented somewhere.
+   * @return A formated time as string
+   */
+  public static String timestamp() {
+    SimpleDateFormat sdfDate = new SimpleDateFormat("HH:mm:ss");//dd/MM/yyyy
+    Date now = new Date();
+    String strDate = sdfDate.format(now);
+    return strDate;
   }
 }
