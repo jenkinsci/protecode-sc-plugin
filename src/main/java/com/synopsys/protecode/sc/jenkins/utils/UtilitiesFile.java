@@ -55,28 +55,28 @@ public final class UtilitiesFile {
    * Returns any produced artifacts for the build.
    *
    * @param run Instance of the build
-   * @return List of ReadableFiles produced as artifacts
+   * @return List of FilePaths produced as artifacts
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
-//  public static List<ReadableFile> getArtifacts(Run<?, ?> run) {    
-//    return getArtifacts(run, ALL_FILES_PATTERN);
-//  }
+  public static List<FilePath> getArtifacts(Run<?, ?> run) {    
+    return getArtifacts(run, ALL_FILES_PATTERN);
+  }
   /**
    * Returns any produced artifacts for the build.
    *
    * @param run Instance of the build
    * @param pattern Regexp pattern used for including only certain artifacts
-   * @return List of ReadableFiles produced as artifacts
+   * @return List of FilePaths produced as artifacts
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
-//  public static List<ReadableFile> getArtifacts(Run<?, ?> run, Pattern pattern) {
-//    List<ReadableFile> readableFiles = new ArrayList<>();
-//    List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
-//    for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
-//      readableFiles.add(new ReadableFile(buildArtifact.getFile()));
-//    }
-//    return readableFiles;
-//  }
+  public static List<FilePath> getArtifacts(Run<?, ?> run, Pattern pattern) {
+    List<FilePath> files = new ArrayList<>();
+    List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
+    for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
+      files.add(new FilePath(buildArtifact.getFile()));
+    }
+    return files;
+  }
   
   /**
    * Returns files in a directory
