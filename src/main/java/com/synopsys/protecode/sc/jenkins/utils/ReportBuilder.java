@@ -162,8 +162,6 @@ public class ReportBuilder {
             + readResult.getReportUrl()
             + "\">View full report in Protecode SC </a>");
           out.println("</accordion>");
-        } catch (Exception e) {
-          e.printStackTrace();
         }
       }
       out.println("</section>");
