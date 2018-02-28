@@ -475,14 +475,15 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @Extension
   @Symbol("protecodesc")
   public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
+    /** Read from jelly */
     public static final int defaultTimeout = 10;
+    /** Read from jelly */
     public static final boolean defaultFailIfVulns = true;
 
-    @Getter
-    @Setter
+    @Getter @Setter
     protected String protecodeScHost;
-    @Getter
-    @Setter
+    
+    @Getter @Setter
     protected boolean dontCheckCert;
 
     public DescriptorImpl() {

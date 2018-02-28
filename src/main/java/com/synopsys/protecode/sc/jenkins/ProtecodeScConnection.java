@@ -62,8 +62,6 @@ public class ProtecodeScConnection {
 //    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
     // ... ).addInterceptor(interceptor).build();
     
-    int timeoutSeconds = 5000;
-    
     OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
       (Interceptor.Chain chain) ->
       {
@@ -85,8 +83,9 @@ public class ProtecodeScConnection {
         Request newRequest = builder.build();
         return chain.proceed(newRequest);
       }
-    ).readTimeout(timeoutSeconds, TimeUnit.SECONDS)
-      .connectTimeout(timeoutSeconds, TimeUnit.SECONDS)
+    ).readTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      .connectTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      //.retryOnConnectionFailure(true)
       // TODO: Evaluate if .retryOnConnectionFailure(true) should be added.
       .build();
     
