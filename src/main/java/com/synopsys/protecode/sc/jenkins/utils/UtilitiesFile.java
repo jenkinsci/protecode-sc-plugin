@@ -1,4 +1,4 @@
-/*******************************************************************************
+/** *****************************************************************************
  * Copyright (c) 2017 Synopsys, Inc
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -7,7 +7,7 @@
  *
  * Contributors:
  *    Synopsys, Inc - initial implementation and documentation
- *******************************************************************************/
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.Configuration;
@@ -16,14 +16,14 @@ import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.VirtualChannel;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import jenkins.MasterToSlaveFileCallable;
 
 // TODO: Change this to something like instantiable FileGetter or something. static isn't very nice.
@@ -58,9 +58,10 @@ public final class UtilitiesFile {
    * @return List of FilePaths produced as artifacts
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
-  public static List<FilePath> getArtifacts(Run<?, ?> run) {    
+  public static List<FilePath> getArtifacts(Run<?, ?> run) {
     return getArtifacts(run, ALL_FILES_PATTERN);
   }
+
   /**
    * Returns any produced artifacts for the build.
    *
@@ -77,7 +78,7 @@ public final class UtilitiesFile {
     }
     return files;
   }
-  
+
   /**
    * Returns files in a directory
    *
@@ -101,18 +102,24 @@ public final class UtilitiesFile {
     List<FilePath> files = new ArrayList<>();
 
     try {
-      FilePath directory;
-      if (!absolutePath(fileDirectory)) {
-        directory = workspace.child(cleanUrl(fileDirectory));
-      } else {
-        directory = new FilePath(new File(fileDirectory));
-      }
+      FilePath directory = workspace.child(cleanUrl(fileDirectory));
+
       PrintStream log = listener.getLogger();
       log.println("Looking for files in directory: " + directory);
       files = getFiles(directory, includeSubdirectories, pattern, log);
+
+      try {
+        List<FilePath> zippedFiles = packageFiles(directory, files, "filesToScan");
+        if (zippedFiles.size() == 1) {
+          files = zippedFiles;
+        }
+      } catch (Exception e) {
+        LOGGER.warning("Could not zip files, sending files one-by-one");
+      }
     } catch (Exception e) {
       listener.error("Could not read files from: " + fileDirectory);
     }
+    // return an empty list
     return files;
   }
 
@@ -151,6 +158,62 @@ public final class UtilitiesFile {
       log.print("Error while reading folder: " + directoryToSearch.getName());
     }
     return filesInFolder;
+  }
+
+  /**
+   * Method zips files at the location of the first file.
+   *
+   * @param files The files to zip
+   * @return
+   * @throws Exception
+   */
+  static List<FilePath> packageFiles(
+    FilePath directory,
+    List<FilePath> files,
+    String zipFileName
+  ) throws Exception {
+    List<FilePath> zipFiles = new ArrayList<>();
+    FilePath fileLocation = files.get(0);
+    FilePath zipFile = fileLocation.act(new MasterToSlaveFileCallable<FilePath>() {
+      @Override
+      public FilePath invoke(File f, VirtualChannel channel) {
+        File zipFile = new File(directory + "/" + zipFileName + ".zip");
+        try {
+          zipFile.createNewFile();
+        } catch (IOException ex) {
+          Logger.getLogger(UtilitiesFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        try {
+          FileOutputStream dest = new FileOutputStream(zipFile);
+          ZipOutputStream zipOutputStream = new ZipOutputStream(dest);
+
+          for (FilePath fileToRead : files) {
+            zipOutputStream.putNextEntry(new ZipEntry(fileToRead.getRemote()));
+
+            InputStream input = fileToRead.read();
+
+            byte[] bytes = new byte[1024];
+            int length;
+            while ((length = input.read(bytes)) >= 0) {
+              zipOutputStream.write(bytes, 0, length);
+            }
+
+            zipOutputStream.flush();
+            zipOutputStream.close();
+            dest.close();
+          }
+        } catch (IOException | InterruptedException e) {
+          LOGGER.warning("Exception while zipping file. Files will be sent one-by-one.");
+        }
+        return new FilePath(zipFile);
+      }
+    });
+
+    if (zipFile != null && zipFile.exists()) {
+      zipFiles.add(zipFile);
+      return zipFiles;
+    }
+    throw new IOException("Could not package files");
   }
 
   /**
@@ -232,20 +295,6 @@ public final class UtilitiesFile {
     if (!cleanUrl.endsWith("/")) {
       cleanUrl = cleanUrl + "/";
     }
-    if (!cleanUrl.startsWith("./")) {
-      cleanUrl = "./" + cleanUrl;
-    }
     return cleanUrl;
-  }
-
-  /**
-   * Checks whether the path is absolute or only a path "in" the workspace
-   *
-   * @param path the path to check
-   * @return true if path seems to be an absolute path, not a relative path in the workspace
-   */
-  private static boolean absolutePath(String path) {
-    // TODO: Check for windows style path, eg. C: or D:
-    return path.startsWith("/");
   }
 }
