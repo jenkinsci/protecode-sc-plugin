@@ -253,6 +253,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // The optional is already checked.
     sendFile(filesZip.get());
     waitForUploadResponse(log);
+    try {
+      UtilitiesFile.removeFilePackage(filesZip.get());
+    } catch (Exception e) {
+      // NOP
+    }
     log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
 
     long time = (System.currentTimeMillis() - start) / 1000;
@@ -262,13 +267,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (!poll(run)) {
       // maybe we were interrupted or something failed, ending phase
       return false;
-    }
-
-    //evaluate, if verdict is false, there are vulns
-    boolean verdict = ProtecodeEvaluator.evaluate(result);
+    }    
 
     // make results
-    ReportBuilder.report(result, listener, UtilitiesFile.reportsDirectory(run));
+    ReportBuilder.report(result, listener, UtilitiesFile.reportsDirectory(run), run);
 
     // summarise
     if (convertToSummary) {
@@ -276,7 +278,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       ReportBuilder.makeSummary(run, listener);
     }
 
+    //evaluate, if verdict is false, there are vulns
+    boolean verdict = ProtecodeEvaluator.evaluate(result);    
     boolean buildStatus = false;
+    
     if (failIfVulns) {
       if (!verdict) {
         log.println(UtilitiesGeneral.buildReportString(result));

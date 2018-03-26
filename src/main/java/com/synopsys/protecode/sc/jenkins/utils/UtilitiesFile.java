@@ -231,6 +231,17 @@ public final class UtilitiesFile {
     return zipFile;
   }
 
+  public static boolean removeFilePackage(
+    FilePath zipFile
+  ) throws Exception {    
+    return zipFile.act(new MasterToSlaveFileCallable<Boolean>() {
+       @Override
+       public Boolean invoke(File f, VirtualChannel channel) throws IOException {
+         return f.delete();         
+       }
+    });
+  }
+  
   /**
    * Creates a directory in the specified workspace.
    *

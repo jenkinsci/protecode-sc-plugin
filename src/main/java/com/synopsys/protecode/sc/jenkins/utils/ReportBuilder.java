@@ -32,12 +32,13 @@ public class ReportBuilder {
   public static boolean report(
     FileResult result,
     TaskListener listener,
-    FilePath reportsDirectory
+    FilePath reportsDirectory,
+    Run <?,?> run
   ) {
     PrintStream log = listener.getLogger();
     ObjectMapper mapper = getObjectMapper();
             
-    result.getSerializableResults().forEach((serializableResult) -> {
+    result.getSerializableResults(run.getNumber()).forEach((serializableResult) -> {
       try {
         writeJson(log, mapper, reportsDirectory, serializableResult);
       } catch (Exception e) {
@@ -127,8 +128,11 @@ public class ReportBuilder {
    * @throws IOException thrown for file write/access problems
    * @throws InterruptedException Jenkins interrupts
    */
-  private static void createXmlReport(final FilePath[] jsonFiles, final ObjectMapper mapper,
-    OutputStream writeToStream) throws IOException, InterruptedException {
+  private static void createXmlReport(
+    final FilePath[] jsonFiles, 
+    final ObjectMapper mapper,
+    OutputStream writeToStream    
+  ) throws IOException, InterruptedException {
     // TODO: Evaluate exception handling. 
 
     try (PrintStream out = new PrintStream(writeToStream, false, "UTF-8")) {
@@ -142,9 +146,10 @@ public class ReportBuilder {
           String verdict = readResult.getVerdict();
           String verdict_detailed = readResult.getDetails();
           String fileName = new File(readResult.getFilename()).getName();
+          String buildNumberString = "#" + readResult.getBuildNumber();
           String title = !"".equals(verdict) ? fileName + " (" + verdict + ")" : fileName;
 
-          out.println("<accordion name =\"" + title + "\">");
+          out.println("<accordion name =\"" + title + " " + buildNumberString + "\">");
 
           Color color = untriagedVulns > 0L ? Color.RED : Color.GREEN;
           writeField(out, "Verdict", " " + verdict_detailed, color);

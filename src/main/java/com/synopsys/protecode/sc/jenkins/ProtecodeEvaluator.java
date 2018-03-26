@@ -28,7 +28,7 @@ public class ProtecodeEvaluator {
     LOGGER.log(Level.FINER, "Evaluating scan results");
     if (!result.hasError()) {
       LOGGER.log(Level.FINER, result.getFilename() + "has result: " + result.verdict());
-      return !result.verdict();
+      return result.verdict();
     } else {
       LOGGER.log(Level.FINER, result.getFilename() + "has error: " + result.getError());
       return false;

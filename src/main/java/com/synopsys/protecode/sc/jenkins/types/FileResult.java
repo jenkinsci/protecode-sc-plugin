@@ -152,7 +152,7 @@ public @Data class FileResult {
     return !hasUntriagedVulns() && !hasError();
   }
 
-  public List<SerializableResult> getSerializableResults() {
+  public List<SerializableResult> getSerializableResults(int buildNumber) {
     // TODO implement error handling for misbuilt responses
     List<SerializableResult> resultList = new ArrayList<>();
     
@@ -172,7 +172,8 @@ public @Data class FileResult {
           triagedVulns, 
           untriagedVulns > 0 ? UIResources.VULNS : "", 
           untriagedVulns > 0 ? UIResources.HAS_VULNS_DETAILED : UIResources.NO_VULNS_DETAILED, 
-          resultResponse.getResults().getReport_url()
+          resultResponse.getResults().getReport_url(),
+          buildNumber
         )
       );
     }
@@ -186,5 +187,6 @@ public @Data class FileResult {
     private final String verdict;
     private final String details;
     private final String reportUrl;
+    private final int buildNumber;
   }
 }
