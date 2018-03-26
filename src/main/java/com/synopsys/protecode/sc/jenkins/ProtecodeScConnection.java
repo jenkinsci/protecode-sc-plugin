@@ -57,7 +57,8 @@ public class ProtecodeScConnection {
    * @return the backend to use while communicating to the server
    */
   public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {
-    // Leave these here for convenience of debugging. They bleed memory _badly_ though
+    // HOW TO LOG
+// Leave these here for convenience of debugging. They bleed memory _badly_ though
 //    HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
 //    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
     // ... ).addInterceptor(interceptor).build();
@@ -75,10 +76,12 @@ public class ProtecodeScConnection {
         String protecodeScUser = credentials.getUsername();
         String protecodeScPass = credentials.getPassword().toString();
         
-        Request.Builder builder = originalRequest.newBuilder().header(
-          "Authorization",
-          Credentials.basic(protecodeScUser, protecodeScPass)
-        );
+        Request.Builder builder = originalRequest.newBuilder()
+          .header(
+            "Authorization",
+            Credentials.basic(protecodeScUser, protecodeScPass)
+          )
+          .addHeader("User-Agent", Configuration.CLIENT_NAME);
         
         Request newRequest = builder.build();
         return chain.proceed(newRequest);
@@ -88,6 +91,9 @@ public class ProtecodeScConnection {
       //.retryOnConnectionFailure(true)
       // TODO: Evaluate if .retryOnConnectionFailure(true) should be added.
       .build();
+    // TODO: Write interceptor for checking is the error 429 (too many requests) and handle that in
+    // a nice fashion.
+    
     
     okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);
     LOGGER.log(Level.ALL, "Max simultaneous requests to protecode limited to: {0}", 

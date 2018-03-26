@@ -13,14 +13,14 @@ package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import hudson.FilePath;
 import java.io.*;
 import java.util.List;
 
 public class SummaryWriter {
   
-  public static void createXmlReport(List<FileAndResult> results, final ObjectMapper mapper,
+  public static void createXmlReport(List<FileResult> results, final ObjectMapper mapper,
     String xmlFile) throws IOException, InterruptedException {
     
     OutputStream outFile = new BufferedOutputStream(new FileOutputStream(xmlFile));
@@ -28,7 +28,7 @@ public class SummaryWriter {
     try (PrintStream out = new PrintStream(outFile, false, "UTF-8")) {
       out.println(
         "<section name=\"Protecode SC analysis result\" fontcolor=\"#000000\">");
-      for (FileAndResult result : results) {
+      for (FileResult result : results) {
         
         Long exact = result.getResultResponse().getResults().getSummary().getVulnCount()
             .getExact();

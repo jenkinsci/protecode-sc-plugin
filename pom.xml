@@ -21,7 +21,7 @@
         <junit.jupiter.version>5.0.1</junit.jupiter.version>
         <junit.vintage.version>${junit.version}.1</junit.vintage.version>
         <junit.platform.version>1.0.1</junit.platform.version>
-        <findbugs.failOnError>true</findbugs.failOnError>
+        <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
     <name>Protecode SC</name>
     <description>Jenkins integration to Protecode SC with pipeline support</description>
@@ -72,7 +72,31 @@
                     </dependency>
                 </dependencies>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>write-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <outputFile>${project.build.outputDirectory}/plugin.properties</outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+        <!-- Used to get the version number for the client name in the http header. -->
+<!--        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <outputDirectory>/</outputDirectory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>-->
     </build>
     <developers>
       <developer>

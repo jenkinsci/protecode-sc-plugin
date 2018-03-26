@@ -19,6 +19,8 @@ import hudson.remoting.VirtualChannel;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -47,6 +49,11 @@ public final class UtilitiesFile {
    */
   public static final Pattern ALL_FILES_PATTERN = Pattern.compile(".*");
 
+  /**
+   * Used in the zip file name as the identifier for the zip file to be made.
+   */
+  public static final String ZIP_FILE_PREFIX = "jenkins-build-";
+  
   private UtilitiesFile() {
     // don't instantiate me...
   }
@@ -91,7 +98,7 @@ public final class UtilitiesFile {
    * @param listener Jenkins console
    * @return list of files
    */
-  public static List<FilePath> getFiles(
+  public static Optional<FilePath> getFiles(
     String fileDirectory,
     FilePath workspace,
     boolean includeSubdirectories,
@@ -99,28 +106,21 @@ public final class UtilitiesFile {
     Run<?, ?> run,
     TaskListener listener
   ) {
-    List<FilePath> files = new ArrayList<>();
-
     try {
       FilePath directory = workspace.child(cleanUrl(fileDirectory));
-
       PrintStream log = listener.getLogger();
       log.println("Looking for files in directory: " + directory);
-      files = getFiles(directory, includeSubdirectories, pattern, log);
 
-      try {
-        List<FilePath> zippedFiles = packageFiles(directory, files, "filesToScan");
-        if (zippedFiles.size() == 1) {
-          files = zippedFiles;
-        }
-      } catch (Exception e) {
-        LOGGER.warning("Could not zip files, sending files one-by-one");
-      }
-    } catch (Exception e) {
-      listener.error("Could not read files from: " + fileDirectory);
-    }
-    // return an empty list
-    return files;
+      return Optional.of(
+        packageFiles(
+          directory, 
+          getFiles(directory, includeSubdirectories, pattern, log),
+          cleanJobName(run.getExternalizableId())
+        )
+      );
+    } catch (Exception e) {}
+    listener.error("Error while reading files from: " + fileDirectory);
+    return Optional.empty();
   }
 
   /**
@@ -142,6 +142,7 @@ public final class UtilitiesFile {
       directoryToSearch.list().forEach((FilePath file) -> {
         try {
           if (!file.isDirectory()) {
+            // TODO Use ANT syntax
             if (pattern.matcher(file.getName()).matches()) {
               // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)              
               filesInFolder.add(file);
@@ -162,58 +163,72 @@ public final class UtilitiesFile {
 
   /**
    * Method zips files at the location of the first file.
-   *
-   * @param files The files to zip
-   * @return
-   * @throws Exception
+   * 
+   * @param directory the directory to make the zip file and the base for all listed files. 
+   * @param files List of file paths
+   * @param zipFileName Name for the zip file
+   * @return the zip file of all files to be 
+   * @throws Exception 
    */
-  static List<FilePath> packageFiles(
+  static FilePath packageFiles(
     FilePath directory,
     List<FilePath> files,
     String zipFileName
   ) throws Exception {
-    List<FilePath> zipFiles = new ArrayList<>();
+    //List<FilePath> zipFiles = new ArrayList<>();
+    // TODO simplify
+    // ugly, but since we want to perform the invoke at the file location
     FilePath fileLocation = files.get(0);
     FilePath zipFile = fileLocation.act(new MasterToSlaveFileCallable<FilePath>() {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) {
-        File zipFile = new File(directory + "/" + zipFileName + ".zip");
+        File zipFile = new File(directory + "/" + ZIP_FILE_PREFIX + zipFileName);        
         try {
-          zipFile.createNewFile();
-        } catch (IOException ex) {
-          Logger.getLogger(UtilitiesFile.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        try {
-          FileOutputStream dest = new FileOutputStream(zipFile);
-          ZipOutputStream zipOutputStream = new ZipOutputStream(dest);
-
-          for (FilePath fileToRead : files) {
-            zipOutputStream.putNextEntry(new ZipEntry(fileToRead.getRemote()));
-
-            InputStream input = fileToRead.read();
-
-            byte[] bytes = new byte[1024];
-            int length;
-            while ((length = input.read(bytes)) >= 0) {
-              zipOutputStream.write(bytes, 0, length);
+          if (zipFile.exists()) {
+            if (!zipFile.delete()) {
+              throw new RuntimeException("Could not delete old zip file at file location.");
             }
-
+          }
+          if (!zipFile.createNewFile()) {
+            throw new RuntimeException("Could not create zip file at file location.");
+          }
+          
+          try (
+            FileOutputStream dest = new FileOutputStream(zipFile); 
+            ZipOutputStream zipOutputStream = new ZipOutputStream(dest)
+            ) {
+            
+            for (FilePath fileToRead : files) {
+              zipOutputStream.putNextEntry(
+                new ZipEntry(
+                  // Remove start of path from zip entry name. No point adding the whole path to the
+                  // name of the zip entry
+                  fileToRead.getRemote().substring(
+                    directory.getRemote().length()
+                  )
+                )
+              );
+              
+              InputStream input = fileToRead.read();
+              
+              byte[] bytes = new byte[1024]; // Again an arbitrary number
+              int length;
+              while ((length = input.read(bytes)) >= 0) {
+                zipOutputStream.write(bytes, 0, length);
+              }
+              
+              zipOutputStream.flush();
+            }
             zipOutputStream.flush();
-            zipOutputStream.close();
-            dest.close();
           }
         } catch (IOException | InterruptedException e) {
-          LOGGER.warning("Exception while zipping file. Files will be sent one-by-one.");
+          LOGGER.warning("Exception while zipping file. Files will be sent one-by-one. "
+            + "Exception: " + e.getMessage());
         }
         return new FilePath(zipFile);
       }
     });
-
-    if (zipFile != null && zipFile.exists()) {
-      zipFiles.add(zipFile);
-      return zipFiles;
-    }
-    throw new IOException("Could not package files");
+    return zipFile;
   }
 
   /**
@@ -296,5 +311,17 @@ public final class UtilitiesFile {
       cleanUrl = cleanUrl + "/";
     }
     return cleanUrl;
+  }
+  
+  /**
+   * Returns only the first part of the job name. Currently the job name is composed of the job name
+   * and the number of the build, e.g. "somejob#7". Protecode SC doesn't accept "#" and the number
+   * should not be added
+   * 
+   * @param jobName the jenkins build name to be cleaned for Protecode SC use
+   * @return the first token before #, this is the "normal" job name.
+   */
+  private static String cleanJobName(String jobName) {
+    return new StringTokenizer(jobName, "#").nextToken();
   }
 }

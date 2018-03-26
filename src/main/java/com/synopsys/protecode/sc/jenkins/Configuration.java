@@ -30,4 +30,10 @@ public class Configuration {
    * Connection read/write timeout.
    */
   public static final int TIMEOUT_SECONDS = 5000;
+  
+  /**
+   * Client name to be used in http headers. 
+   */
+  // TODO: Get name with version also. This could be done by using resources.
+  public static final String CLIENT_NAME = "Protecode Jenkins Plugin";
 }

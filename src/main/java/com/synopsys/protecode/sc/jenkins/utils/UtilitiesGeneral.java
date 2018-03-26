@@ -11,10 +11,13 @@
 package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import okhttp3.Headers;
 
 public final class UtilitiesGeneral {
@@ -62,12 +65,14 @@ public final class UtilitiesGeneral {
     return line.replace(" ", "_");
   }
   
-  public static String buildReportString(List<InternalTypes.FileAndResult> results) {    
+  public static String buildReportString(FileResult result) {    
     StringBuilder report = new StringBuilder();
     report.append("--------- Following files have vulnerabilities ---------\n");
-    results.stream().filter((result) -> (!result.verdict())).forEachOrdered((result) -> {
-      report.append(result.getFilename()).append("\n");
-    });
+    for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
+      if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
+        report.append("\t").append(file.getKey());
+      }
+    }
     return report.toString();
   }
 

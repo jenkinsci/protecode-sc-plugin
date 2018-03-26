@@ -61,9 +61,26 @@ public class StreamRequestBody extends RequestBody {
 
   @Override
   public void writeTo(@NonNull BufferedSink sink) {
+    /*
+    * TODO!
+    * If the "unexpected end of stream" problem persists, try:    
+    *    
+      OutputStream output = sink.outputStream();      
+      InputStream input = file.read();
+
+      byte[] bytes = new byte[1024]; // Again an arbitrary number
+      int length;
+      while ((length = input.read(bytes)) >= 0) {
+        output.write(bytes, 0, length);
+      }
+    * 
+    * This is the "dummy" way of doing this, but might help in figuring what happens with really
+    * heavy loads
+    */
+    
     Source source = null;
     // TODO: Study if other amount would be better... This is just a number-out-of-a-hat.
-    long writeAmount = 8192L;  // arbitratry nice number. 
+    long writeAmount = 8192L;  // arbitratry nice number.    
     try {      
       source = Okio.source(file.read());
       while (true) {
@@ -83,6 +100,8 @@ public class StreamRequestBody extends RequestBody {
     } catch (Exception e) {
       LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
     } finally {
+      // TODO: Figure out that does this also close the file for real. According to the "ownership"
+      // of the handle it shouldn't necessarily close it.
       Util.closeQuietly(source);
     }
   }

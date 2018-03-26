@@ -14,10 +14,7 @@ package com.synopsys.protecode.sc.jenkins.types;
 import com.google.gson.annotations.SerializedName;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import lombok.Data;
 
 public final class HttpTypes {
@@ -101,7 +98,13 @@ public final class HttpTypes {
     private Long historical;
   }
   
+  public static @Data class FileData {    
+    private String[] fullpath;  // the item at index 1 is the file name
+  }
+  
   public static @Data class Component {
+    @SerializedName("extended-objects")
+    private FileData[] files;
     private License license;
     private Collection<String> tags;
     private Collection<VulnContext> vulns;
@@ -111,7 +114,20 @@ public final class HttpTypes {
     private VulnCount vulnCount;
     @SerializedName("custom_version")
     private String customVersion;
-    private String subcomponent;
+   //private String subcomponent;
+    
+    /**
+     * Convenience for use when parsing the result.
+     * @return The files including the component
+     */
+    public List<String> getFileNames() {      
+      List<String> names = new ArrayList<>();
+      for (FileData file : files) {
+        // The filename is in the index 1
+        names.add(file.fullpath[1]);
+      }
+      return names;
+    }
   }
   
   public static @Data class VulnContext {
