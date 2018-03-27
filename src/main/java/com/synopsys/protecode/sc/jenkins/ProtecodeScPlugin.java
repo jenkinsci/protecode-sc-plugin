@@ -253,7 +253,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // The optional is already checked.
     sendFile(filesZip.get());
     waitForUploadResponse(log);
-    try {
+    try { // this is already checked
       UtilitiesFile.removeFilePackage(filesZip.get());
     } catch (Exception e) {
       // NOP

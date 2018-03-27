@@ -99,12 +99,12 @@ public final class HttpTypes {
   }
   
   public static @Data class FileData {    
-    private String[] fullpath;  // the item at index 1 is the file name
+    private List<String> fullpath;  // the item at index 1 is the file name
   }
   
   public static @Data class Component {
     @SerializedName("extended-objects")
-    private FileData[] files;
+    private Collection<FileData> files;
     private License license;
     private Collection<String> tags;
     private Collection<VulnContext> vulns;
@@ -124,7 +124,8 @@ public final class HttpTypes {
       List<String> names = new ArrayList<>();
       for (FileData file : files) {
         // The filename is in the index 1
-        names.add(file.fullpath[1]);
+        // TODO: Check that the order is always correct.
+        names.add(file.fullpath.get(1));
       }
       return names;
     }
