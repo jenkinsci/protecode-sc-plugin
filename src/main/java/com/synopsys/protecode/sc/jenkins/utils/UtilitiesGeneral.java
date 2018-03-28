@@ -70,7 +70,7 @@ public final class UtilitiesGeneral {
     report.append("--------- Following files have vulnerabilities ---------\n");
     for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
       if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
-        report.append("\t").append(file.getKey());
+        report.append("\t").append(file.getKey()).append("\n");
       }
     }
     return report.toString();

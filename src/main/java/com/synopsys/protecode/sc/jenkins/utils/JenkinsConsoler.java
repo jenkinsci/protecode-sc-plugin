@@ -16,6 +16,7 @@ import lombok.NonNull;
 
 
 /**
+ * Used to make nice and concise prints to the jenkins build console.
  * Values left to package visibility for testing.
  */
 public class JenkinsConsoler {
