@@ -31,6 +31,4 @@ public @Data class Summary {
   private int untriagedVulnerabilities;
   private int triagedVulnerabilities;
   private String reportUrl;
-
-  
 }

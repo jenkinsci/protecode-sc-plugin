@@ -14,13 +14,12 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.FileAndResult;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.SerializableResult;
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
+import com.synopsys.protecode.sc.jenkins.types.FileResult.SerializableResult;
 import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.*;
-import java.util.List;
 
 /**
  * Provides static methods for reporting and summaries.
@@ -30,23 +29,18 @@ public class ReportBuilder {
   // TODO: This isn't a very nice way of identifying files.
   private static final String PROTECODE_FILE_TAG = "protecodesc";
 
-  /**
-   * Writes a json report for scans of a single build
-   * @param results results received from Protecode SC
-   * @param listener for console printing
-   * @param reportsDirectory where to write the reports
-   * @return true if no errors happened
-   */
   public static boolean report(
-    List<FileAndResult> results,
+    FileResult result,
     TaskListener listener,
-    FilePath reportsDirectory
+    FilePath reportsDirectory,
+    Run <?,?> run
   ) {
     PrintStream log = listener.getLogger();
     ObjectMapper mapper = getObjectMapper();
-    results.forEach((result) -> {
+            
+    result.getSerializableResults(run.getNumber()).forEach((serializableResult) -> {
       try {
-        writeJson(log, mapper, reportsDirectory, result.getSerializableResult());
+        writeJson(log, mapper, reportsDirectory, serializableResult);
       } catch (Exception e) {
         log.println("No results for: " + result.getFilename());
       }
@@ -134,8 +128,11 @@ public class ReportBuilder {
    * @throws IOException thrown for file write/access problems
    * @throws InterruptedException Jenkins interrupts
    */
-  private static void createXmlReport(final FilePath[] jsonFiles, final ObjectMapper mapper,
-    OutputStream writeToStream) throws IOException, InterruptedException {
+  private static void createXmlReport(
+    final FilePath[] jsonFiles, 
+    final ObjectMapper mapper,
+    OutputStream writeToStream    
+  ) throws IOException, InterruptedException {
     // TODO: Evaluate exception handling. 
 
     try (PrintStream out = new PrintStream(writeToStream, false, "UTF-8")) {
@@ -149,9 +146,10 @@ public class ReportBuilder {
           String verdict = readResult.getVerdict();
           String verdict_detailed = readResult.getDetails();
           String fileName = new File(readResult.getFilename()).getName();
+          String buildNumberString = "#" + readResult.getBuildNumber();
           String title = !"".equals(verdict) ? fileName + " (" + verdict + ")" : fileName;
 
-          out.println("<accordion name =\"" + title + "\">");
+          out.println("<accordion name =\"" + title + " " + buildNumberString + "\">");
 
           Color color = untriagedVulns > 0L ? Color.RED : Color.GREEN;
           writeField(out, "Verdict", " " + verdict_detailed, color);

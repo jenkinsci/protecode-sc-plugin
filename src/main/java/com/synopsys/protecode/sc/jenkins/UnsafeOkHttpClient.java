@@ -45,12 +45,7 @@ public class UnsafeOkHttpClient {
       
       OkHttpClient.Builder builder = new OkHttpClient.Builder();
       builder.sslSocketFactory(sslSocketFactory, (X509TrustManager)trustAllCerts[0]);
-      builder.hostnameVerifier(new HostnameVerifier() {
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-          return true;
-        }
-      });
+      builder.hostnameVerifier((String hostname, SSLSession session) -> true);
       
       OkHttpClient okHttpClient = builder.build();
       okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);

@@ -10,8 +10,7 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
-import java.util.List;
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,21 +21,17 @@ public class ProtecodeEvaluator {
   /**
    * Evaluates the results. Any vulnerabilities or errors associated to file scans will cause false
    * to be returned.
-   * @param results All the results for the given scan.
+   * @param result The result for the given scan.
    * @return false if any errors or vulns were found. Otherwise true
    */
-  public static boolean evaluate(
-    List<InternalTypes.FileAndResult> results
-  ) {
+  public static boolean evaluate(FileResult result) {
     LOGGER.log(Level.FINER, "Evaluating scan results");
-    return !results.stream().anyMatch((fileAndResult) -> {
-      if (!fileAndResult.hasError()) {
-        LOGGER.log(Level.FINER, fileAndResult.getFilename() + "has result: " + fileAndResult.verdict());
-        return !fileAndResult.verdict();
-      } else {
-        LOGGER.log(Level.FINER, fileAndResult.getFilename() + "has error: " + fileAndResult.getError());
-        return false;
-      }
-    });
+    if (!result.hasError()) {
+      LOGGER.log(Level.FINER, result.getFilename() + "has result: " + result.verdict());
+      return result.verdict();
+    } else {
+      LOGGER.log(Level.FINER, result.getFilename() + "has error: " + result.getError());
+      return false;
+    }
   }
 }

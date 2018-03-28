@@ -13,6 +13,7 @@ package com.synopsys.protecode.sc.jenkins.types;
 
 import com.synopsys.protecode.sc.jenkins.exceptions.MalformedSha1SumException;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Getter;
 
@@ -35,7 +36,7 @@ public class Sha1Sum {
     if (sum.length() == 40) {
       sha1Sum = sum;
     } else {
-      LOGGER.warning("Attempted to build a sha1sum with incorrect length. Throwing exception.");
+      LOGGER.log(Level.SEVERE, "Attempted to build a sha1sum with incorrect length. Throwing exception.");
       throw new MalformedSha1SumException("Incorrect length of sha1sum, "
         + "must be 40 bytes long");
     }

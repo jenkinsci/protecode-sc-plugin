@@ -10,7 +10,6 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ErrorService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.GroupService;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
