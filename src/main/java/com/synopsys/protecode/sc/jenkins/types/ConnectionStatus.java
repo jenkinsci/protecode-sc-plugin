@@ -27,7 +27,7 @@ public @Data class ConnectionStatus {
   private Optional<String> error = Optional.empty();
 
   public ConnectionStatus(Response response) {
-    LOGGER.log(Level.FINEST, "Connection status: {0}", response.toString());
+    LOGGER.log(Level.FINE, "Connection status: {0}", response.toString());
     this.response = response;
     if (!response.isSuccessful()) {
       try {

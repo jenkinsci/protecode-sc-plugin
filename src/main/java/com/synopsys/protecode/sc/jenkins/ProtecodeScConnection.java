@@ -110,7 +110,7 @@ public class ProtecodeScConnection {
   
   private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {
     if (checkCertificate) {
-      LOGGER.info("Using safe client");
+      LOGGER.log(Level.INFO, "Checking certificates");
       ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
         .tlsVersions(TlsVersion.TLS_1_2)
         .cipherSuites(
@@ -121,7 +121,7 @@ public class ProtecodeScConnection {
         .build();
       return new OkHttpClient.Builder().connectionSpecs(Collections.singletonList(spec));
     } else {
-      LOGGER.info("Using UNSAFE client");
+      LOGGER.log(Level.INFO, "NOT checking certificates");
       return UnsafeOkHttpClient.getUnsafeOkHttpClient().newBuilder();
     }
   }

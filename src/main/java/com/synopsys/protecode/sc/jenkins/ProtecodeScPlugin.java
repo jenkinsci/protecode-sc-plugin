@@ -256,7 +256,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     try { // this is already checked
       UtilitiesFile.removeFilePackage(filesZip.get());
     } catch (Exception e) {
-      // NOP
+      LOGGER.log(Level.FINE, "Error while deleting zip");
     }
     log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
 

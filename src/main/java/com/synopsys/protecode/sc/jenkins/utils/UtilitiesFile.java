@@ -263,7 +263,7 @@ public final class UtilitiesFile {
       public Boolean invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
         // mkdirs might be able to create some of the parent dirs, so the return
         if (!f.mkdirs()) {
-          LOGGER.warning("Remote directory could not be created.");
+          LOGGER.log(Level.WARNING, "Remote directory could not be created.");
           return true;
         } else {
           return false;

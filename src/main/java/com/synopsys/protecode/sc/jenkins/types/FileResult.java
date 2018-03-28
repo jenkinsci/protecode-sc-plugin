@@ -66,7 +66,7 @@ public @Data class FileResult {
               if (triaged) {
                 vulnStatus.addTriagedVuln(vulnContext.getVuln());
               } else {
-                LOGGER.warning("Found vuln with triages, but no matching cve!");
+                LOGGER.log(Level.WARNING, "Found vuln with triages, but no matching cve!");
               }
             }
           } else {
