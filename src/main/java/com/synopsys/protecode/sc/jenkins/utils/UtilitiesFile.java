@@ -65,9 +65,9 @@ public final class UtilitiesFile {
    * @return List of FilePaths produced as artifacts
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
-  public static List<FilePath> getArtifacts(Run<?, ?> run) {
-    return getArtifacts(run, ALL_FILES_PATTERN);
-  }
+  //public static List<FilePath> getArtifacts(Run<?, ?> run) {
+  //  return getArtifacts(run, ALL_FILES_PATTERN);
+  //}
 
   /**
    * Returns any produced artifacts for the build.
@@ -78,7 +78,7 @@ public final class UtilitiesFile {
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
   public static List<FilePath> getArtifacts(Run<?, ?> run, Pattern pattern) {
-    List<FilePath> files = new ArrayList<>();
+    List<FilePath> files = new ArrayList<>();    
     List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
     for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
       files.add(new FilePath(buildArtifact.getFile()));
@@ -92,13 +92,13 @@ public final class UtilitiesFile {
    * @param fileDirectory Name of the directory to parse through for files
    * @param workspace The workspace to look for files in
    * @param includeSubdirectories If true the method returns all files from the directory structure.
-   * @param pattern Regexp to include only certain files. If all is required use
+   * @param pattern Regex to include only certain files. If all is required use
    * UtilitiesFile.ALL_FILES_PATTERN
    * @param run Jenkins build run instance
    * @param listener Jenkins console
    * @return list of files
    */
-  public static Optional<FilePath> getFiles(
+  public static List<FilePath> getFiles(
     String fileDirectory,
     FilePath workspace,
     boolean includeSubdirectories,
@@ -106,21 +106,31 @@ public final class UtilitiesFile {
     Run<?, ?> run,
     TaskListener listener
   ) {
-    try {
-      FilePath directory = workspace.child(cleanUrl(fileDirectory));
-      PrintStream log = listener.getLogger();
+    List<FilePath> files = new ArrayList<>();
+    List<FilePath> fetchedFiles = new ArrayList<>();
+    PrintStream log = listener.getLogger();
+    try {      
+      FilePath directory = workspace.child(cleanUrl(fileDirectory));      
       log.println("Looking for files in directory: " + directory);
 
-      return Optional.of(
-        packageFiles(
-          directory, 
-          getFiles(directory, includeSubdirectories, pattern, log),
-          cleanJobName(run.getExternalizableId())
-        )
-      );
-    } catch (Exception e) {}
-    listener.error("Error while reading files from: " + fileDirectory);
-    return Optional.empty();
+      fetchedFiles = getFiles(directory, includeSubdirectories, pattern, log);
+      LOGGER.warning("fetched files size: " + fetchedFiles.size());
+      if (fetchedFiles.size() > 9) {        
+        files.add(
+          packageFiles(
+            workspace,             
+            fetchedFiles,
+            cleanJobName(run.getExternalizableId())
+          )
+        );
+      } else {
+        files = fetchedFiles;
+      }
+    } catch (Exception e) {
+      listener.error("Could not zip files, sending files one-by-one.");
+      files = fetchedFiles;
+    }
+    return files;
   }
 
   /**
@@ -134,7 +144,7 @@ public final class UtilitiesFile {
   private static List<FilePath> getFiles(
     FilePath directoryToSearch,
     boolean includeSubdirectories,
-    Pattern pattern,
+    Pattern pattern,    
     PrintStream log
   ) {
     List<FilePath> filesInFolder = new ArrayList<>();
@@ -168,9 +178,9 @@ public final class UtilitiesFile {
    * @param files List of file paths
    * @param zipFileName Name for the zip file
    * @return the zip file of all files to be 
-   * @throws Exception 
+   * @throws IOException thrown when adding files to zip fails 
    */
-  static FilePath packageFiles(
+  public static FilePath packageFiles(
     FilePath directory,
     List<FilePath> files,
     String zipFileName
@@ -182,7 +192,8 @@ public final class UtilitiesFile {
     FilePath zipFile = fileLocation.act(new MasterToSlaveFileCallable<FilePath>() {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) {
-        File zipFile = new File(directory + "/" + ZIP_FILE_PREFIX + zipFileName);        
+        File zipFile = new File(directory + "/" + ZIP_FILE_PREFIX + zipFileName);
+        LOGGER.finer("Created zip: " + zipFile.getAbsolutePath());
         try {
           if (zipFile.exists()) {
             if (!zipFile.delete()) {
@@ -250,8 +261,8 @@ public final class UtilitiesFile {
    * @param listener The build listener for logging information and possible errors to build
    * console.
    * @return true if creating the directing was successful.
-   * @throws java.io.IOException
-   * @throws java.lang.InterruptedException
+   * @throws java.io.IOException thrown when cannot read location/create zip into it
+   * @throws java.lang.InterruptedException on interrupt (perhaps build cancellation etc)
    */
   public static boolean createRemoteDirectory(
     String name,

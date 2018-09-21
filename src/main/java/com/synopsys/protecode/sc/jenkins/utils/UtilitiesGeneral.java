@@ -65,12 +65,14 @@ public final class UtilitiesGeneral {
     return line.replace(" ", "_");
   }
   
-  public static String buildReportString(FileResult result) {    
+  public static String buildReportString(List<FileResult> results) {    
     StringBuilder report = new StringBuilder();
     report.append("--------- Following files have vulnerabilities ---------\n");
-    for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
-      if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
-        report.append("\t").append(file.getKey()).append("\n");
+    for(FileResult result : results) {
+      for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
+        if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
+          report.append("\t").append(file.getKey()).append("\n");
+        }
       }
     }
     return report.toString();

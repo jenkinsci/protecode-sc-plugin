@@ -9,9 +9,9 @@
     <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
         <f:checkbox default="${descriptor.defaultFailIfVulns}" />
     </f:entry>
-    <!--<f:entry title="Scan all produced artifacts" field="scanAllArtifacts">
+    <f:entry title="Scan only produced artifacts" field="scanOnlyArtifacts">
         <f:checkbox/>
-    </f:entry>-->
+    </f:entry>
     <f:entry title="Directory to scan" field="directoryToScan">
         <f:textbox />
     </f:entry>
@@ -24,9 +24,6 @@
     <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
         <f:textbox default="${descriptor.defaultTimeout}" />
     </f:entry>
-    <!--<f:entry title="Keep copied artifacts after build" field="leaveArtifacts">
-        <f:checkbox/>
-    </f:entry>-->
     <f:entry title="Convert results to Summary plugin format" field="convertToSummary">
         <f:checkbox />
     </f:entry>

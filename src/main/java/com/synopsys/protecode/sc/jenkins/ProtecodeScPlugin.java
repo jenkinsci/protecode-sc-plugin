@@ -15,13 +15,9 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes.ScanResultResponse;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes.UploadResponse;
+import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
-import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
+import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
 import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
@@ -41,8 +37,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
@@ -51,7 +45,6 @@ import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
-import okhttp3.MediaType;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.*;
 
@@ -66,8 +59,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private String credentialsId;
   private String protecodeScGroup; // TODO: Group can be an integer
   private String directoryToScan;
+  private String protecodeScanName;
   private boolean includeSubdirectories;
-  private String pattern; // Be carefull with this. 
+  private String pattern; // Be carefull with this.
+  /** Will cause the plugin to use a Jenkins service to fetch only artifacts from the specified directory */
+  private boolean scanOnlyArtifacts;
   private boolean convertToSummary;
   private boolean failIfVulns;
   private int scanTimeout;
@@ -84,16 +80,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private static URL storedHost = null;
   private static boolean storedDontCheckCertificate = true;
 
-  // Used in the scan process
-  private FileResult result;
-
   // used for printing to the jenkins console
   private PrintStream log = null;
   private TaskListener listener = null;
 
   public static final String NO_ERROR = ""; // TODO: Use Optional
-
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
+  private JenkinsConsoler console;
 
   @DataBoundConstructor
   public ProtecodeScPlugin(
@@ -103,8 +96,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.credentialsId = credentialsId;
     this.protecodeScGroup = protecodeScGroup;
     this.includeSubdirectories = false;
+    this.scanOnlyArtifacts = false;
     this.directoryToScan = "";
     this.pattern = "";
+    this.protecodeScanName = "";
     this.convertToSummary = false;
     this.failIfVulns = true;
     this.scanTimeout = 10;
@@ -118,6 +113,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
    * @return a ProtecodeScPlugin object with values which might be null.
    */
   public Object readResolve() {
+    LOGGER.finer("readResolve: Initializing plugin object.");
     // Pattern
     if (pattern == null) {
       pattern = UtilitiesFile.ALL_FILES_REGEX_STRING;
@@ -127,7 +123,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (filesToScanDirectory != null && directoryToScan == null) {
       this.directoryToScan = this.filesToScanDirectory;
     }
+    
+    if (this.protecodeScanName == null) {
+      this.protecodeScanName = "";
+    }
 
+    results = new ArrayList<>();    
     return this;
   }
 
@@ -138,10 +139,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     getDescriptor().load();
 
     try {
-      if (service == null
+      if (service == null        
         // We need to check whether we need a new instance of the backend.
         || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
-        || getDescriptor().isDontCheckCert() != storedDontCheckCertificate) {
+        || getDescriptor().isDontCheckCert() != storedDontCheckCertificate
+      ) {
+        LOGGER.finer("Making new protecode http connection service");
         storedHost = new URL(getDescriptor().getProtecodeScHost());
         storedDontCheckCertificate = getDescriptor().isDontCheckCert();
 
@@ -151,7 +154,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
           !getDescriptor().isDontCheckCert()
         );
       }
-    } catch (Exception e) {
+    } catch (MalformedURLException e) {
+      LOGGER.warning("Making build without providing ");
       listener.error("Cannot read Protecode SC URL, please make sure it has been set in the Jenkins"
         + " configuration page.");
       // TODO: Add prebuild
@@ -159,24 +163,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     return service;
   }
 
-  // TODO: Use and add support for build status and pipelines.
-//  @Override
-//  public boolean prebuild(AbstractBuild<?, ?> build, BuildListener listener) {
-//    if (getDescriptor().getProtecodeScHost() == null) {
-//      listener.error(
-//        "Protecode SC host not defined. Please configure it in the global plugin properties"
-//      );
-//      return false;
-//    }
-//
-//    return true;
-//  }
-  
   @Override
   public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener)
     throws InterruptedException, IOException {
     // TODO add try - catch (Interrupted) to call abort scan in protecode sc (remember to throw the
     // same exception upward)
+    LOGGER.finer("Perform() with run object");
     this.listener = listener;
     doPerform(run, workspace);
   }
@@ -186,16 +178,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     BuildListener listener) throws InterruptedException, IOException {
     // TODO add try - catch (Interrupted) to call abort scan in protecode sc (remember to throw the
     // same exception upward)
+    LOGGER.finer("Perform() with build object");
     this.listener = listener;
     return doPerform(build, build.getWorkspace());
   }
-
-  // TODO: Mother of all too-much-doing methods. Find a way to make this better. really.
+  
   public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException {
-    // TODO: Do not throw IOException
+    
     log = listener.getLogger();
-    log.println("/---------- Protecode SC plugin start ----------/");  
+    console = new JenkinsConsoler(listener);
+    console.start(failIfVulns, includeSubdirectories);    
     
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
@@ -205,72 +198,37 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
 
-    // TODO: Fix connection test. Eventually write an interceptor
-//    if (!UtilitiesGeneral.connectionOk(service.connectionOk())) {
-//      listener.fatalError("Problem with connecting to Protecode SC, exiting");
-//      return false;
-//    }
-    // TODO: Make a nice structured printing of build variables and other information to the 
-    // console. Right now all printing is distributed everyhere and it causes confusion.
-    // See utils.JenkinsConsoler
-    if (failIfVulns) {
-      log.println("The build will fail if any vulnurabilities are found.");
-    } else {
-      log.println("The build will NOT fail if vulnurabilities are found.");
-    }
-
-    result = null;
-
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     String checkedDirectoryToScan = (null != getDirectoryToScan()) ? getDirectoryToScan() : "";
 
-    if (includeSubdirectories) {
-      log.println("Including subdirectories");
-    }
-
-    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    Optional<FilePath> filesZip = UtilitiesFile.getFiles(
-      checkedDirectoryToScan,
-      workspace,
-      includeSubdirectories,
-      UtilitiesFile.patternOrAll(pattern),
+    /**
+     * String protecodeScGroup,
+    ProtecodeScService serv,     
+    Run<?, ?> run, 
+    int scanTimeout,
+    FilePath workspace, 
+    TaskListener listener,
+    String directoryToScan,
+    boolean scanOnlyArtifacts,
+    boolean includeSubdirectories,
+    String pattern,
+    String protecodeScanName
+     */
+    Scanner scanner = new Scanner(
+      serv,
       run,
-      listener
+      scanTimeout,
+      workspace,
+      listener,
+      directoryToScan,
+      scanOnlyArtifacts,
+      includeSubdirectories,
+      pattern,
+      protecodeScanName
     );
-
-    // TODO: Make a concentrated way of failing gracefully with a reason.
-    if (!filesZip.isPresent()) {
-      // no files to scan, no failure
-      listener.error("Error while fetching files. Perhaps there were none.");
-      return false;
-    }
-
-    long start = System.currentTimeMillis();
     
-    // TODO: Combine checking optional to using it
-    // TODO: Perhaps this could be changed since we now zip all files.
-    log.println("Upload began at " + UtilitiesGeneral.timestamp() + ".");
-    // The optional is already checked.
-    sendFile(filesZip.get());
-    waitForUploadResponse(log);
-    try { // this is already checked
-      UtilitiesFile.removeFilePackage(filesZip.get());
-    } catch (Exception e) {
-      LOGGER.log(Level.FINE, "Error while deleting zip");
-    }
-    log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
-
-    long time = (System.currentTimeMillis() - start) / 1000;
-    LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);
-
-    // start polling for reponses to scans
-    if (!poll(run)) {
-      // maybe we were interrupted or something failed, ending phase
-      return false;
-    }    
-
     // make results
-    ReportBuilder.report(result, listener, UtilitiesFile.reportsDirectory(run), run);
+    ReportBuilder.report(results, listener, UtilitiesFile.reportsDirectory(run), run);
 
     // summarise
     if (convertToSummary) {
@@ -279,18 +237,18 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     //evaluate, if verdict is false, there are vulns
-    boolean verdict = ProtecodeEvaluator.evaluate(result);    
+    BuildVerdict verdict = ProtecodeEvaluator.evaluate(results);    
     boolean buildStatus = false;
     
     if (failIfVulns) {
-      if (!verdict) {
-        log.println(UtilitiesGeneral.buildReportString(result));
+      if (!verdict.getVerdict()) {
+        log.println(UtilitiesGeneral.buildReportString(results));
         listener.fatalError("Vulnerabilities found. Failing build.");
         run.setResult(Result.FAILURE);
       }
       buildStatus = verdict;
     } else {
-      if (!verdict) {
+      if (!verdict.getVerdict()) {
         log.println("Vulnerabilities found! Not failing build due to configuration.");
       } else {
         log.println("NO vulnerabilities found.");
@@ -301,168 +259,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     log.println("/---------- Protecode SC plugin end -----------/");
     // TODO: Use perhaps unstable also
     return buildStatus;
-  }
-
-  /**
-   * Called by the lamdas given to upload rest calls
-   *
-   * @param response The responses fetched from Protecode SC
-   */
-  private void addUploadResponse(PrintStream log, String name, UploadResponse response, String error) {
-    // TODO: get rid of log
-    // TODO: compare the sha1sum and send again if incorrect
-    if (NO_ERROR.equals(error)) {
-      result = new FileResult(name, response);
-    } else {
-      // TODO, if en error which will stop the build from happening we should stop the build.     
-      result = new FileResult(name, error);
-    }
-  }
-
-  private void sendFile(FilePath file) throws IOException, InterruptedException {
-    LOGGER.log(Level.FINE, "Sending file: {0}", file.getRemote());
-    service().scan(
-      protecodeScGroup,
-      file.getName(),
-      new StreamRequestBody(
-        MediaType.parse("application/octet-stream"),
-        file
-      ),
-      new ScanService() {
-        @Override
-        public void processUploadResult(UploadResponse result) {
-          addUploadResponse(log, file.getRemote(), result, NO_ERROR);
-        }
-
-        @Override
-        public void setError(String reason) {
-          // TODO: use Optional
-          log.println(reason);
-          // TODO: Maybe use listener.error to stop writing for more results if we get error 
-          // perhaps?
-          addUploadResponse(log, file.getRemote(), null, reason);
-        }
-      }
-    );
-  }
-  
-  /**
-   * TODO clean up depth, move logic to other methods. This is staggeringly awful.
-   *
-   * @param listener
-   */
-  private boolean poll(Run<?, ?> run) {
-    if (result.hasError()) {
-      log.println("No results found. Perhaps upload was not succesfull.");
-      return false;
-    }
-    // TODO: Make better timeout, which encapsulates the whole step
-    long endAt = System.currentTimeMillis() + ((long)this.scanTimeout * 60L * 1000L);
-    // use shortened word to distinguish from possibly null service    
-    ProtecodeScService serv = service();
-    log.println("Fetching results from Protecode SC");
-    do {
-      if (System.currentTimeMillis() > endAt) {
-        listener.error("Timeout while fetching files");
-        run.setResult(Result.FAILURE);
-        return false;
-      }      
-      if (!result.hasError()) { // if we got an error from file upload        
-        // TODO: Add check if the result was never reached
-        if (!result.hasScanResponse()) {  // if this return true, we can ignore the fileAndResult
-          if (result.uploadHTTPStatus() == 200) {
-            if ("R".equals(result.getState())) {
-              if (!result.isResultBeingFetched()) {
-                result.setResultBeingFetched(true);
-                serv.scanResult(
-                  result.getUploadResponse().getResults().getSha1sum(),
-                  new ResultService() {
-                  @Override
-                  public void setScanResult(ScanResultResponse scanResult) {
-                    log.println("Received a result for file: " + result.getFilename());
-                    result.setResultResponse(scanResult);
-                  }
-
-                  @Override
-                  public void setError(String reason) {
-                    log.println("Received Protecode SC scan result ERROR for file: " + result.getFilename());
-                    result.setError(reason);
-                  }
-                }
-                );
-              }
-            } else {
-              serv.poll(
-                // TODO: Use pretty annotation in type "product_id"
-                result.getUploadResponse().getResults().getProduct_id(),
-                new PollService() {
-                @Override
-                public void setScanStatus(UploadResponse status) {
-                  result.setUploadResponse(status);
-                }
-
-                @Override
-                public void setError(String reason) {
-                  log.println("scan status ERROR: " + result.getFilename() + ": " + result.getState() + ": " + reason);
-                  result.setError(reason);
-                }
-              }
-              );
-            }
-          } else {
-            listener.error("Status code for file upload: '" + result.getFilename()
-              + "' was " + result.uploadHTTPStatus() + ". No results to fetch.");
-          }
-        }
-      }
-      try {
-        Thread.sleep(500); // we don't want to overload the network with bulk requests
-      } catch (InterruptedException ex) {
-        // Do nothing. Maybe the build has been canceled.
-      }
-
-
-      if (allNotReady()) {
-        try {
-          Thread.sleep(15 * 1000);
-        } catch (InterruptedException e) {
-          return false;
-        }
-      }
-    } while (allNotReady());
-    log.println("Received all results from Protecode SC");
-    return true;
-  }
-
-  /**
-   * Simple check to determine does every scan have a result or an erro
-   * @return true if all results have been fetched
-   */
-  private boolean allNotReady() {
-    return !result.hasScanResponse();
-  }
-
-  /**
-   * Waits until all upload results are in. Returns only then.
-   *
-   * @param fileCount How many files were uploaded
-   * @param log for printing to Jenkins build console.
-   */
-  private void waitForUploadResponse(PrintStream log) {
-    boolean waitForResponses = true;
-    // TODO: Add timeout since some files get no reponse from protecode
-    while (waitForResponses) {
-      try {
-        Thread.sleep(30 * 1000);
-        // TODO: remove print after testing
-        if (result != null) {
-          waitForResponses = false;
-        }
-      } catch (InterruptedException ie) {
-        waitForResponses = false;
-        log.println("Interrupted while waiting for upload responses from Protecode SC");
-      }
-    }
   }
 
   @Override
@@ -627,6 +423,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public void setScanTimeout(int scanTimeout) {
     this.scanTimeout = scanTimeout;
   }
+  
+  @DataBoundSetter
+  public void setScanOnlyArtifacts(boolean onlyArtifacts) {
+    this.scanOnlyArtifacts = onlyArtifacts;
+  }
 
   @CheckForNull
   public boolean getConvertToSummary() {
@@ -666,5 +467,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @CheckForNull
   public int getScanTimeout() {
     return scanTimeout;
+  }
+  
+  @CheckForNull
+  public boolean getScanOnlyArtifacts() {
+    return scanOnlyArtifacts;
   }
 }

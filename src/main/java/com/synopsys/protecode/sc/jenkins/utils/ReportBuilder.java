@@ -20,6 +20,7 @@ import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.*;
+import java.util.List;
 
 /**
  * Provides static methods for reporting and summaries.
@@ -30,20 +31,22 @@ public class ReportBuilder {
   private static final String PROTECODE_FILE_TAG = "protecodesc";
 
   public static boolean report(
-    FileResult result,
+    List<FileResult> results,
     TaskListener listener,
     FilePath reportsDirectory,
     Run <?,?> run
   ) {
     PrintStream log = listener.getLogger();
     ObjectMapper mapper = getObjectMapper();
-            
-    result.getSerializableResults(run.getNumber()).forEach((serializableResult) -> {
-      try {
-        writeJson(log, mapper, reportsDirectory, serializableResult);
-      } catch (Exception e) {
-        log.println("No results for: " + result.getFilename());
-      }
+        
+    results.forEach((result) -> {
+      result.getSerializableResults(run.getNumber()).forEach((serializableResult) -> {
+        try {
+          writeJson(log, mapper, reportsDirectory, serializableResult);
+        } catch (Exception e) {
+          log.println("No results for: " + result.getFilename());
+        }
+      });
     });
 
     return true;

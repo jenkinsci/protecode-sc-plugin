@@ -114,7 +114,7 @@ public @Data class FileResult {
     return vulns;
   }
 
-  public boolean hasError() {
+  public boolean errorIsSet() {
     return error != null;
   }
 
@@ -142,14 +142,14 @@ public @Data class FileResult {
    * @return True if the scan result or error has been fetched.
    */
   public boolean hasScanResponse() {
-    return resultResponse != null || hasError();
+    return resultResponse != null || errorIsSet();
   }
 
   /**
    * @return True if component does not have an error, and has no vulns.
    */
   public boolean verdict() {
-    return !hasUntriagedVulns() && !hasError();
+    return !hasUntriagedVulns() && !errorIsSet();
   }
 
   public List<SerializableResult> getSerializableResults(int buildNumber) {
