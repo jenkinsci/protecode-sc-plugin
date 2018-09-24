@@ -21,6 +21,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.*;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Provides static methods for reporting and summaries.
@@ -29,6 +30,7 @@ public class ReportBuilder {
 
   // TODO: This isn't a very nice way of identifying files.
   private static final String PROTECODE_FILE_TAG = "protecodesc";
+  private static final Logger LOGGER = Logger.getLogger(ReportBuilder.class.getName());
 
   public static boolean report(
     List<FileResult> results,
@@ -38,10 +40,12 @@ public class ReportBuilder {
   ) {
     PrintStream log = listener.getLogger();
     ObjectMapper mapper = getObjectMapper();
-        
+    LOGGER.warning("Making results");
     results.forEach((result) -> {
+      LOGGER.warning("Reporting: " + result.getFilename());
       result.getSerializableResults(run.getNumber()).forEach((serializableResult) -> {
         try {
+          LOGGER.warning("Reporting - later: " + serializableResult.getFilename());
           writeJson(log, mapper, reportsDirectory, serializableResult);
         } catch (Exception e) {
           log.println("No results for: " + result.getFilename());
@@ -71,6 +75,8 @@ public class ReportBuilder {
       + ".json"
     );
 
+    LOGGER.warning("writing json to: " + jsonFile.getAbsoluteFile());
+    
     try (OutputStream out = new FileOutputStream(jsonFile)) {
       mapper.writeValue(out, result);
     } catch (Exception e) {

@@ -11,6 +11,7 @@
 package com.synopsys.protecode.sc.jenkins.interfaces;
 
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import java.util.Map;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.http.*;
@@ -23,6 +24,11 @@ public interface ProtecodeScApi {
     @Header("Group") String groupName,
     @Path("filename") String filename,
     @Body RequestBody bytes
+  );
+  
+  @POST("/api/fetch/")
+  public Call<HttpTypes.UploadResponse> scanFetchFromUrl(
+    @HeaderMap Map<String, String> headers
   );
   
   @GET("/api/product/{id}/")

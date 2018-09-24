@@ -48,10 +48,10 @@ public class JenkinsConsoler {
    * @param failIfVulns info to print
    * @param includeSubdirectories info to print
    */
-  public void start(boolean failIfVulns, boolean includeSubdirectories) {
-    log("Protecode SC plugin start");
+  public void start(boolean failIfVulns, boolean includeSubdirectories, String group) {
+    log("Protecode SC plugin start. Uploading to group " + group);
     if (failIfVulns) {
-      log("The build will fail if any vulnurabilities are found.");
+      log("The build will fail if any untriaged vulnurabilities are found.");
     } else {
       log("The build will NOT fail if vulnurabilities are found.");
     }

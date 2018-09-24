@@ -23,6 +23,10 @@ public final class HttpTypes {
   private HttpTypes(){
   }
   
+  /**
+   * Response for the call to /api/fetch
+   * Response for the call to /api/upload/FILENAME
+   */
   public static @Data class UploadResponse {
     private Meta meta;
     private ScanState results;
@@ -34,6 +38,7 @@ public final class HttpTypes {
     /** Can be R(eady) B(usy) F(ailed) */
     private String status;
     private int product_id;
+    private String fileName;
   }
   
   public static @Data class ScanResultResponse {

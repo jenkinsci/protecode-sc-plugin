@@ -14,6 +14,8 @@ import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -88,5 +90,14 @@ public final class UtilitiesGeneral {
     Date now = new Date();
     String strDate = sdfDate.format(now);
     return strDate;
+  }
+  
+  public static boolean isUrl(String possibleUrl) {
+    try {
+      URL url = new URL(possibleUrl);
+      return true;
+    } catch(MalformedURLException e) {
+      return false;
+    }
   }
 }

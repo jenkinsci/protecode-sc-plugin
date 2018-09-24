@@ -78,7 +78,7 @@ public final class UtilitiesFile {
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
   public static List<FilePath> getArtifacts(Run<?, ?> run, Pattern pattern) {
-    List<FilePath> files = new ArrayList<>();    
+    List<FilePath> files = new ArrayList<>();
     List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
     for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
       files.add(new FilePath(buildArtifact.getFile()));
@@ -114,7 +114,7 @@ public final class UtilitiesFile {
       log.println("Looking for files in directory: " + directory);
 
       fetchedFiles = getFiles(directory, includeSubdirectories, pattern, log);
-      LOGGER.warning("fetched files size: " + fetchedFiles.size());
+      LOGGER.info("fetched files size: " + fetchedFiles.size());
       if (fetchedFiles.size() > 9) {        
         files.add(
           packageFiles(
@@ -144,10 +144,10 @@ public final class UtilitiesFile {
   private static List<FilePath> getFiles(
     FilePath directoryToSearch,
     boolean includeSubdirectories,
-    Pattern pattern,    
+    Pattern pattern,
     PrintStream log
   ) {
-    List<FilePath> filesInFolder = new ArrayList<>();
+    List<FilePath> filesInDirectory = new ArrayList<>();
     try {
       directoryToSearch.list().forEach((FilePath file) -> {
         try {
@@ -155,10 +155,10 @@ public final class UtilitiesFile {
             // TODO Use ANT syntax
             if (pattern.matcher(file.getName()).matches()) {
               // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)              
-              filesInFolder.add(file);
+              filesInDirectory.add(file);
             }
           } else if (includeSubdirectories) {
-            filesInFolder.addAll(getFiles(file, includeSubdirectories, pattern, log));
+            filesInDirectory.addAll(getFiles(file, includeSubdirectories, pattern, log));
           }
         } catch (IOException | InterruptedException e) {
           // just ignore, DO NOT throw upwards
@@ -168,7 +168,7 @@ public final class UtilitiesFile {
       // maybe the directory doesn't exist.
       log.print("Error while reading folder: " + directoryToSearch.getName());
     }
-    return filesInFolder;
+    return filesInDirectory;
   }
 
   /**
@@ -190,7 +190,7 @@ public final class UtilitiesFile {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) {
         File zipFile = new File(workspace + "/" + ZIP_FILE_PREFIX + zipFileName);
-        LOGGER.finer("Created zip: " + zipFile.getAbsolutePath());
+        LOGGER.info("Created zip: " + zipFile.getAbsolutePath());
         try {
           if (zipFile.exists()) {
             if (!zipFile.delete()) {

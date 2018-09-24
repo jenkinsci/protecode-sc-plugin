@@ -10,18 +10,19 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-import com.synopsys.protecode.sc.jenkins.exceptions.NoFilesFoundException;
 import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
 import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
+
+import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+
 import hudson.Extension;
 import hudson.ExtensionPoint;
 import hudson.FilePath;
@@ -32,22 +33,27 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.*;
+import jenkins.tasks.SimpleBuildStep;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
-import jenkins.tasks.SimpleBuildStep;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.*;
 
 /**
  * TODO: There are much too many variables stored on the object level. Maybe we could perhaps store
@@ -61,6 +67,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private String protecodeScGroup; // TODO: Group can be an integer
   private String directoryToScan;
   private String protecodeScanName;
+  private String customHeader;
   private boolean includeSubdirectories;
   private String pattern; // Be carefull with this.
   /** Will cause the plugin to use a Jenkins service to fetch only artifacts from the specified directory */
@@ -99,6 +106,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.includeSubdirectories = false;
     this.scanOnlyArtifacts = false;
     this.directoryToScan = "";
+    this.customHeader = "";
     this.pattern = "";
     this.protecodeScanName = "";
     this.convertToSummary = false;
@@ -124,7 +132,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (filesToScanDirectory != null && directoryToScan == null) {
       this.directoryToScan = this.filesToScanDirectory;
     }
-    
+	
+    // customHeader
+    if (customHeader == null) {
+      customHeader = "";
+    }
+	
     if (this.protecodeScanName == null) {
       this.protecodeScanName = "";
     }
@@ -188,7 +201,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);
-    console.start(failIfVulns, includeSubdirectories);   
+    console.start(failIfVulns, includeSubdirectories, protecodeScGroup);   
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
       
     
@@ -215,7 +228,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     boolean scanOnlyArtifacts,
     boolean includeSubdirectories,
     String pattern,
-    String protecodeScanName
+    String protecodeScanName,
+    customHeader
      */
     Scanner scanner = new Scanner(
       verdict,
@@ -229,7 +243,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       scanOnlyArtifacts,
       includeSubdirectories,
       pattern,
-      protecodeScanName
+      protecodeScanName,
+      customHeader,
+      console
     );
     
     // Get/scan the files
@@ -375,6 +391,19 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       }
     }
 
+    public FormValidation doCheckCustomHeader(@QueryParameter String customHeader) {
+      try {
+        if (customHeader == null || "".equals(customHeader)) {
+          return FormValidation.ok();
+        }
+        ObjectReader reader = new ObjectMapper().readerFor(Map.class);
+        Map<String, String> map = reader.readValue(customHeader);
+        return FormValidation.ok();
+      } catch (Exception e) {
+        return FormValidation.error("Please provide a key-value list in JSON format.");
+      }
+    }
+
     public FormValidation doCheckDirectoryToScan(@QueryParameter String directoryToScan) {
       // TODO: Make this work with empty string also... Currently börken
 //      if (directoryToScan.matches(".*[^w$ -.y].*")) {
@@ -450,6 +479,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.scanOnlyArtifacts = onlyArtifacts;
   }
 
+  @DataBoundSetter
+  public void setCustomHeader(String customHeader) {
+    this.customHeader = customHeader;
+  }
+
   @CheckForNull
   public boolean getConvertToSummary() {
     return convertToSummary;
@@ -493,5 +527,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @CheckForNull
   public boolean getScanOnlyArtifacts() {
     return scanOnlyArtifacts;
+  }
+  
+  @CheckForNull
+  public String getCustomHeader() {
+    return customHeader;
   }
 }

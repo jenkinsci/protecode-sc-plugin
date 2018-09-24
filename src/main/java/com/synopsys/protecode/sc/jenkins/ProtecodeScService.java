@@ -22,6 +22,7 @@ import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
 import java.util.logging.Logger;
 import lombok.Data;
 import okhttp3.RequestBody;
@@ -74,6 +75,45 @@ public @Data class ProtecodeScService {
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
         // something went completely south (like no internet connection)
         String error = "Protecode SC returned error for file scan request: " + fileName +
+          ": " + t.getLocalizedMessage();  
+        fail(error, listener);
+      }
+    });
+  }
+  
+  // TODO: This is a copy paste
+  public void scanFetchFromUrl(
+          String group, 
+          String url, 
+          Map headers, 
+          ScanService listener
+  ) {
+    headers.put("Group", group);
+    headers.put("Url", url);
+    
+    Call<HttpTypes.UploadResponse> call = backend.scanFetchFromUrl(headers);
+    call.enqueue(new Callback<HttpTypes.UploadResponse>() {
+      @Override
+      public void onResponse(
+        Call<HttpTypes.UploadResponse> call,
+        Response<HttpTypes.UploadResponse> response
+      ) {
+        if (response.isSuccessful()) {
+          listener.processUploadResult(response.body());
+        } else {
+          try {            
+            listener.setError("Protecode SC returned error for " +
+              response.errorBody().string() + " for url: " + url);            
+          } catch (IOException ex) {
+            listener.setError("Protecode SC returned generic error without error message"
+              + " for url: " + url);
+          }
+        }
+      }
+      @Override
+      public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
+        // something went completely south (like no internet connection)
+        String error = "Protecode SC returned error for url scan request: " + url +
           ": " + t.getLocalizedMessage();  
         fail(error, listener);
       }

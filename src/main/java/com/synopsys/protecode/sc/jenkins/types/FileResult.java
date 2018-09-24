@@ -33,12 +33,16 @@ public @Data class FileResult {
   private boolean resultBeingFetched = false;
   private String error = null;
   private HttpTypes.ScanResultResponse resultResponse = null;
+  /** Makes it possible to not parse the result as multiple files in an archive. */
+  private boolean zippingInUse = false;
 
   private Map<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> files = new HashMap<>();
 
-  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse) {
+  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse, boolean zippingInUse) {
+    LOGGER.log(Level.WARNING, "New Fileresult: file: " + filename);
     this.filename = filename;
     this.uploadResponse = uploadResponse;
+    this.zippingInUse = zippingInUse;
   }
 
   public FileResult(String filename, String error) {
@@ -49,8 +53,13 @@ public @Data class FileResult {
   // TODO: This should be a model, this is a bit over the limit what it should have.
   public void setResultResponse(HttpTypes.ScanResultResponse resultResponse) {
     this.resultResponse = resultResponse;
-    
-    for (HttpTypes.Component component : resultResponse.getResults().getComponents()) {            
+    LOGGER.log(Level.WARNING, "Setting ------------------------- resultResponse!!!:\n" + this.resultResponse);
+    if (!zippingInUse) {
+      LOGGER.log(Level.WARNING, "Adding filename to result root. No zipping.");
+      files.putIfAbsent(this.filename, new HashMap<>());
+    }
+    for (HttpTypes.Component component : this.resultResponse.getResults().getComponents()) {  
+      LOGGER.log(Level.WARNING, "-------------------- HOP!: " + component.getFileNames().size());
       InternalTypes.VulnStatus vulnStatus = new InternalTypes.VulnStatus();
       if (!component.getVulns().isEmpty()) {
         // Component has vulns
@@ -77,11 +86,19 @@ public @Data class FileResult {
           }
         }
       }
-      // Support for multifile packages
-      for(String includedFileName : component.getFileNames()) {
-        files.putIfAbsent(includedFileName, new HashMap<>());
-        files.get(includedFileName).put(component, vulnStatus);        
+      if (zippingInUse) {
+        LOGGER.log(Level.WARNING, "Zipping in use so zipping in result too!");
+        // Support for multifile packages
+        for(String includedFileName : component.getFileNames()) {
+          files.putIfAbsent(includedFileName, new HashMap<>());
+          files.get(includedFileName).put(component, vulnStatus);        
+        }
+        
+      } else {
+        LOGGER.log(Level.WARNING, "Making single result!");        
+        files.get(this.filename).put(component, vulnStatus); 
       }
+      LOGGER.warning("files: " + files);
       //components.put(component, vulnStatus);
     }
   }
@@ -156,7 +173,10 @@ public @Data class FileResult {
     // TODO implement error handling for misbuilt responses
     List<SerializableResult> resultList = new ArrayList<>();
     
+    LOGGER.warning("result entry set size: " + files.entrySet().size());
+    
     for (Map.Entry<String, Map<Component, VulnStatus>> file : files.entrySet()) {
+      LOGGER.warning("File: " + file.getKey());
       long untriagedVulns = 0;
       long triagedVulns = 0;
       // TODO: WET

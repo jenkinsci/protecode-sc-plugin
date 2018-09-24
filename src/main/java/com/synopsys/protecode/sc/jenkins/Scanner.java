@@ -10,7 +10,6 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.exceptions.NoFilesFoundException;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
 import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
@@ -28,7 +27,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import okhttp3.MediaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
+import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
+import java.util.Map;
 
 /**
  * The main logic class for operating with Protecode SC
@@ -52,11 +57,13 @@ public class Scanner {
   private final boolean includeSubdirectories;
   private final String pattern;
   private final String protecodeScanName;
+  private final String customHeader;
   
   private boolean zippingInUse = false;
   
   private static final String NO_ERROR = "";
   private static final Logger LOGGER = Logger.getLogger(Scanner.class.getName());
+  private final JenkinsConsoler console;
   
   public Scanner(
     BuildVerdict verdict,
@@ -70,7 +77,9 @@ public class Scanner {
     boolean scanOnlyArtifacts,
     boolean includeSubdirectories,
     String pattern,
-    String protecodeScanName
+    String protecodeScanName,
+    String customHeader,
+    JenkinsConsoler console
   ) {
     this.verdict = verdict;
     this.protecodeScGroup = protecodeScGroup;
@@ -85,6 +94,8 @@ public class Scanner {
     this.includeSubdirectories = includeSubdirectories;
     this.pattern = pattern;
     this.protecodeScanName = protecodeScanName;
+    this.customHeader = customHeader;
+    this.console = console;
   }
   
 /**
@@ -94,49 +105,78 @@ public class Scanner {
  * @throws InterruptedException Jenkins build interruption
  */  
   public List<FileResult> doPerform() throws InterruptedException, IOException {     
-    List<FilePath> files = null;    
-    
-    if (scanOnlyArtifacts) {
-      LOGGER.finer("Scanning only artifacts");
-      files = UtilitiesFile.getArtifacts(
-        run, 
-        UtilitiesFile.patternOrAll(pattern)        
-      );
-    } else {
-      LOGGER.finer("Scanning all in directory");
-      //@SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-      files = UtilitiesFile.getFiles(
-        directoryToScan,
-        workspace,
-        includeSubdirectories,
-        UtilitiesFile.patternOrAll(pattern),
-        run,
-        listener
-      );
-    }
-    
-    verdict.setFilesFound(files.size());
-    LOGGER.warning("fles found: " + files.size());
-    
-    if (files.size() > 9) {
-      LOGGER.log(Level.FINER, "Files count: {0}, attempting to zip to executor workspace root", files.size());
-      FilePath zip;
-      try {
-        zip = UtilitiesFile.packageFiles(
-          workspace,
-          files,
-          protecodeScanName
+    List<FilePath> files = null;
+    FilePath zip = null;
+    long start = 0;
+    if (!UtilitiesGeneral.isUrl(directoryToScan)) {
+      if (scanOnlyArtifacts) {
+        LOGGER.finer("Scanning only artifacts");
+        files = UtilitiesFile.getArtifacts(
+          run, 
+          UtilitiesFile.patternOrAll(pattern)        
         );
-        zippingInUse = true;
-      } catch (Exception e) {
-        LOGGER.log(Level.WARNING, "Couldn''t zip files, sending them one-by-one. Error: {0}", e.getMessage());
-      }      
-    }
+      } else {
+        LOGGER.finer("Scanning all in directory");
+        //@SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+        files = UtilitiesFile.getFiles(
+          directoryToScan,
+          workspace,
+          includeSubdirectories,
+          UtilitiesFile.patternOrAll(pattern),
+          run,
+          listener
+        );
+      }    
+      verdict.setFilesFound(files.size());
+      LOGGER.info("files found: " + files.size());
 
-    // Send files and wait for all http responses 
-    long start = System.currentTimeMillis();   
-    log.println("Upload began at " + UtilitiesGeneral.timestamp() + ".");        
-    sendFiles(files);
+      if (files.size() > 9) {
+        LOGGER.log(Level.FINER, "Files count: {0}, attempting to zip to executor workspace root", files.size());
+        try {
+          zip = UtilitiesFile.packageFiles(
+            workspace,
+            files,
+            protecodeScanName
+          );
+          LOGGER.info("Zip size: " + zip.length() + " bytes.");
+          zippingInUse = true;
+        } catch (Exception e) {
+          LOGGER.log(Level.WARNING, "Couldn''t zip files, sending them one-by-one. Error: {0}", e.getMessage());
+        }      
+      }
+
+      // Send files and wait for all http responses 
+      start = System.currentTimeMillis();   
+      log.println("Upload began at " + UtilitiesGeneral.timestamp() + ".");
+      sendFiles(files);
+      
+    } else {
+      LOGGER.log(Level.WARNING, "Gettgin from URL");
+      console.log("Fetching file from URL: " + directoryToScan);
+      ObjectReader reader = new ObjectMapper().readerFor(Map.class);
+      start = System.currentTimeMillis();   
+      
+      Map<String, String> map = reader.readValue(customHeader);
+      service.scanFetchFromUrl(
+        protecodeScGroup,
+        directoryToScan,
+        map,
+        new ScanService() {
+          @Override
+          public void setError(String reason) {
+            // TODO: use Optional
+            log.println(reason);
+            addUploadResponse(log, directoryToScan, null, reason);
+          }
+
+          @Override
+          public void processUploadResult(HttpTypes.UploadResponse result) {
+            addUploadResponse(log, directoryToScan, result, NO_ERROR);
+          }
+        } 
+      );
+    }
+    
     waitForUploadResponses(files.size(), log);
     log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
     long time = (System.currentTimeMillis() - start) / 1000;
@@ -144,6 +184,10 @@ public class Scanner {
 
     // start polling for reponses to scans
     poll(run);
+    if (zip != null && zip.exists()) {
+      LOGGER.info("removing zip file.");
+      zip.delete();
+    }
     return results;
   }
   
@@ -160,7 +204,7 @@ public class Scanner {
     // TODO: get rid of log
     // TODO: compare the sha1sum and send again if incorrect
     if (NO_ERROR.equals(error)) {
-      results.add(new FileResult(name, response));
+      results.add(new FileResult(name, response, zippingInUse));
     } else {
       // TODO, if en error which will stop the build from happening we should stop the build.     
       results.add(new FileResult(name, error));
@@ -169,7 +213,7 @@ public class Scanner {
 
   private void sendFiles(List<FilePath> filesToScan) throws IOException, InterruptedException {
     for (FilePath file : filesToScan) {
-      LOGGER.log(Level.FINE, "Sending file: {0}", file.getRemote());
+      LOGGER.log(Level.INFO, "Sending file: {0}", file.getRemote());
       service.scan(
         this.protecodeScGroup,
         file.getName(),
