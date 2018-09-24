@@ -11,5 +11,7 @@
 package com.synopsys.protecode.sc.jenkins.exceptions;
 
 public class NoFilesFoundException extends Exception {
-  
+  public NoFilesFoundException(String message) {
+    super(message);
+  }
 }

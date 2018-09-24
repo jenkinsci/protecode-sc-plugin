@@ -24,11 +24,11 @@ public class ProtecodeEvaluator {
    * Evaluates the results. Any vulnerabilities or errors associated to file scans will cause false
    * to be returned.
    * @param results The results for the given scan.
-   * @return false if any errors or vulns were found. Otherwise true
+   * @param verdict The verdict to further while evaluating the build.
    */
-  public static BuildVerdict evaluate(List<FileResult> results) {
+  public static void evaluate(List<FileResult> results, BuildVerdict verdict) {
     LOGGER.log(Level.FINER, "Evaluating scan results");
-    return new BuildVerdict(!results.stream().anyMatch((result) -> {
+    boolean hasVulns = !results.stream().anyMatch((result) -> {
         if (!result.verdict()) {
           LOGGER.log(Level.FINER, result.getFilename() + " has result: " + result.verdict());
           return true;
@@ -37,6 +37,7 @@ public class ProtecodeEvaluator {
           return false;
         }
       }
-    ));
+    );
+    verdict.setFilesWithUntriaVulns(true);
   }
 }

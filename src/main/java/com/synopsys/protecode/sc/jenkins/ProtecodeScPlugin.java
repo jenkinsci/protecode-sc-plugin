@@ -15,6 +15,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
+import com.synopsys.protecode.sc.jenkins.exceptions.NoFilesFoundException;
 import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
@@ -127,8 +128,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (this.protecodeScanName == null) {
       this.protecodeScanName = "";
     }
-
-    results = new ArrayList<>();    
+  
     return this;
   }
 
@@ -188,12 +188,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);
-    console.start(failIfVulns, includeSubdirectories);    
+    console.start(failIfVulns, includeSubdirectories);   
+    BuildVerdict verdict = new BuildVerdict(failIfVulns);
+      
     
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
     if (serv == null) {
-      listener.error("Cannot connect to Protecode SC");
+      listener.error("Cannot connect to Protecode SC"); // TODO use consoler
       run.setResult(Result.FAILURE);
       return false;
     }
@@ -202,7 +204,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     String checkedDirectoryToScan = (null != getDirectoryToScan()) ? getDirectoryToScan() : "";
 
     /**
-     * String protecodeScGroup,
+    BuildVerdict verdict,
+    String protecodeScGroup,
     ProtecodeScService serv,     
     Run<?, ?> run, 
     int scanTimeout,
@@ -215,6 +218,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     String protecodeScanName
      */
     Scanner scanner = new Scanner(
+      verdict,
+      protecodeScGroup,
       serv,
       run,
       scanTimeout,
@@ -227,6 +232,22 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       protecodeScanName
     );
     
+    // Get/scan the files
+    List<FileResult> results = null;
+    try {
+      results = scanner.doPerform();
+    } catch (IOException ioe) {
+      listener.error("Could not send files to Protecode-SC: " + ioe);
+      //return false;
+    } catch (InterruptedException ie) {
+      log.println("Interrupted, stopping build");
+    }
+    
+    if (verdict.getFilesFound() == 0) {
+      console.log("Could not find any files to scan. Exiting with 'no error' status");
+      return true;
+    }
+    
     // make results
     ReportBuilder.report(results, listener, UtilitiesFile.reportsDirectory(run), run);
 
@@ -237,18 +258,18 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     //evaluate, if verdict is false, there are vulns
-    BuildVerdict verdict = ProtecodeEvaluator.evaluate(results);    
+    ProtecodeEvaluator.evaluate(results, verdict);    
     boolean buildStatus = false;
     
     if (failIfVulns) {
-      if (!verdict.getVerdict()) {
+      if (!verdict.verdict()) {
         log.println(UtilitiesGeneral.buildReportString(results));
         listener.fatalError("Vulnerabilities found. Failing build.");
         run.setResult(Result.FAILURE);
       }
-      buildStatus = verdict;
+      buildStatus = verdict.verdict();
     } else {
-      if (!verdict.getVerdict()) {
+      if (!verdict.verdict()) {
         log.println("Vulnerabilities found! Not failing build due to configuration.");
       } else {
         log.println("NO vulnerabilities found.");

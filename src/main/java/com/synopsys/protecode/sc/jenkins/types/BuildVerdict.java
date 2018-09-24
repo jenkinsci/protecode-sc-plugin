@@ -17,9 +17,30 @@ import lombok.*;
  * @author rukkanen
  */
 public @Data class BuildVerdict {
-  private boolean verdict = false;  
+  private final boolean failOnVulns;
+ 
+  private boolean zippingUsed = false;
+  private int filesFound = 0;
+  private boolean filesWithUntriaVulns = false;
   
-  public BuildVerdict(boolean success) {
-    this.verdict = verdict;
+  public BuildVerdict(boolean failOnVulns) {
+    this.failOnVulns = failOnVulns;
+  }
+  
+  /**
+   * @return True if there are no untriaged vulnerabilities
+   */
+  public boolean verdict() {
+    return !filesWithUntriaVulns;
+  }
+  
+  public String verdictStr() {
+    String verdict = null;
+    if (filesFound == 0) {
+      verdict = "No files were found to be scanned.";
+    } else if(filesWithUntriaVulns) {
+      verdict = "Files with vulnerabilities found.";
+    }
+    return verdict;
   }
 }

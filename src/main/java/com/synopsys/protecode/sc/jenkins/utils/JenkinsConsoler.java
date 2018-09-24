@@ -34,7 +34,7 @@ public class JenkinsConsoler {
   }
 
   public void log(String line) {
-    log.print(wrapper(line));
+    log.println(wrapper(line));
   }
   
   public void error(String error) {

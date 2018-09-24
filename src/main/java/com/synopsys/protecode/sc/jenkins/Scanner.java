@@ -12,6 +12,7 @@ package com.synopsys.protecode.sc.jenkins;
 
 import com.synopsys.protecode.sc.jenkins.exceptions.NoFilesFoundException;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
+import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
@@ -37,7 +38,8 @@ public class Scanner {
   
   // Used in the scan process
   private List<FileResult> results = new ArrayList<>();
-
+  
+  private final BuildVerdict verdict;
   private final String protecodeScGroup;
   private final PrintStream log;
   private final TaskListener listener;
@@ -57,6 +59,7 @@ public class Scanner {
   private static final Logger LOGGER = Logger.getLogger(Scanner.class.getName());
   
   public Scanner(
+    BuildVerdict verdict,
     String protecodeScGroup,
     ProtecodeScService serv,     
     Run<?, ?> run, 
@@ -69,6 +72,7 @@ public class Scanner {
     String pattern,
     String protecodeScanName
   ) {
+    this.verdict = verdict;
     this.protecodeScGroup = protecodeScGroup;
     this.log = listener.getLogger();
     this.listener = listener;
@@ -89,7 +93,7 @@ public class Scanner {
  * @throws IOException File operations will throw this in cases of not found etc
  * @throws InterruptedException Jenkins build interruption
  */  
-  public List<FileResult> doPerform() throws NoFilesFoundException, InterruptedException, IOException {     
+  public List<FileResult> doPerform() throws InterruptedException, IOException {     
     List<FilePath> files = null;    
     
     if (scanOnlyArtifacts) {
@@ -111,6 +115,9 @@ public class Scanner {
       );
     }
     
+    verdict.setFilesFound(files.size());
+    LOGGER.warning("fles found: " + files.size());
+    
     if (files.size() > 9) {
       LOGGER.log(Level.FINER, "Files count: {0}, attempting to zip to executor workspace root", files.size());
       FilePath zip;
@@ -124,13 +131,6 @@ public class Scanner {
       } catch (Exception e) {
         LOGGER.log(Level.WARNING, "Couldn''t zip files, sending them one-by-one. Error: {0}", e.getMessage());
       }      
-    }
-    
-    if (files.isEmpty()) {
-      // no files to scan, no failure
-      LOGGER.warning("files to scan[] is empty.");
-      log.print("No files were fetched for scanning. Perhaps there were none?");
-      throw new NoFilesFoundException();
     }
 
     // Send files and wait for all http responses 

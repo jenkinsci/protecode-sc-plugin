@@ -174,25 +174,22 @@ public final class UtilitiesFile {
   /**
    * Method zips files at the location of the first file.
    * 
-   * @param directory the directory to make the zip file and the base for all listed files. 
+   * @param workspace the directory to make the zip file and the base for all listed files. 
    * @param files List of file paths
    * @param zipFileName Name for the zip file
    * @return the zip file of all files to be 
    * @throws IOException thrown when adding files to zip fails 
    */
   public static FilePath packageFiles(
-    FilePath directory,
+    FilePath workspace,
     List<FilePath> files,
     String zipFileName
   ) throws Exception {
-    //List<FilePath> zipFiles = new ArrayList<>();
-    // TODO simplify
-    // ugly, but since we want to perform the invoke at the file location
-    FilePath fileLocation = files.get(0);
-    FilePath zipFile = fileLocation.act(new MasterToSlaveFileCallable<FilePath>() {
+    // TODO simplify        
+    FilePath zipFile = workspace.act(new MasterToSlaveFileCallable<FilePath>() {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) {
-        File zipFile = new File(directory + "/" + ZIP_FILE_PREFIX + zipFileName);
+        File zipFile = new File(workspace + "/" + ZIP_FILE_PREFIX + zipFileName);
         LOGGER.finer("Created zip: " + zipFile.getAbsolutePath());
         try {
           if (zipFile.exists()) {
@@ -215,7 +212,7 @@ public final class UtilitiesFile {
                   // Remove start of path from zip entry name. No point adding the whole path to the
                   // name of the zip entry
                   fileToRead.getRemote().substring(
-                    directory.getRemote().length()
+                    workspace.getRemote().length()
                   )
                 )
               );
