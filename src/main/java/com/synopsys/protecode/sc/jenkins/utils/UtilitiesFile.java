@@ -210,7 +210,7 @@ public final class UtilitiesFile {
               zipOutputStream.putNextEntry(
                 new ZipEntry(
                   // Remove start of path from zip entry name. No point adding the whole path to the
-                  // name of the zip entry
+                  // name of the zip entry. This will keep the relative under the given directory path though.
                   fileToRead.getRemote().substring(
                     workspace.getRemote().length()
                   )
@@ -295,10 +295,10 @@ public final class UtilitiesFile {
       )
     );
     if (!filePath.isDirectory()) {
-      LOGGER.log(Level.WARNING, "Made reports directory to: {0}", filePath.getRemote());
+      LOGGER.log(Level.INFO, "Made reports directory to: {0}", filePath.getRemote());
       filePath.mkdirs();
     } else {
-      LOGGER.log(Level.WARNING, "Report directory already exists, retuning handle: {0}", filePath.getRemote());
+      LOGGER.log(Level.INFO, "Report directory already exists, retuning handle: {0}", filePath.getRemote());
     }
     return filePath;
   }

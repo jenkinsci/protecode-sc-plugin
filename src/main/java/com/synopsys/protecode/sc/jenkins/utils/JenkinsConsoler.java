@@ -10,8 +10,13 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.utils;
 
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
 import hudson.model.TaskListener;
 import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
 import lombok.NonNull;
 
 /**
@@ -47,9 +52,10 @@ public class JenkinsConsoler {
    *
    * @param failIfVulns info to print
    * @param includeSubdirectories info to print
+   * @param group for printing the group into which the files are uploaded
    */
   public void start(boolean failIfVulns, boolean includeSubdirectories, String group) {
-    log("Protecode SC plugin start. Uploading to group " + group);
+    log("Protecode SC plugin start. Uploading to " + group);
     if (failIfVulns) {
       log("The build will fail if any untriaged vulnurabilities are found.");
     } else {
@@ -62,6 +68,23 @@ public class JenkinsConsoler {
   
   public void end() {
     
+  }
+  
+  /**
+   * Print a report of the fileResults. 
+   * @param results The fileresult set from which to print the report
+   */
+  public void printReportString(List<FileResult> results) {    
+    StringBuilder report = new StringBuilder();
+    log("Following files have vulnerabilities");
+    for(FileResult result : results) {
+      for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
+        if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
+          report.append("\t").append(file.getKey()).append("\n");
+        }
+      }
+    }
+    log.println(report.toString());
   }
 
   /**

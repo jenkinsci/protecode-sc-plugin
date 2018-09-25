@@ -65,20 +65,7 @@ public final class UtilitiesGeneral {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
     // Currently underscore is accepted in protecode SC so it's in use.
     return line.replace(" ", "_");
-  }
-  
-  public static String buildReportString(List<FileResult> results) {    
-    StringBuilder report = new StringBuilder();
-    report.append("--------- Following files have vulnerabilities ---------\n");
-    for(FileResult result : results) {
-      for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
-        if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
-          report.append("\t").append(file.getKey()).append("\n");
-        }
-      }
-    }
-    return report.toString();
-  }
+  }    
 
   /**
    * Method for getting a nicely formated timestamp.

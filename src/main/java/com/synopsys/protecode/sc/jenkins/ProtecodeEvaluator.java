@@ -27,13 +27,13 @@ public class ProtecodeEvaluator {
    * @param verdict The verdict to further while evaluating the build.
    */
   public static void evaluate(List<FileResult> results, BuildVerdict verdict) {
-    LOGGER.log(Level.FINER, "Evaluating scan results");
+    LOGGER.log(Level.INFO, "Evaluating scan results");
     boolean hasVulns = !results.stream().anyMatch((result) -> {
         if (!result.verdict()) {
           LOGGER.log(Level.FINER, result.getFilename() + " has result: " + result.verdict());
           return true;
         } else {
-          LOGGER.log(Level.FINER, result.getFilename() + " has error: " + result.getError());
+          LOGGER.log(Level.FINE, result.getFilename() + " has error: " + result.getError());
           return false;
         }
       }

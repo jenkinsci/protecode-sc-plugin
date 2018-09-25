@@ -53,7 +53,7 @@ public @Data class FileResult {
   // TODO: This should be a model, this is a bit over the limit what it should have.
   public void setResultResponse(HttpTypes.ScanResultResponse resultResponse) {
     this.resultResponse = resultResponse;
-    LOGGER.log(Level.WARNING, "Setting ------------------------- resultResponse!!!:\n" + this.resultResponse);
+    LOGGER.log(Level.WARNING, "Setting ------------------------- resultResponse!!!");
     if (!zippingInUse) {
       LOGGER.log(Level.WARNING, "Adding filename to result root. No zipping.");
       files.putIfAbsent(this.filename, new HashMap<>());
@@ -92,13 +92,13 @@ public @Data class FileResult {
         for(String includedFileName : component.getFileNames()) {
           files.putIfAbsent(includedFileName, new HashMap<>());
           files.get(includedFileName).put(component, vulnStatus);        
-        }
-        
+        }        
       } else {
-        LOGGER.log(Level.WARNING, "Making single result!");        
+        // of course this isn't needed 'as such' but the user expects the zip to be evaluated
+        // as a single entity.
+        LOGGER.log(Level.WARNING, "Making single file/non zip result!");        
         files.get(this.filename).put(component, vulnStatus); 
-      }
-      LOGGER.warning("files: " + files);
+      }      
       //components.put(component, vulnStatus);
     }
   }
@@ -176,7 +176,6 @@ public @Data class FileResult {
     LOGGER.warning("result entry set size: " + files.entrySet().size());
     
     for (Map.Entry<String, Map<Component, VulnStatus>> file : files.entrySet()) {
-      LOGGER.warning("File: " + file.getKey());
       long untriagedVulns = 0;
       long triagedVulns = 0;
       // TODO: WET
@@ -185,9 +184,14 @@ public @Data class FileResult {
         triagedVulns += vulnStatus.triagedVulnsCount();
       }
       
+      String resultFileName = file.getKey();
+      if (!zippingInUse) {
+        resultFileName = this.filename;
+      }
+          
       resultList.add(
         new SerializableResult(
-          file.getKey(),
+          resultFileName,
           untriagedVulns, 
           triagedVulns, 
           untriagedVulns > 0 ? UIResources.VULNS : "", 

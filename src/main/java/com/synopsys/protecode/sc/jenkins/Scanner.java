@@ -131,17 +131,19 @@ public class Scanner {
       LOGGER.info("files found: " + files.size());
 
       if (files.size() > 9) {
-        LOGGER.log(Level.FINER, "Files count: {0}, attempting to zip to executor workspace root", files.size());
+        LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
         try {
           zip = UtilitiesFile.packageFiles(
             workspace,
             files,
             protecodeScanName
           );
+          console.log("10 or more files, zipping. Protecode job will be called: " + protecodeScanName);
           LOGGER.info("Zip size: " + zip.length() + " bytes.");
           zippingInUse = true;
         } catch (Exception e) {
-          LOGGER.log(Level.WARNING, "Couldn''t zip files, sending them one-by-one. Error: {0}", e.getMessage());
+          zippingInUse = false;
+          LOGGER.log(Level.INFO, "Couldn't zip files, sending them one-by-one. Error: {0}", e.getMessage());
         }      
       }
 
@@ -211,12 +213,16 @@ public class Scanner {
     }
   }
 
-  private void sendFiles(List<FilePath> filesToScan) throws IOException, InterruptedException {
+  private void sendFiles(List<FilePath> filesToScan) throws IOException, InterruptedException {    
     for (FilePath file : filesToScan) {
+      String jobName = file.getName();
+      if (zippingInUse) {
+        jobName = protecodeScanName;
+      }
       LOGGER.log(Level.INFO, "Sending file: {0}", file.getRemote());
       service.scan(
         this.protecodeScGroup,
-        file.getName(),
+        jobName,
         new StreamRequestBody(
           MediaType.parse("application/octet-stream"),
           file

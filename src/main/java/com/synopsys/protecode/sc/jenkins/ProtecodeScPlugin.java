@@ -50,6 +50,7 @@ import javax.servlet.ServletException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.synopsys.protecode.sc.jenkins.utils.*;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -139,7 +140,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 	
     if (this.protecodeScanName == null) {
-      this.protecodeScanName = "";
+      this.protecodeScanName = "defaultbuildname";
     }
   
     return this;
@@ -168,7 +169,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         );
       }
     } catch (MalformedURLException e) {
-      LOGGER.warning("Making build without providing ");
+      LOGGER.warning("No URL given for Protecode SC ");
       listener.error("Cannot read Protecode SC URL, please make sure it has been set in the Jenkins"
         + " configuration page.");
       // TODO: Add prebuild
@@ -201,6 +202,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);
+    
+    String cleanJob = "";
+    if (protecodeScanName == null || "".equals(protecodeScanName)) {
+      LOGGER.info("Didn't find job name, defaulting to build id");
+      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId());
+    }
+    
     console.start(failIfVulns, includeSubdirectories, protecodeScGroup);   
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
       
@@ -215,22 +223,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     String checkedDirectoryToScan = (null != getDirectoryToScan()) ? getDirectoryToScan() : "";
-
-    /**
-    BuildVerdict verdict,
-    String protecodeScGroup,
-    ProtecodeScService serv,     
-    Run<?, ?> run, 
-    int scanTimeout,
-    FilePath workspace, 
-    TaskListener listener,
-    String directoryToScan,
-    boolean scanOnlyArtifacts,
-    boolean includeSubdirectories,
-    String pattern,
-    String protecodeScanName,
-    customHeader
-     */
+    
     Scanner scanner = new Scanner(
       verdict,
       protecodeScGroup,
@@ -279,7 +272,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     
     if (failIfVulns) {
       if (!verdict.verdict()) {
-        log.println(UtilitiesGeneral.buildReportString(results));
+        console.printReportString(results);
         listener.fatalError("Vulnerabilities found. Failing build.");
         run.setResult(Result.FAILURE);
       }
@@ -345,7 +338,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
       // TODO Find a nice way to use this to fetch possible groups
-      //  - this might be impossible in this scope
+      //  - this might be impossible in this sc String jobNameope
       // https://groups.google.com/forum/?hl=en#!searchin/jenkinsci-dev/store$20configuration|sort:date/jenkinsci-dev/-DosteCUiu8/18-HvlAsAAAJ
       StandardListBoxModel result = new StandardListBoxModel();
       result.withEmptySelection();
@@ -483,6 +476,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public void setCustomHeader(String customHeader) {
     this.customHeader = customHeader;
   }
+  
+  @DataBoundSetter
+  public void setProtecodeScanName(String protecodeScanName) {
+    this.protecodeScanName = protecodeScanName;
+  }
 
   @CheckForNull
   public boolean getConvertToSummary() {
@@ -532,5 +530,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @CheckForNull
   public String getCustomHeader() {
     return customHeader;
+  }
+  
+  @CheckForNull
+  public String getProtecodeScanName() {
+    return this.protecodeScanName;
   }
 }
