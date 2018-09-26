@@ -34,6 +34,9 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
 import java.util.Map;
+import java.util.Optional;
+
+import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PREFIX;
 
 /**
  * The main logic class for operating with Protecode SC
@@ -130,17 +133,21 @@ public class Scanner {
       verdict.setFilesFound(files.size());
       LOGGER.info("files found: " + files.size());
 
+      Optional <String> zipName = Optional.empty();
       if (files.size() > 9) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
         try {
+          zipName = Optional.of(run.getExecutor().getCurrentWorkspace() + "/" + ZIP_FILE_PREFIX + protecodeScanName);
           zip = UtilitiesFile.packageFiles(
             workspace,
             files,
-            protecodeScanName
+            zipName.get()
           );
           console.log("10 or more files, zipping. Protecode job will be called: " + protecodeScanName);
           LOGGER.info("Zip size: " + zip.length() + " bytes.");
           zippingInUse = true;
+          files.clear();
+          files.add(zip);
         } catch (Exception e) {
           zippingInUse = false;
           LOGGER.log(Level.INFO, "Couldn't zip files, sending them one-by-one. Error: {0}", e.getMessage());
@@ -150,7 +157,13 @@ public class Scanner {
       // Send files and wait for all http responses 
       start = System.currentTimeMillis();   
       log.println("Upload began at " + UtilitiesGeneral.timestamp() + ".");
-      sendFiles(files);
+      if (zipName.isPresent()) {
+        if (files.size() != 1) {
+          LOGGER.warning("fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
+          return results;
+        }
+      }
+      sendFiles(files, zipName);
       
     } else {
       LOGGER.log(Level.WARNING, "Gettgin from URL");
@@ -203,7 +216,6 @@ public class Scanner {
    * @param response The responses fetched from Protecode SC
    */
   private void addUploadResponse(PrintStream log, String name, HttpTypes.UploadResponse response, String error) {
-    // TODO: get rid of log
     // TODO: compare the sha1sum and send again if incorrect
     if (NO_ERROR.equals(error)) {
       results.add(new FileResult(name, response, zippingInUse));
@@ -213,13 +225,16 @@ public class Scanner {
     }
   }
 
-  private void sendFiles(List<FilePath> filesToScan) throws IOException, InterruptedException {    
+  private void sendFiles(List<FilePath> filesToScan, Optional <String> zipName) throws IOException, InterruptedException {    
     for (FilePath file : filesToScan) {
-      String jobName = file.getName();
-      if (zippingInUse) {
-        jobName = protecodeScanName;
+      final String jobName;
+      if (zipName.isPresent()) {
+        jobName = zipName.get();
+      } else {
+        jobName = file.getRemote();
       }
-      LOGGER.log(Level.INFO, "Sending file: {0}", file.getRemote());
+      
+      LOGGER.log(Level.INFO, "Sending file: {0}", jobName);
       service.scan(
         this.protecodeScGroup,
         jobName,
@@ -230,7 +245,7 @@ public class Scanner {
         new Listeners.ScanService() {
           @Override
           public void processUploadResult(HttpTypes.UploadResponse result) {
-            addUploadResponse(log, file.getRemote(), result, NO_ERROR);
+            addUploadResponse(log, protecodeScanName, result, NO_ERROR);
           }
 
           @Override
@@ -239,7 +254,7 @@ public class Scanner {
             log.println(reason);
             // TODO: Maybe use listener.error to stop writing for more results if we get error 
             // perhaps?
-            addUploadResponse(log, file.getRemote(), null, reason);
+            addUploadResponse(log, protecodeScanName, null, reason);
           }
         }
       );

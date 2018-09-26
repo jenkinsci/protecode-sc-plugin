@@ -59,7 +59,7 @@ public @Data class FileResult {
       files.putIfAbsent(this.filename, new HashMap<>());
     }
     for (HttpTypes.Component component : this.resultResponse.getResults().getComponents()) {  
-      LOGGER.log(Level.WARNING, "-------------------- HOP!: " + component.getFileNames().size());
+      //LOGGER.log(Level.WARNING, "ADDING SUB-RESULT");
       InternalTypes.VulnStatus vulnStatus = new InternalTypes.VulnStatus();
       if (!component.getVulns().isEmpty()) {
         // Component has vulns
@@ -178,6 +178,7 @@ public @Data class FileResult {
     for (Map.Entry<String, Map<Component, VulnStatus>> file : files.entrySet()) {
       long untriagedVulns = 0;
       long triagedVulns = 0;
+      LOGGER.warning("----RESULT:\n" + file);
       // TODO: WET
       for (InternalTypes.VulnStatus vulnStatus : file.getValue().values()) {
         untriagedVulns += vulnStatus.untriagedVulnsCount();

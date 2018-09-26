@@ -184,7 +184,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // same exception upward)
     LOGGER.finer("Perform() with run object");
     this.listener = listener;
-    doPerform(run, workspace);
+    doPerform(run);
   }
 
   @Override
@@ -194,11 +194,19 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // same exception upward)
     LOGGER.finer("Perform() with build object");
     this.listener = listener;
-    return doPerform(build, build.getWorkspace());
+    return doPerform(build);
   }
   
-  public boolean doPerform(Run<?, ?> run, FilePath workspace)
+  public boolean doPerform(Run<?, ?> run)
     throws IOException, InterruptedException {
+    
+    FilePath workspace;
+    try {
+      workspace = run.getExecutor().getCurrentWorkspace();
+    } catch (Exception e) {
+      console.log("no worksapace, exiting");
+      return false;
+    }
     
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);

@@ -105,32 +105,11 @@ public final class UtilitiesFile {
     Pattern pattern,
     Run<?, ?> run,
     TaskListener listener
-  ) {
-    List<FilePath> files = new ArrayList<>();
-    List<FilePath> fetchedFiles = new ArrayList<>();
-    PrintStream log = listener.getLogger();
-    try {      
-      FilePath directory = workspace.child(cleanUrl(fileDirectory));      
-      log.println("Looking for files in directory: " + directory);
-
-      fetchedFiles = getFiles(directory, includeSubdirectories, pattern, log);
-      LOGGER.info("fetched files size: " + fetchedFiles.size());
-      if (fetchedFiles.size() > 9) {        
-        files.add(
-          packageFiles(
-            workspace,             
-            fetchedFiles,
-            cleanJobName(run.getExternalizableId())
-          )
-        );
-      } else {
-        files = fetchedFiles;
-      }
-    } catch (Exception e) {
-      listener.error("Could not zip files, sending files one-by-one.");
-      files = fetchedFiles;
-    }
-    return files;
+  ) {  
+    PrintStream log = listener.getLogger();     
+    FilePath directory = workspace.child(cleanUrl(fileDirectory));      
+    log.println("Looking for files in directory: " + directory);
+    return getFiles(directory, includeSubdirectories, pattern, log);    
   }
 
   /**
@@ -188,51 +167,49 @@ public final class UtilitiesFile {
     // TODO simplify        
     FilePath zipFile = workspace.act(new MasterToSlaveFileCallable<FilePath>() {
       @Override
-      public FilePath invoke(File f, VirtualChannel channel) {
-        File zipFile = new File(workspace + "/" + ZIP_FILE_PREFIX + zipFileName);
+      public FilePath invoke(File f, VirtualChannel channel) throws IOException, InterruptedException, InterruptedException {
+//        File zipFile = new File(workspace + "/" + ZIP_FILE_PREFIX + zipFileName);
+        File zipFile = new File(zipFileName);
         LOGGER.info("Created zip: " + zipFile.getAbsolutePath());
-        try {
-          if (zipFile.exists()) {
-            if (!zipFile.delete()) {
-              throw new RuntimeException("Could not delete old zip file at file location.");
-            }
+
+        if (zipFile.exists()) {
+          if (!zipFile.delete()) {
+            throw new RuntimeException("Could not delete old zip file at file location.");
           }
-          if (!zipFile.createNewFile()) {
-            throw new RuntimeException("Could not create zip file at file location.");
-          }
-          
-          try (
-            FileOutputStream dest = new FileOutputStream(zipFile); 
-            ZipOutputStream zipOutputStream = new ZipOutputStream(dest)
-            ) {
-            
-            for (FilePath fileToRead : files) {
-              zipOutputStream.putNextEntry(
-                new ZipEntry(
-                  // Remove start of path from zip entry name. No point adding the whole path to the
-                  // name of the zip entry. This will keep the relative under the given directory path though.
-                  fileToRead.getRemote().substring(
-                    workspace.getRemote().length()
-                  )
+        }
+        if (!zipFile.createNewFile()) {
+          throw new RuntimeException("Could not create zip file at file location.");
+        }
+
+        try (
+          FileOutputStream dest = new FileOutputStream(zipFile); 
+          ZipOutputStream zipOutputStream = new ZipOutputStream(dest)
+          ) {
+
+          for (FilePath fileToRead : files) {
+            zipOutputStream.putNextEntry(
+              new ZipEntry(
+                // Remove start of path from zip entry name. No point adding the whole path to the
+                // name of the zip entry. This will keep the relative under the given directory path though.
+                fileToRead.getRemote().substring(
+                  workspace.getRemote().length()
                 )
-              );
-              
-              InputStream input = fileToRead.read();
-              
-              byte[] bytes = new byte[1024]; // Again an arbitrary number
-              int length;
-              while ((length = input.read(bytes)) >= 0) {
-                zipOutputStream.write(bytes, 0, length);
-              }
-              
-              zipOutputStream.flush();
+              )
+            );
+
+            InputStream input = fileToRead.read();
+
+            byte[] bytes = new byte[1024]; // Again an arbitrary number
+            int length;
+            while ((length = input.read(bytes)) >= 0) {
+              zipOutputStream.write(bytes, 0, length);
             }
+
             zipOutputStream.flush();
           }
-        } catch (IOException | InterruptedException e) {
-          LOGGER.warning("Exception while zipping file. Files will be sent one-by-one. "
-            + "Exception: " + e.getMessage());
+          zipOutputStream.flush();
         }
+
         return new FilePath(zipFile);
       }
     });
