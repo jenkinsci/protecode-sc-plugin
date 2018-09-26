@@ -159,8 +159,8 @@ public class Scanner {
       log.println("Upload began at " + UtilitiesGeneral.timestamp() + ".");
       if (zipName.isPresent()) {
         if (files.size() != 1) {
-          LOGGER.warning("fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu");
-          return results;
+          // For some obscure cases where the zip could not be made, but no exception was raised.
+          zippingInUse = false;
         }
       }
       sendFiles(files, zipName);
@@ -228,8 +228,8 @@ public class Scanner {
   private void sendFiles(List<FilePath> filesToScan, Optional <String> zipName) throws IOException, InterruptedException {    
     for (FilePath file : filesToScan) {
       final String jobName;
-      if (zipName.isPresent()) {
-        jobName = zipName.get();
+      if (zippingInUse) {
+        jobName = protecodeScanName;
       } else {
         jobName = file.getRemote();
       }
@@ -245,7 +245,8 @@ public class Scanner {
         new Listeners.ScanService() {
           @Override
           public void processUploadResult(HttpTypes.UploadResponse result) {
-            addUploadResponse(log, protecodeScanName, result, NO_ERROR);
+            LOGGER.warning("Got result: " + result);
+            addUploadResponse(log, jobName, result, NO_ERROR);
           }
 
           @Override
@@ -254,7 +255,7 @@ public class Scanner {
             log.println(reason);
             // TODO: Maybe use listener.error to stop writing for more results if we get error 
             // perhaps?
-            addUploadResponse(log, protecodeScanName, null, reason);
+            addUploadResponse(log, jobName, null, reason);
           }
         }
       );
