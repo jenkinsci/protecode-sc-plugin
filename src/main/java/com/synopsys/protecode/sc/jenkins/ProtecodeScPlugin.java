@@ -51,6 +51,8 @@ import javax.servlet.ServletException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.utils.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.HashMap;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -203,7 +205,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     FilePath workspace;
     try {
       workspace = run.getExecutor().getCurrentWorkspace();
-    } catch (Exception e) {
+    } catch (NullPointerException e) {
       listener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
       run.setResult(Result.FAILURE);
       return false;
@@ -212,20 +214,20 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);
   
-    String cleanJob = "";
+    String cleanJob = null;
     if (protecodeScanName == null || "".equals(protecodeScanName)) {
       LOGGER.info("Didn't find job name, defaulting to build id");
-      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId());
+      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId()) != null 
+        ? UtilitiesJenkins.cleanJobName(run.getExternalizableId()) : "jenkins_job";
     }
     
     console.start(failIfVulns, includeSubdirectories, protecodeScGroup);   
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
-      
-    
+          
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
     if (serv == null) {
-      listener.error("Cannot connect to Protecode SC"); // TODO use consoler
+      listener.error("Cannot connect to Protecode SC"); // TODO use consoler also
       run.setResult(Result.FAILURE);
       return false;
     }
@@ -396,15 +398,16 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       }
     }
 
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE") // It's supposed to blow up... 
     public FormValidation doCheckCustomHeader(@QueryParameter String customHeader) {
       try {
         if (customHeader == null || "".equals(customHeader)) {
           return FormValidation.ok();
         }
         ObjectReader reader = new ObjectMapper().readerFor(Map.class);
-        Map<String, String> map = reader.readValue(customHeader);
+        final Map<String, String> map = reader.readValue(customHeader);
         return FormValidation.ok();
-      } catch (Exception e) {
+      } catch (IOException | NullPointerException e) {
         return FormValidation.error("Please provide a key-value list in JSON format.");
       }
     }

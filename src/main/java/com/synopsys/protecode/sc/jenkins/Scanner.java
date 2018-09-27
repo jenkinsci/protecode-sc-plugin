@@ -33,6 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Optional;
 
@@ -103,10 +104,15 @@ public class Scanner {
   
 /**
  * The logic
+ * 
+ * Add a suppress since the executor workspace is already checked and valid.
+ * SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+ * 
  * @return List of FileResults
  * @throws IOException File operations will throw this in cases of not found etc
  * @throws InterruptedException Jenkins build interruption
- */  
+ */
+  @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")  
   public List<FileResult> doPerform() throws InterruptedException, IOException {     
     List<FilePath> files = null;
     FilePath zip = null;
@@ -136,7 +142,7 @@ public class Scanner {
       Optional <String> zipName = Optional.empty();
       if (files.size() > 9) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
-        try {
+        try {   
           zipName = Optional.of(run.getExecutor().getCurrentWorkspace() + "/" + ZIP_FILE_PREFIX + protecodeScanName);
           zip = UtilitiesFile.packageFiles(
             workspace,
@@ -192,7 +198,11 @@ public class Scanner {
       );
     }
     
-    waitForUploadResponses(files.size(), log);
+    try {
+      waitForUploadResponses(files.size(), log);
+    } catch (NullPointerException e) {
+      
+    }
     log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
     long time = (System.currentTimeMillis() - start) / 1000;
     LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);

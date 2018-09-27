@@ -14,6 +14,7 @@ import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -79,9 +80,10 @@ public final class UtilitiesGeneral {
     return strDate;
   }
   
+  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   public static boolean isUrl(String possibleUrl) {
     try {
-      URL url = new URL(possibleUrl);
+      final URL url = new URL(possibleUrl);
       return true;
     } catch(MalformedURLException e) {
       return false;
