@@ -14,6 +14,9 @@ import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -63,18 +66,7 @@ public final class UtilitiesGeneral {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
     // Currently underscore is accepted in protecode SC so it's in use.
     return line.replace(" ", "_");
-  }
-  
-  public static String buildReportString(FileResult result) {    
-    StringBuilder report = new StringBuilder();
-    report.append("--------- Following files have vulnerabilities ---------\n");
-    for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
-      if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
-        report.append("\t").append(file.getKey()).append("\n");
-      }
-    }
-    return report.toString();
-  }
+  }    
 
   /**
    * Method for getting a nicely formated timestamp.
@@ -86,5 +78,15 @@ public final class UtilitiesGeneral {
     Date now = new Date();
     String strDate = sdfDate.format(now);
     return strDate;
+  }
+  
+  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
+  public static boolean isUrl(String possibleUrl) {
+    try {
+      final URL url = new URL(possibleUrl);
+      return true;
+    } catch(MalformedURLException e) {
+      return false;
+    }
   }
 }

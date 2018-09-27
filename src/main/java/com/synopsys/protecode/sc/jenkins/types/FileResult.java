@@ -33,12 +33,15 @@ public @Data class FileResult {
   private boolean resultBeingFetched = false;
   private String error = null;
   private HttpTypes.ScanResultResponse resultResponse = null;
+  /** Makes it possible to not parse the result as multiple files in an archive. */
+  private boolean zippingInUse = false;
 
   private Map<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> files = new HashMap<>();
 
-  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse) {
+  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse, boolean zippingInUse) {    
     this.filename = filename;
     this.uploadResponse = uploadResponse;
+    this.zippingInUse = zippingInUse;
   }
 
   public FileResult(String filename, String error) {
@@ -48,9 +51,12 @@ public @Data class FileResult {
 
   // TODO: This should be a model, this is a bit over the limit what it should have.
   public void setResultResponse(HttpTypes.ScanResultResponse resultResponse) {
-    this.resultResponse = resultResponse;
-    
-    for (HttpTypes.Component component : resultResponse.getResults().getComponents()) {            
+    this.resultResponse = resultResponse;    
+    if (!zippingInUse) {
+      LOGGER.log(Level.WARNING, "Adding filename to result root. No zipping.");
+      files.putIfAbsent(this.filename, new HashMap<>());
+    }
+    for (HttpTypes.Component component : this.resultResponse.getResults().getComponents()) {  
       InternalTypes.VulnStatus vulnStatus = new InternalTypes.VulnStatus();
       if (!component.getVulns().isEmpty()) {
         // Component has vulns
@@ -77,11 +83,19 @@ public @Data class FileResult {
           }
         }
       }
-      // Support for multifile packages
-      for(String includedFileName : component.getFileNames()) {
-        files.putIfAbsent(includedFileName, new HashMap<>());
-        files.get(includedFileName).put(component, vulnStatus);        
-      }
+      if (zippingInUse) {
+        LOGGER.log(Level.FINE, "Zipping in use so zipping in result too");
+        // Support for multifile packages
+        for(String includedFileName : component.getFileNames()) {
+          files.putIfAbsent(includedFileName, new HashMap<>());
+          files.get(includedFileName).put(component, vulnStatus);        
+        }        
+      } else {
+        // of course this isn't needed 'as such' but the user expects the zip to be evaluated
+        // as a single entity.
+        LOGGER.log(Level.FINE, "Making single file/non zip result!");        
+        files.get(this.filename).put(component, vulnStatus); 
+      }      
       //components.put(component, vulnStatus);
     }
   }
@@ -114,7 +128,7 @@ public @Data class FileResult {
     return vulns;
   }
 
-  public boolean hasError() {
+  public boolean errorIsSet() {
     return error != null;
   }
 
@@ -142,19 +156,21 @@ public @Data class FileResult {
    * @return True if the scan result or error has been fetched.
    */
   public boolean hasScanResponse() {
-    return resultResponse != null || hasError();
+    return resultResponse != null || errorIsSet();
   }
 
   /**
    * @return True if component does not have an error, and has no vulns.
    */
   public boolean verdict() {
-    return !hasUntriagedVulns() && !hasError();
+    return !hasUntriagedVulns() && !errorIsSet();
   }
 
   public List<SerializableResult> getSerializableResults(int buildNumber) {
     // TODO implement error handling for misbuilt responses
     List<SerializableResult> resultList = new ArrayList<>();
+    
+    //LOGGER.fine("result entry set size: " + files.entrySet().size());
     
     for (Map.Entry<String, Map<Component, VulnStatus>> file : files.entrySet()) {
       long untriagedVulns = 0;
@@ -165,9 +181,14 @@ public @Data class FileResult {
         triagedVulns += vulnStatus.triagedVulnsCount();
       }
       
+      String resultFileName = file.getKey();
+      if (!zippingInUse) {
+        resultFileName = this.filename;
+      }
+          
       resultList.add(
         new SerializableResult(
-          file.getKey(),
+          resultFileName,
           untriagedVulns, 
           triagedVulns, 
           untriagedVulns > 0 ? UIResources.VULNS : "", 

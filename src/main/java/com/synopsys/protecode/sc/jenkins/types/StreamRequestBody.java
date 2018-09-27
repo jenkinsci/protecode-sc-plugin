@@ -30,8 +30,8 @@ public class StreamRequestBody extends RequestBody {
   private static final Logger LOGGER = Logger.getLogger(StreamRequestBody.class.getName());
 
   public StreamRequestBody(MediaType contentType, FilePath file) throws IOException, InterruptedException {
-    if (file.read() == null) {
-      throw new NullPointerException("File inputStream == null");
+    if (file == null) {
+      throw new NullPointerException("Cannot find file specified to read as streambody");
     }
     this.file = file;
     this.contentType = contentType;

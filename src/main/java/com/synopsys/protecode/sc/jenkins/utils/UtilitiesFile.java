@@ -62,17 +62,6 @@ public final class UtilitiesFile {
    * Returns any produced artifacts for the build.
    *
    * @param run Instance of the build
-   * @return List of FilePaths produced as artifacts
-   */
-  // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
-  public static List<FilePath> getArtifacts(Run<?, ?> run) {
-    return getArtifacts(run, ALL_FILES_PATTERN);
-  }
-
-  /**
-   * Returns any produced artifacts for the build.
-   *
-   * @param run Instance of the build
    * @param pattern Regexp pattern used for including only certain artifacts
    * @return List of FilePaths produced as artifacts
    */
@@ -92,35 +81,24 @@ public final class UtilitiesFile {
    * @param fileDirectory Name of the directory to parse through for files
    * @param workspace The workspace to look for files in
    * @param includeSubdirectories If true the method returns all files from the directory structure.
-   * @param pattern Regexp to include only certain files. If all is required use
+   * @param pattern Regex to include only certain files. If all is required use
    * UtilitiesFile.ALL_FILES_PATTERN
    * @param run Jenkins build run instance
    * @param listener Jenkins console
    * @return list of files
    */
-  public static Optional<FilePath> getFiles(
+  public static List<FilePath> getFiles(
     String fileDirectory,
     FilePath workspace,
     boolean includeSubdirectories,
     Pattern pattern,
     Run<?, ?> run,
     TaskListener listener
-  ) {
-    try {
-      FilePath directory = workspace.child(cleanUrl(fileDirectory));
-      PrintStream log = listener.getLogger();
-      log.println("Looking for files in directory: " + directory);
-
-      return Optional.of(
-        packageFiles(
-          directory, 
-          getFiles(directory, includeSubdirectories, pattern, log),
-          cleanJobName(run.getExternalizableId())
-        )
-      );
-    } catch (Exception e) {}
-    listener.error("Error while reading files from: " + fileDirectory);
-    return Optional.empty();
+  ) {  
+    PrintStream log = listener.getLogger();     
+    FilePath directory = workspace.child(cleanUrl(fileDirectory));      
+    log.println("Looking for files in directory: " + directory);
+    return getFiles(directory, includeSubdirectories, pattern, log);    
   }
 
   /**
@@ -137,7 +115,7 @@ public final class UtilitiesFile {
     Pattern pattern,
     PrintStream log
   ) {
-    List<FilePath> filesInFolder = new ArrayList<>();
+    List<FilePath> filesInDirectory = new ArrayList<>();
     try {
       directoryToSearch.list().forEach((FilePath file) -> {
         try {
@@ -145,10 +123,10 @@ public final class UtilitiesFile {
             // TODO Use ANT syntax
             if (pattern.matcher(file.getName()).matches()) {
               // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)              
-              filesInFolder.add(file);
+              filesInDirectory.add(file);
             }
           } else if (includeSubdirectories) {
-            filesInFolder.addAll(getFiles(file, includeSubdirectories, pattern, log));
+            filesInDirectory.addAll(getFiles(file, includeSubdirectories, pattern, log));
           }
         } catch (IOException | InterruptedException e) {
           // just ignore, DO NOT throw upwards
@@ -158,73 +136,69 @@ public final class UtilitiesFile {
       // maybe the directory doesn't exist.
       log.print("Error while reading folder: " + directoryToSearch.getName());
     }
-    return filesInFolder;
+    return filesInDirectory;
   }
 
   /**
    * Method zips files at the location of the first file.
    * 
-   * @param directory the directory to make the zip file and the base for all listed files. 
+   * @param workspace the directory to make the zip file and the base for all listed files. 
    * @param files List of file paths
    * @param zipFileName Name for the zip file
    * @return the zip file of all files to be 
-   * @throws Exception 
+   * @throws IOException thrown when adding files to zip fails 
    */
-  static FilePath packageFiles(
-    FilePath directory,
+  public static FilePath packageFiles(
+    FilePath workspace,
     List<FilePath> files,
     String zipFileName
   ) throws Exception {
-    //List<FilePath> zipFiles = new ArrayList<>();
-    // TODO simplify
-    // ugly, but since we want to perform the invoke at the file location
-    FilePath fileLocation = files.get(0);
-    FilePath zipFile = fileLocation.act(new MasterToSlaveFileCallable<FilePath>() {
+    // TODO simplify        
+    FilePath zipFile = workspace.act(new MasterToSlaveFileCallable<FilePath>() {
       @Override
-      public FilePath invoke(File f, VirtualChannel channel) {
-        File zipFile = new File(directory + "/" + ZIP_FILE_PREFIX + zipFileName);        
-        try {
-          if (zipFile.exists()) {
-            if (!zipFile.delete()) {
-              throw new RuntimeException("Could not delete old zip file at file location.");
-            }
+      public FilePath invoke(File f, VirtualChannel channel) throws IOException, InterruptedException, InterruptedException {
+//        File zipFile = new File(workspace + "/" + ZIP_FILE_PREFIX + zipFileName);
+        File zipFile = new File(zipFileName);
+        LOGGER.info("Created zip: " + zipFile.getAbsolutePath());
+
+        if (zipFile.exists()) {
+          if (!zipFile.delete()) {
+            throw new RuntimeException("Could not delete old zip file at file location.");
           }
-          if (!zipFile.createNewFile()) {
-            throw new RuntimeException("Could not create zip file at file location.");
-          }
-          
-          try (
-            FileOutputStream dest = new FileOutputStream(zipFile); 
-            ZipOutputStream zipOutputStream = new ZipOutputStream(dest)
-            ) {
-            
-            for (FilePath fileToRead : files) {
-              zipOutputStream.putNextEntry(
-                new ZipEntry(
-                  // Remove start of path from zip entry name. No point adding the whole path to the
-                  // name of the zip entry
-                  fileToRead.getRemote().substring(
-                    directory.getRemote().length()
-                  )
+        }
+        if (!zipFile.createNewFile()) {
+          throw new RuntimeException("Could not create zip file at file location.");
+        }
+
+        try (
+          FileOutputStream dest = new FileOutputStream(zipFile); 
+          ZipOutputStream zipOutputStream = new ZipOutputStream(dest)
+          ) {
+
+          for (FilePath fileToRead : files) {
+            zipOutputStream.putNextEntry(
+              new ZipEntry(
+                // Remove start of path from zip entry name. No point adding the whole path to the
+                // name of the zip entry. This will keep the relative under the given directory path though.
+                fileToRead.getRemote().substring(
+                  workspace.getRemote().length()
                 )
-              );
-              
-              InputStream input = fileToRead.read();
-              
-              byte[] bytes = new byte[1024]; // Again an arbitrary number
-              int length;
-              while ((length = input.read(bytes)) >= 0) {
-                zipOutputStream.write(bytes, 0, length);
-              }
-              
-              zipOutputStream.flush();
+              )
+            );
+
+            InputStream input = fileToRead.read();
+
+            byte[] bytes = new byte[1024]; // Again an arbitrary number
+            int length;
+            while ((length = input.read(bytes)) >= 0) {
+              zipOutputStream.write(bytes, 0, length);
             }
+
             zipOutputStream.flush();
           }
-        } catch (IOException | InterruptedException e) {
-          LOGGER.warning("Exception while zipping file. Files will be sent one-by-one. "
-            + "Exception: " + e.getMessage());
+          zipOutputStream.flush();
         }
+
         return new FilePath(zipFile);
       }
     });
@@ -250,8 +224,8 @@ public final class UtilitiesFile {
    * @param listener The build listener for logging information and possible errors to build
    * console.
    * @return true if creating the directing was successful.
-   * @throws java.io.IOException
-   * @throws java.lang.InterruptedException
+   * @throws java.io.IOException thrown when cannot read location/create zip into it
+   * @throws java.lang.InterruptedException on interrupt (perhaps build cancellation etc)
    */
   public static boolean createRemoteDirectory(
     String name,
@@ -287,10 +261,10 @@ public final class UtilitiesFile {
       )
     );
     if (!filePath.isDirectory()) {
-      LOGGER.log(Level.WARNING, "Made reports directory to: {0}", filePath.getRemote());
+      LOGGER.log(Level.INFO, "Made reports directory to: {0}", filePath.getRemote());
       filePath.mkdirs();
     } else {
-      LOGGER.log(Level.WARNING, "Report directory already exists, retuning handle: {0}", filePath.getRemote());
+      LOGGER.log(Level.INFO, "Report directory already exists, retuning handle: {0}", filePath.getRemote());
     }
     return filePath;
   }

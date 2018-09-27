@@ -11,6 +11,8 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
+import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,17 +23,21 @@ public class ProtecodeEvaluator {
   /**
    * Evaluates the results. Any vulnerabilities or errors associated to file scans will cause false
    * to be returned.
-   * @param result The result for the given scan.
-   * @return false if any errors or vulns were found. Otherwise true
+   * @param results The results for the given scan.
+   * @param verdict The verdict to further while evaluating the build.
    */
-  public static boolean evaluate(FileResult result) {
-    LOGGER.log(Level.FINER, "Evaluating scan results");
-    if (!result.hasError()) {
-      LOGGER.log(Level.FINER, result.getFilename() + "has result: " + result.verdict());
-      return result.verdict();
-    } else {
-      LOGGER.log(Level.FINER, result.getFilename() + "has error: " + result.getError());
-      return false;
-    }
+  public static void evaluate(List<FileResult> results, BuildVerdict verdict) {
+    LOGGER.log(Level.INFO, "Evaluating scan results");
+    boolean hasVulns = !results.stream().anyMatch((result) -> {
+        if (!result.verdict()) {
+          LOGGER.log(Level.FINER, result.getFilename() + " has result: " + result.verdict());
+          return true;
+        } else {
+          LOGGER.log(Level.FINE, result.getFilename() + " has error: " + result.getError());
+          return false;
+        }
+      }
+    );
+    verdict.setFilesWithUntriagedVulns(true);
   }
 }

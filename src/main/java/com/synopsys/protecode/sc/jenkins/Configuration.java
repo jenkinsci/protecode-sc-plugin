@@ -36,4 +36,7 @@ public class Configuration {
    */
   // TODO: Get name with version also. This could be done by using resources.
   public static final String CLIENT_NAME = "Protecode Jenkins Plugin";
+  
+  /** Convenience for making sure the tool name is correct. */
+  public static final String TOOL_NAME = "Black Duck Binary Analysis";
 }
