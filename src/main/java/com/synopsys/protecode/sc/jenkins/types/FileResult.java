@@ -38,8 +38,7 @@ public @Data class FileResult {
 
   private Map<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> files = new HashMap<>();
 
-  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse, boolean zippingInUse) {
-    LOGGER.log(Level.WARNING, "New Fileresult: file: " + filename);
+  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse, boolean zippingInUse) {    
     this.filename = filename;
     this.uploadResponse = uploadResponse;
     this.zippingInUse = zippingInUse;
@@ -52,14 +51,12 @@ public @Data class FileResult {
 
   // TODO: This should be a model, this is a bit over the limit what it should have.
   public void setResultResponse(HttpTypes.ScanResultResponse resultResponse) {
-    this.resultResponse = resultResponse;
-    LOGGER.log(Level.WARNING, "Setting ------------------------- resultResponse!!!");
+    this.resultResponse = resultResponse;    
     if (!zippingInUse) {
       LOGGER.log(Level.WARNING, "Adding filename to result root. No zipping.");
       files.putIfAbsent(this.filename, new HashMap<>());
     }
     for (HttpTypes.Component component : this.resultResponse.getResults().getComponents()) {  
-      //LOGGER.log(Level.WARNING, "ADDING SUB-RESULT");
       InternalTypes.VulnStatus vulnStatus = new InternalTypes.VulnStatus();
       if (!component.getVulns().isEmpty()) {
         // Component has vulns
@@ -173,12 +170,11 @@ public @Data class FileResult {
     // TODO implement error handling for misbuilt responses
     List<SerializableResult> resultList = new ArrayList<>();
     
-    LOGGER.warning("result entry set size: " + files.entrySet().size());
+    //LOGGER.fine("result entry set size: " + files.entrySet().size());
     
     for (Map.Entry<String, Map<Component, VulnStatus>> file : files.entrySet()) {
       long untriagedVulns = 0;
       long triagedVulns = 0;
-      LOGGER.warning("----RESULT:\n" + file);
       // TODO: WET
       for (InternalTypes.VulnStatus vulnStatus : file.getValue().values()) {
         untriagedVulns += vulnStatus.untriagedVulnsCount();

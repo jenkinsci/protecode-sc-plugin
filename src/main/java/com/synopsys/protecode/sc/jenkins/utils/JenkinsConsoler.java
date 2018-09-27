@@ -89,11 +89,16 @@ public class JenkinsConsoler {
 
   /**
    * Make the string 80 chars long with filler "|--- " in front and " ---|" at the end.
+   * 
+   * TODO: Evaluate if users are annoyed by this. Remove if it makes the log unreadable!
    *
    * @param msg message to wrap
    * @return wrapped message
    */
   private String wrapper(String msg) {
+    if (msg.length() > 75) { // lets not be fancy if the line is long
+      return msg;
+    }
     String fillerStart = (msg.length() % 2 == 0) ? " " : " -";
     // leave 2 for | and 2 for spaces around the message.
     int fillerLength = (LINE_LENGTH - msg.length() - 4) / 2; // might drop 0.5
@@ -117,7 +122,7 @@ public class JenkinsConsoler {
    */
   private String getCharacters(int length, @NonNull String chars) {
     if ((length % chars.length()) != 0) {
-      // TODO: do somethign. Perhaps trunk to return buffer length...
+      // TODO: do somethign. Perhaps default to return buffer length...
     }
     StringBuilder outputBuffer = new StringBuilder(length);
     for (int i = 0; i < length; i += chars.length()) {

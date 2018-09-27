@@ -6,7 +6,7 @@
     <f:entry title="Group ID" field="protecodeScGroup">
         <f:textbox />
     </f:entry>
-    <f:entry title="Scan job name (used only when zipping 10 or more files)" field="protecodeScanName">
+    <f:entry title="Scan job name (used only when zipping (10 or more files))" field="protecodeScanName">
         <f:textbox />
     </f:entry>
     <f:entry title="Fail build if vulnerabilities" field="failIfVulns">

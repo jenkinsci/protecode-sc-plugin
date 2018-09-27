@@ -204,13 +204,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     try {
       workspace = run.getExecutor().getCurrentWorkspace();
     } catch (Exception e) {
-      console.log("no worksapace, exiting");
+      listener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
+      run.setResult(Result.FAILURE);
       return false;
     }
     
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);
-    
+  
     String cleanJob = "";
     if (protecodeScanName == null || "".equals(protecodeScanName)) {
       LOGGER.info("Didn't find job name, defaulting to build id");
@@ -258,10 +259,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       //return false;
     } catch (InterruptedException ie) {
       log.println("Interrupted, stopping build");
+      run.setResult(Result.ABORTED);
+      return false;
     }
     
     if (verdict.getFilesFound() == 0) {
-      console.log("Could not find any files to scan. Exiting with 'no error' status");
+      console.log("Could not find any files to scan. Skipping build step with 'no error' status");
       return true;
     }
     
@@ -292,6 +295,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         log.println("NO vulnerabilities found.");
       }
       buildStatus = true;
+      run.setResult(Result.SUCCESS);
     }
 
     log.println("/---------- Protecode SC plugin end -----------/");

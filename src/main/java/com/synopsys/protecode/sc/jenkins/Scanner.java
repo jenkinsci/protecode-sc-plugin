@@ -143,7 +143,7 @@ public class Scanner {
             files,
             zipName.get()
           );
-          console.log("10 or more files, zipping. Protecode job will be called: " + protecodeScanName);
+          console.log("10 or more files found, zipping. Protecode job will be called: " + protecodeScanName);
           LOGGER.info("Zip size: " + zip.length() + " bytes.");
           zippingInUse = true;
           files.clear();
@@ -245,7 +245,7 @@ public class Scanner {
         new Listeners.ScanService() {
           @Override
           public void processUploadResult(HttpTypes.UploadResponse result) {
-            LOGGER.warning("Got result: " + result);
+            LOGGER.warning("Received a result for filename: " + jobName);
             addUploadResponse(log, jobName, result, NO_ERROR);
           }
 
@@ -276,7 +276,7 @@ public class Scanner {
     // TODO: Make better timeout, which encapsulates the whole step
     long endAt = System.currentTimeMillis() + ((long)this.scanTimeout * 60L * 1000L);
     // use shortened variable to distinguish from possibly null service        
-    log.println("Fetching results from Protecode SC");
+    log.println("Waiting for results from Protecode SC");
     do {
       if (System.currentTimeMillis() > endAt) {
         listener.error("Timeout while fetching files");
