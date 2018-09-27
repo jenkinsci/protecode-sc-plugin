@@ -84,7 +84,7 @@ public @Data class FileResult {
         }
       }
       if (zippingInUse) {
-        LOGGER.log(Level.WARNING, "Zipping in use so zipping in result too!");
+        LOGGER.log(Level.FINE, "Zipping in use so zipping in result too");
         // Support for multifile packages
         for(String includedFileName : component.getFileNames()) {
           files.putIfAbsent(includedFileName, new HashMap<>());
@@ -93,7 +93,7 @@ public @Data class FileResult {
       } else {
         // of course this isn't needed 'as such' but the user expects the zip to be evaluated
         // as a single entity.
-        LOGGER.log(Level.WARNING, "Making single file/non zip result!");        
+        LOGGER.log(Level.FINE, "Making single file/non zip result!");        
         files.get(this.filename).put(component, vulnStatus); 
       }      
       //components.put(component, vulnStatus);
