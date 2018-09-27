@@ -16,27 +16,28 @@ import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
  * TODO: Add error setters for all interfaces
  */
 public class Listeners {
-  public static interface ScanService {
+  
+  public static interface ErrorService {
+    public void setError(String reason);
+  }
+  
+  public static interface ScanService extends ErrorService {
     public void processUploadResult(HttpTypes.UploadResponse result);
-    public void setError(String reason);
   }
   
-  public static interface PollService {
+  public static interface PollService extends ErrorService {
     public void setScanStatus(HttpTypes.UploadResponse status);
-    public void setError(String reason);
   }
   
-  public static interface ResultService {
+  public static interface ResultService extends ErrorService {
     public void setScanResult(HttpTypes.ScanResultResponse result);
-    public void setError(String reason);
   }
   
-  public static interface ConnectionStateService {
-    public void setConnectionStatus(boolean serverOk);
-    public void setConnectionError(String reason);
+  public static interface ConnectionStateService extends ErrorService {
+    public void setConnectionStatus(boolean serverOk);    
   }
   
-  public static interface GroupService {
+  public static interface GroupService extends ErrorService {
     public void setGroups(HttpTypes.Groups groups);
   }
 }

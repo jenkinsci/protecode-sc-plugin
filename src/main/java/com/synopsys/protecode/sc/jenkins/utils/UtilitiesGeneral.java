@@ -8,14 +8,22 @@
  * Contributors:
  *    Synopsys, Inc - initial implementation and documentation
  ****************************************************************************** */
-package com.synopsys.protecode.sc.jenkins;
+package com.synopsys.protecode.sc.jenkins.utils;
 
+import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import okhttp3.Headers;
 
-class UtilitiesGeneral {
+public final class UtilitiesGeneral {
 
   /**
    * Checks connection status for errors. 
@@ -58,14 +66,27 @@ class UtilitiesGeneral {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
     // Currently underscore is accepted in protecode SC so it's in use.
     return line.replace(" ", "_");
+  }    
+
+  /**
+   * Method for getting a nicely formated timestamp.
+   * TODO: This might already be implemented somewhere.
+   * @return A formated time as string
+   */
+  public static String timestamp() {
+    SimpleDateFormat sdfDate = new SimpleDateFormat("HH:mm:ss");//dd/MM/yyyy
+    Date now = new Date();
+    String strDate = sdfDate.format(now);
+    return strDate;
   }
   
-  public static String buildReportString(List<InternalTypes.FileAndResult> results) {    
-    StringBuilder report = new StringBuilder();
-    report.append("--------- Following files have vulnerabilities ---------\n");
-    results.stream().filter((result) -> (!result.verdict())).forEachOrdered((result) -> {
-      report.append(result.getFilename()).append("\n");
-    });
-    return report.toString();
+  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
+  public static boolean isUrl(String possibleUrl) {
+    try {
+      final URL url = new URL(possibleUrl);
+      return true;
+    } catch(MalformedURLException e) {
+      return false;
+    }
   }
 }

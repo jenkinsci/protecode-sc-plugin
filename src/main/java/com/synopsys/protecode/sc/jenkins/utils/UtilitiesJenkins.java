@@ -8,15 +8,15 @@
  * Contributors:
  *    Synopsys, Inc - initial implementation and documentation
  *******************************************************************************/
-package com.synopsys.protecode.sc.jenkins;
+package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import hudson.security.ACL;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -51,5 +51,17 @@ public final class UtilitiesJenkins {
         CredentialsMatchers.withId(credentialsId));
     LOGGER.log(Level.FINE, "Creds: {0}", creds);
     return creds;         
+  }
+  
+  /**
+   * Returns only the first part of the job name. Currently the job name is composed of the job name
+   * and the number of the build, e.g. "somejob#7". Protecode SC doesn't accept "#" and the number
+   * should not be added
+   * 
+   * @param jobName the jenkins build name to be cleaned for Protecode SC use
+   * @return the first token before #, this is the "normal" job name.
+   */
+  public static String cleanJobName(String jobName) {
+    return new StringTokenizer(jobName, "#").nextToken();
   }
 }

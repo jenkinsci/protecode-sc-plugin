@@ -10,29 +10,31 @@
   *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.*;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ErrorService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.GroupService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.PollService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ResultService;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes.ConnectionStatus;
-
+import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
+import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Map;
 import java.util.logging.Logger;
-
+import lombok.Data;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
-import lombok.Data;
 
 /**
  * This class implements and encapsulates the interface towards Protecode.
  *
  * As a service class it won't know what it's calling, so the backend must be provided
  * for it.
- * @author pajunen
  */
 public @Data class ProtecodeScService {
   
@@ -72,8 +74,48 @@ public @Data class ProtecodeScService {
       @Override
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
         // something went completely south (like no internet connection)
-        listener.setError("Protecode SC returned error for file scan request: " + fileName +
-          ": " + t.getLocalizedMessage());
+        String error = "Protecode SC returned error for file scan request: " + fileName +
+          ": " + t.getLocalizedMessage();  
+        fail(error, listener);
+      }
+    });
+  }
+  
+  // TODO: This is a copy paste
+  public void scanFetchFromUrl(
+          String group, 
+          String url, 
+          Map headers, 
+          ScanService listener
+  ) {
+    headers.put("Group", group);
+    headers.put("Url", url);
+    
+    Call<HttpTypes.UploadResponse> call = backend.scanFetchFromUrl(headers);
+    call.enqueue(new Callback<HttpTypes.UploadResponse>() {
+      @Override
+      public void onResponse(
+        Call<HttpTypes.UploadResponse> call,
+        Response<HttpTypes.UploadResponse> response
+      ) {
+        if (response.isSuccessful()) {
+          listener.processUploadResult(response.body());
+        } else {
+          try {            
+            listener.setError("Protecode SC returned error for " +
+              response.errorBody().string() + " for url: " + url);            
+          } catch (IOException ex) {
+            listener.setError("Protecode SC returned generic error without error message"
+              + " for url: " + url);
+          }
+        }
+      }
+      @Override
+      public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
+        // something went completely south (like no internet connection)
+        String error = "Protecode SC returned error for url scan request: " + url +
+          ": " + t.getLocalizedMessage();  
+        fail(error, listener);
       }
     });
   }
@@ -98,7 +140,8 @@ public @Data class ProtecodeScService {
       }
       @Override
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
-        listener.setError("Poll request returned with error for scan id: " + scanId + ". Error was: " + t.getLocalizedMessage());
+        String error = "Poll request returned with error for scan id: " + scanId + ". Error was: " + t.getLocalizedMessage();
+        fail(error, listener);
       }
     });
   }
@@ -111,12 +154,14 @@ public @Data class ProtecodeScService {
         if (response.isSuccessful()) {
           listener.setScanResult(response.body());
         } else {
-          // error response, no access to resource?
+          String error = "Fetching the scan result for sha1sum: " + sha1sum + " failed.";
+          fail(error, listener);
         }
       }
       @Override
       public void onFailure(Call<HttpTypes.ScanResultResponse> call, Throwable t) {
-        // something went completely south (like no internet connection)
+        String error = "Fetching the scan result for sha1sum: " + sha1sum + " failed with error: " + t.getMessage();
+        fail(error, listener);
       }
     });
   }
@@ -125,7 +170,8 @@ public @Data class ProtecodeScService {
    * Test the connection with a HEAD call.
    * @return ConnectionStatus object for the current connection.
    */
-  public ConnectionStatus connectionOk() {    
+  public ConnectionStatus connectionOk() {
+    // TODO: Fix, this doesn't seem to work
     Call<Void> call = serviceBackend.head();
     try {
       return new ConnectionStatus(call.execute());
@@ -146,15 +192,21 @@ public @Data class ProtecodeScService {
         if (response.isSuccessful()) {
           listener.setGroups(response.body());
         } else {          
-          // TODO: Handle errors
+          String error = "Fetching groups failed";
+          fail(error, listener);
         }
       }
       
       @Override
       public void onFailure(Call<HttpTypes.Groups> call, Throwable t) {
-        // something went completely south (like no internet connection)
-        // TODO: Should we handle this somehow
+        String error = "Fetching groups failed with error: " + t.getMessage();
+        fail(error, listener);
       }
     });
+  }
+  
+  private void fail(String error, ErrorService listener) {
+    listener.setError(error);
+    LOGGER.warning(error);
   }
 }

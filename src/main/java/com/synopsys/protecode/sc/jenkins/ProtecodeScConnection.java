@@ -11,22 +11,17 @@
 package com.synopsys.protecode.sc.jenkins;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import java.net.URL;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
+import com.synopsys.protecode.sc.jenkins.utils.UtilitiesJenkins;
+import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import okhttp3.CipherSuite;
-import okhttp3.ConnectionSpec;
-import okhttp3.Credentials;
-import okhttp3.TlsVersion;
+import okhttp3.*;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ProtecodeScConnection {
   
@@ -62,12 +57,11 @@ public class ProtecodeScConnection {
    * @return the backend to use while communicating to the server
    */
   public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {
-    // Leave these here for convenience of debugging. They bleed memory _badly_ though
+    // HOW TO LOG
+// Leave these here for convenience of debugging. They bleed memory _badly_ though
 //    HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
 //    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
     // ... ).addInterceptor(interceptor).build();
-    
-    int timeoutSeconds = 5000;
     
     OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
       (Interceptor.Chain chain) ->
@@ -82,16 +76,24 @@ public class ProtecodeScConnection {
         String protecodeScUser = credentials.getUsername();
         String protecodeScPass = credentials.getPassword().toString();
         
-        Request.Builder builder = originalRequest.newBuilder().header(
-          "Authorization",
-          Credentials.basic(protecodeScUser, protecodeScPass)
-        );
+        Request.Builder builder = originalRequest.newBuilder()
+          .header(
+            "Authorization",
+            Credentials.basic(protecodeScUser, protecodeScPass)
+          )
+          .addHeader("User-Agent", Configuration.CLIENT_NAME);
         
         Request newRequest = builder.build();
         return chain.proceed(newRequest);
       }
-    ).readTimeout(timeoutSeconds, TimeUnit.SECONDS)
-      .connectTimeout(timeoutSeconds, TimeUnit.SECONDS).build();
+    ).readTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      .connectTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      //.retryOnConnectionFailure(true)
+      // TODO: Evaluate if .retryOnConnectionFailure(true) should be added.
+      .build();
+    // TODO: Write interceptor for checking is the error 429 (too many requests) and handle that in
+    // a nice fashion.
+    
     
     okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);
     LOGGER.log(Level.ALL, "Max simultaneous requests to protecode limited to: {0}", 
@@ -108,7 +110,7 @@ public class ProtecodeScConnection {
   
   private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {
     if (checkCertificate) {
-      LOGGER.info("Using safe client");
+      LOGGER.log(Level.INFO, "Checking certificates");
       ConnectionSpec spec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
         .tlsVersions(TlsVersion.TLS_1_2)
         .cipherSuites(
@@ -119,7 +121,7 @@ public class ProtecodeScConnection {
         .build();
       return new OkHttpClient.Builder().connectionSpecs(Collections.singletonList(spec));
     } else {
-      LOGGER.info("Using UNSAFE client");
+      LOGGER.log(Level.INFO, "NOT checking certificates");
       return UnsafeOkHttpClient.getUnsafeOkHttpClient().newBuilder();
     }
   }

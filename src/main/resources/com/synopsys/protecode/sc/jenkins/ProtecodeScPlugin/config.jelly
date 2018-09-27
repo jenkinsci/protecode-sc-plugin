@@ -6,13 +6,19 @@
     <f:entry title="Group ID" field="protecodeScGroup">
         <f:textbox />
     </f:entry>
+    <f:entry title="Scan job name (used only when zipping (10 or more files))" field="protecodeScanName">
+        <f:textbox />
+    </f:entry>
     <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
+        <f:checkbox default="${descriptor.defaultFailIfVulns}" />
+    </f:entry>
+    <f:entry title="Scan only produced artifacts" field="scanOnlyArtifacts">
         <f:checkbox/>
     </f:entry>
-    <!--<f:entry title="Scan all produced artifacts" field="scanAllArtifacts">
-        <f:checkbox/>
-    </f:entry>-->
-    <f:entry title="Directory to scan" field="directoryToScan">
+    <f:entry title="Directory to scan / Url of file" field="directoryToScan">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Custom header for fetching file by URL (optional)" field="customHeader">
         <f:textbox />
     </f:entry>
     <f:entry title="Include subdirectories. Please see help for warnings." field="includeSubdirectories">
@@ -22,11 +28,8 @@
         <f:textbox />
     </f:entry>
     <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
-        <f:textbox />
+        <f:textbox default="${descriptor.defaultTimeout}" />
     </f:entry>
-    <!--<f:entry title="Keep copied artifacts after build" field="leaveArtifacts">
-        <f:checkbox/>
-    </f:entry>-->
     <f:entry title="Convert results to Summary plugin format" field="convertToSummary">
         <f:checkbox />
     </f:entry>

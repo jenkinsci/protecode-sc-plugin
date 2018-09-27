@@ -20,4 +20,23 @@ public class Configuration {
    * will throw 503, "service unavailable" sometimes
    */
   public static final int MAX_REQUESTS_TO_PROTECODE = 4;
+  
+  /**
+   * Directory to store json reports for scans
+   */
+  public static final String REPORT_DIRECTORY = "reports";
+  
+  /**
+   * Connection read/write timeout.
+   */
+  public static final int TIMEOUT_SECONDS = 5000;
+  
+  /**
+   * Client name to be used in http headers. 
+   */
+  // TODO: Get name with version also. This could be done by using resources.
+  public static final String CLIENT_NAME = "Protecode Jenkins Plugin";
+  
+  /** Convenience for making sure the tool name is correct. */
+  public static final String TOOL_NAME = "Black Duck Binary Analysis";
 }
