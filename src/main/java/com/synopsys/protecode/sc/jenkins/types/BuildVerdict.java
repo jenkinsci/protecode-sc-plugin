@@ -20,8 +20,8 @@ public @Data class BuildVerdict {
   private final boolean failOnVulns;
  
   private boolean zippingUsed = false;
-  private int filesFound = 0;
-  private boolean filesWithUntriaVulns = false;
+  private long filesFound = 0;
+  private boolean filesWithUntriagedVulns = false;
   
   public BuildVerdict(boolean failOnVulns) {
     this.failOnVulns = failOnVulns;
@@ -31,14 +31,14 @@ public @Data class BuildVerdict {
    * @return True if there are no untriaged vulnerabilities
    */
   public boolean verdict() {
-    return !filesWithUntriaVulns;
+    return !filesWithUntriagedVulns;
   }
   
   public String verdictStr() {
     String verdict = null;
     if (filesFound == 0) {
       verdict = "No files were found to be scanned.";
-    } else if(filesWithUntriaVulns) {
+    } else if(filesWithUntriagedVulns) {
       verdict = "Files with vulnerabilities found.";
     }
     return verdict;

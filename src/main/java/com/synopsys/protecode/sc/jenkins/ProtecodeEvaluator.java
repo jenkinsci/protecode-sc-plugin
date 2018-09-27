@@ -38,6 +38,6 @@ public class ProtecodeEvaluator {
         }
       }
     );
-    verdict.setFilesWithUntriaVulns(true);
+    verdict.setFilesWithUntriagedVulns(true);
   }
 }

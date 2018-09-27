@@ -114,7 +114,7 @@ public class Scanner {
  */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")  
   public List<FileResult> doPerform() throws InterruptedException, IOException {     
-    List<FilePath> files = null;
+    List<FilePath> files = new ArrayList<>(); // so not to cause npe if no files were fonud
     FilePath zip = null;
     long start = 0;
     if (!UtilitiesGeneral.isUrl(directoryToScan)) {
@@ -172,7 +172,7 @@ public class Scanner {
       sendFiles(files, zipName);
       
     } else {
-      LOGGER.log(Level.WARNING, "Gettgin from URL");
+      LOGGER.log(Level.WARNING, "Gettign from URL");
       console.log("Fetching file from URL: " + directoryToScan);
       ObjectReader reader = new ObjectMapper().readerFor(Map.class);
       start = System.currentTimeMillis();   
@@ -198,11 +198,8 @@ public class Scanner {
       );
     }
     
-    try {
-      waitForUploadResponses(files.size(), log);
-    } catch (NullPointerException e) {
-      
-    }
+    waitForUploadResponses(files.size(), log);
+
     log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
     long time = (System.currentTimeMillis() - start) / 1000;
     LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);

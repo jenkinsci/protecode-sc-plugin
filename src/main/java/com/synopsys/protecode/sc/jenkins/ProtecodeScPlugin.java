@@ -352,7 +352,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     public ListBoxModel doFillCredentialsIdItems(@AncestorInPath Item context) {
       // TODO Find a nice way to use this to fetch possible groups
-      //  - this might be impossible in this sc String jobNameope
+      //  - this might be impossible in this scope
       // https://groups.google.com/forum/?hl=en#!searchin/jenkinsci-dev/store$20configuration|sort:date/jenkinsci-dev/-DosteCUiu8/18-HvlAsAAAJ
       StandardListBoxModel result = new StandardListBoxModel();
       result.withEmptySelection();
