@@ -34,6 +34,7 @@ public final class HttpTypes {
   
   public static @Data class ScanState {
     private int id;
+    private String report_url;
     private String sha1sum;
     /** Can be R(eady) B(usy) F(ailed) */
     private String status;

@@ -15,7 +15,6 @@ import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
 import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -52,7 +51,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.utils.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.HashMap;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -233,7 +231,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    String checkedDirectoryToScan = (null != getDirectoryToScan()) ? getDirectoryToScan() : "";
+    String checkedDirectoryToScan = ".";
+    String dirToScan = getDirectoryToScan();
+    if (null != dirToScan){
+      if(!dirToScan.trim().equals("")) {
+        checkedDirectoryToScan = dirToScan;
+      } else {
+        console.log("Could not parse 'directory to scan'. Scanning workspace root");
+      }
+    } else {
+        console.log("Could not parse 'directory to scan'. Scanning workspace root");
+    }
     
     Scanner scanner = new Scanner(
       verdict,

@@ -66,7 +66,7 @@ public final class UtilitiesFile {
    * @return List of FilePaths produced as artifacts
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
-  public static List<FilePath> getArtifacts(Run<?, ?> run, Pattern pattern) {
+  public static List<FilePath> getArtifacts(Run<?, ?> run, Pattern pattern, FilePath directoryToScan) {
     List<FilePath> files = new ArrayList<>();
     List<? extends Run<?, ?>.Artifact> buildArtifacts = run.getArtifacts();
     for (Run<?, ?>.Artifact buildArtifact : buildArtifacts) {
@@ -78,8 +78,7 @@ public final class UtilitiesFile {
   /**
    * Returns files in a directory
    *
-   * @param fileDirectory Name of the directory to parse through for files
-   * @param workspace The workspace to look for files in
+   * @param fileDirectory Name of the directory to parse through for files   
    * @param includeSubdirectories If true the method returns all files from the directory structure.
    * @param pattern Regex to include only certain files. If all is required use
    * UtilitiesFile.ALL_FILES_PATTERN
@@ -88,17 +87,15 @@ public final class UtilitiesFile {
    * @return list of files
    */
   public static List<FilePath> getFiles(
-    String fileDirectory,
-    FilePath workspace,
+    FilePath fileDirectory,
     boolean includeSubdirectories,
     Pattern pattern,
     Run<?, ?> run,
     TaskListener listener
   ) {  
-    PrintStream log = listener.getLogger();     
-    FilePath directory = workspace.child(cleanUrl(fileDirectory));      
-    log.println("Looking for files in directory: " + directory);
-    return getFiles(directory, includeSubdirectories, pattern, log);    
+    PrintStream log = listener.getLogger();         
+    log.println("Looking for files in directory: " + fileDirectory);
+    return getFiles(fileDirectory, includeSubdirectories, pattern, log);    
   }
 
   /**
