@@ -113,7 +113,8 @@ public class Scanner {
  * @throws InterruptedException Jenkins build interruption
  */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")  
-  public List<FileResult> doPerform() throws InterruptedException, IOException {     
+  public List<FileResult> doPerform() throws InterruptedException, IOException {
+    FilePath directory = run.getExecutor().getCurrentWorkspace().child(directoryToScan);
     List<FilePath> files = new ArrayList<>(); // so not to cause npe if no files were fonud
     FilePath zip = null;
     long start = 0;
@@ -122,14 +123,14 @@ public class Scanner {
         LOGGER.finer("Scanning only artifacts");
         files = UtilitiesFile.getArtifacts(
           run, 
-          UtilitiesFile.patternOrAll(pattern)        
+          UtilitiesFile.patternOrAll(pattern),
+          directory
         );
       } else {
         LOGGER.finer("Scanning all in directory");
         //@SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
         files = UtilitiesFile.getFiles(
-          directoryToScan,
-          workspace,
+          directory,
           includeSubdirectories,
           UtilitiesFile.patternOrAll(pattern),
           run,
@@ -162,7 +163,7 @@ public class Scanner {
 
       // Send files and wait for all http responses 
       start = System.currentTimeMillis();   
-      log.println("Upload began at " + UtilitiesGeneral.timestamp() + ".");
+      console.log("Upload began at " + UtilitiesGeneral.timestamp() + ".");
       if (zipName.isPresent()) {
         if (files.size() != 1) {
           // For some obscure cases where the zip could not be made, but no exception was raised.
@@ -200,7 +201,7 @@ public class Scanner {
     
     waitForUploadResponses(files.size(), log);
 
-    log.println("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
+    console.log("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
     long time = (System.currentTimeMillis() - start) / 1000;
     LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);
 
@@ -226,9 +227,10 @@ public class Scanner {
     // TODO: compare the sha1sum and send again if incorrect
     if (NO_ERROR.equals(error)) {
       results.add(new FileResult(name, response, zippingInUse));
+      console.logPure("Uploaded: " + name + ": " + "\n\t" + response.getResults().getReport_url());
     } else {
       // TODO, if en error which will stop the build from happening we should stop the build.     
-      results.add(new FileResult(name, error));
+      results.add(new FileResult(name, error));      
     }
   }
 
@@ -252,7 +254,7 @@ public class Scanner {
         new Listeners.ScanService() {
           @Override
           public void processUploadResult(HttpTypes.UploadResponse result) {
-            LOGGER.warning("Received a result for filename: " + jobName);
+            LOGGER.warning("Received results for file: " + jobName);
             addUploadResponse(log, jobName, result, NO_ERROR);
           }
 
@@ -303,7 +305,7 @@ public class Scanner {
                 new Listeners.ResultService() {
                   @Override
                   public void setScanResult(HttpTypes.ScanResultResponse scanResult) {
-                    log.println("Received a result for file: " + result.getFilename());
+                    log.println("Received results for file: " + result.getFilename());
                     result.setResultResponse(scanResult);
                   }
 

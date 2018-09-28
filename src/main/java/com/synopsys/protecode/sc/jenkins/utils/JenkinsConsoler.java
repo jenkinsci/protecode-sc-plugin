@@ -42,6 +42,10 @@ public class JenkinsConsoler {
     log.println(wrapper(line));
   }
   
+  public void logPure(String line){
+    log.println(line);
+  }
+  
   public void error(String error) {
     
   }
@@ -55,7 +59,7 @@ public class JenkinsConsoler {
    * @param group for printing the group into which the files are uploaded
    */
   public void start(boolean failIfVulns, boolean includeSubdirectories, String group) {
-    log("Protecode SC plugin start. Uploading to " + group);
+    log("Protecode SC plugin start. Uploading to group number: " + group);
     if (failIfVulns) {
       log("The build will fail if any untriaged vulnerabilities are found.");
     } else {
