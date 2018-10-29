@@ -28,16 +28,16 @@ public class ProtecodeEvaluator {
    */
   public static void evaluate(List<FileResult> results, BuildVerdict verdict) {
     LOGGER.log(Level.INFO, "Evaluating scan results");
-    boolean hasVulns = !results.stream().anyMatch((result) -> {
-        if (!result.verdict()) {
-          LOGGER.log(Level.FINER, result.getFilename() + " has result: " + result.verdict());
-          return true;
-        } else {
-          LOGGER.log(Level.FINE, result.getFilename() + " has error: " + result.getError());
+    boolean hasVulns = results.stream().anyMatch((result) -> {
+        if (result.verdict()) {
+          LOGGER.log(Level.INFO, result.getFilename() + " has result: " + result.verdict());
           return false;
+        } else {
+          LOGGER.log(Level.INFO, result.getFilename() + " has error: " + result.getError());
+          return true; // has untriaged vulns or an error
         }
       }
     );
-    verdict.setFilesWithUntriagedVulns(true);
+    verdict.setFilesWithUntriagedVulns(hasVulns);
   }
 }

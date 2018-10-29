@@ -200,6 +200,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException {
     
+    // TODO: Check credentials exists!
     if (workspace == null) {
       listener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
       run.setResult(Result.FAILURE);
