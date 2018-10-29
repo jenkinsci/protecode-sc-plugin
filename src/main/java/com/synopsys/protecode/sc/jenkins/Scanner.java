@@ -114,7 +114,7 @@ public class Scanner {
  */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")  
   public List<FileResult> doPerform() throws InterruptedException, IOException {
-    FilePath directory = run.getExecutor().getCurrentWorkspace().child(directoryToScan);
+    FilePath directory = workspace.child(directoryToScan);
     List<FilePath> files = new ArrayList<>(); // so not to cause npe if no files were fonud
     FilePath zip = null;
     long start = 0;
@@ -144,7 +144,7 @@ public class Scanner {
       if (files.size() > 9) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
         try {   
-          zipName = Optional.of(run.getExecutor().getCurrentWorkspace() + "/" + ZIP_FILE_PREFIX + protecodeScanName);
+          zipName = Optional.of(workspace + "/" + ZIP_FILE_PREFIX + protecodeScanName);
           zip = UtilitiesFile.packageFiles(
             workspace,
             files,

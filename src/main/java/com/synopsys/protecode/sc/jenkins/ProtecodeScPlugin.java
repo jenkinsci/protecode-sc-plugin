@@ -184,7 +184,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // same exception upward)
     LOGGER.finer("Perform() with run object");
     this.listener = listener;
-    doPerform(run);
+    doPerform(run, workspace);
   }
 
   @Override
@@ -194,16 +194,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // same exception upward)
     LOGGER.finer("Perform() with build object");
     this.listener = listener;
-    return doPerform(build);
+    return doPerform(build, build.getWorkspace());
   }
   
-  public boolean doPerform(Run<?, ?> run)
+  public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException {
     
-    FilePath workspace;
-    try {
-      workspace = run.getExecutor().getCurrentWorkspace();
-    } catch (NullPointerException e) {
+    if (workspace == null) {
       listener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
       run.setResult(Result.FAILURE);
       return false;
