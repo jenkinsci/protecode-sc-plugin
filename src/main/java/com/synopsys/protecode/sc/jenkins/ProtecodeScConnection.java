@@ -74,7 +74,7 @@ public class ProtecodeScConnection {
         // Right now we can't provide credentials "as is" to protecode so we need to extract to
         // contents
         String protecodeScUser = credentials.getUsername();
-        String protecodeScPass = credentials.getPassword().toString();
+        String protecodeScPass = credentials.getPassword().getPlainText();
         
         Request.Builder builder = originalRequest.newBuilder()
           .header(
