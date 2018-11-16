@@ -51,6 +51,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.utils.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Optional;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -75,6 +76,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private boolean scanOnlyArtifacts;
   private boolean convertToSummary;
   private boolean failIfVulns;
+  private boolean endAfterSendingFiles;
   private int scanTimeout;
 
   // transients for old conf
@@ -112,6 +114,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.protecodeScanName = "";
     this.convertToSummary = false;
     this.failIfVulns = true;
+    this.endAfterSendingFiles = false;
     this.scanTimeout = 10;
   }
 
@@ -133,27 +136,27 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     if (filesToScanDirectory != null && directoryToScan == null) {
       this.directoryToScan = this.filesToScanDirectory;
     }
-	
+
     // customHeader
     if (customHeader == null) {
       customHeader = "";
     }
-	
+
     if (this.protecodeScanName == null) {
       this.protecodeScanName = "defaultbuildname";
     }
-  
+
     return this;
   }
 
   private ProtecodeScService service() {
     // TODO: Add check that service is ok. Write http interceptor for okhttp
 
-    // TODO: Is this needed? 
+    // TODO: Is this needed?
     getDescriptor().load();
 
     try {
-      if (service == null        
+      if (service == null
         // We need to check whether we need a new instance of the backend.
         || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
         || getDescriptor().isDontCheckCert() != storedDontCheckCertificate
@@ -196,30 +199,30 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.listener = listener;
     return doPerform(build, build.getWorkspace());
   }
-  
+
   public boolean doPerform(Run<?, ?> run, FilePath workspace)
     throws IOException, InterruptedException {
-    
+
     // TODO: Check credentials exists!
     if (workspace == null) {
       listener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
       run.setResult(Result.FAILURE);
       return false;
     }
-    
+
     log = listener.getLogger();
     console = new JenkinsConsoler(listener);
-  
+
     String cleanJob = null;
     if (protecodeScanName == null || "".equals(protecodeScanName)) {
       LOGGER.info("Didn't find job name, defaulting to build id");
-      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId()) != null 
+      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId()) != null
         ? UtilitiesJenkins.cleanJobName(run.getExternalizableId()) : "jenkins_job";
     }
-    
-    console.start(failIfVulns, includeSubdirectories, protecodeScGroup);   
+
+    console.start(failIfVulns, includeSubdirectories, protecodeScGroup);
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
-          
+
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service();
     if (serv == null) {
@@ -229,6 +232,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+    // some horror code to remove findbugs hits
     String checkedDirectoryToScan = ".";
     String dirToScan = getDirectoryToScan();
     if (null != dirToScan){
@@ -240,7 +244,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     } else {
         console.log("Could not parse 'directory to scan'. Scanning workspace root");
     }
-    
+
     Scanner scanner = new Scanner(
       verdict,
       protecodeScGroup,
@@ -252,16 +256,25 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       directoryToScan,
       scanOnlyArtifacts,
       includeSubdirectories,
+      endAfterSendingFiles,
       pattern,
       protecodeScanName,
       customHeader,
       console
     );
-    
+
     // Get/scan the files
     List<FileResult> results = null;
     try {
-      results = scanner.doPerform();
+      // There needs to be a possiblity to just end the phase after the files are transfered.
+      Optional<List<FileResult>> resultOp = scanner.doPerform();
+      if(endAfterSendingFiles) {
+        LOGGER.info("Files sent, ending build due to configuration.");
+        console.log("Files sent, ending build.");
+        run.setResult(Result.SUCCESS);
+        return true;
+      }
+      results = resultOp.get();
     } catch (IOException ioe) {
       listener.error("Could not send files to Protecode-SC: " + ioe);
       //return false;
@@ -270,12 +283,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       run.setResult(Result.ABORTED);
       return false;
     }
-    
+
     if (verdict.getFilesFound() == 0) {
       console.log("Could not find any files to scan. Skipping build step with 'no error' status");
       return true;
     }
-    
+
     // make results
     ReportBuilder.report(results, listener, UtilitiesFile.reportsDirectory(run), run);
 
@@ -286,9 +299,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     //evaluate, if verdict is false, there are vulns
-    ProtecodeEvaluator.evaluate(results, verdict);    
+    ProtecodeEvaluator.evaluate(results, verdict);
     boolean buildStatus = false;
-    
+
     if (failIfVulns) {
       if (!verdict.verdict()) {
         console.printReportString(results);
@@ -324,13 +337,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @Symbol("protecodesc")
   public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
     /** Read from jelly */
-    public static final int defaultTimeout = 10;
+    public static final int defaultTimeout = 60;
     /** Read from jelly */
     public static final boolean defaultFailIfVulns = true;
+    public static final boolean defaultEndAfterSendingFiles = false;
 
     @Getter @Setter
     protected String protecodeScHost;
-    
+
     @Getter @Setter
     protected boolean dontCheckCert;
 
@@ -404,7 +418,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       }
     }
 
-    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE") // It's supposed to blow up... 
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE") // It's supposed to blow up...
     public FormValidation doCheckCustomHeader(@QueryParameter String customHeader) {
       try {
         if (customHeader == null || "".equals(customHeader)) {
@@ -487,7 +501,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public void setScanTimeout(int scanTimeout) {
     this.scanTimeout = scanTimeout;
   }
-  
+
   @DataBoundSetter
   public void setScanOnlyArtifacts(boolean onlyArtifacts) {
     this.scanOnlyArtifacts = onlyArtifacts;
@@ -497,10 +511,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public void setCustomHeader(String customHeader) {
     this.customHeader = customHeader;
   }
-  
+
   @DataBoundSetter
   public void setProtecodeScanName(String protecodeScanName) {
     this.protecodeScanName = protecodeScanName;
+  }
+
+  public void setEndAfterSendingFiles(boolean endAfterSendingFiles) {
+    this.endAfterSendingFiles = endAfterSendingFiles;
   }
 
   @CheckForNull
@@ -542,19 +560,23 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   public int getScanTimeout() {
     return scanTimeout;
   }
-  
+
   @CheckForNull
   public boolean getScanOnlyArtifacts() {
     return scanOnlyArtifacts;
   }
-  
+
   @CheckForNull
   public String getCustomHeader() {
     return customHeader;
   }
-  
+
   @CheckForNull
   public String getProtecodeScanName() {
     return this.protecodeScanName;
+  }
+
+  public boolean getEndAfterSendingFiles() {
+    return this.endAfterSendingFiles;
   }
 }

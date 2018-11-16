@@ -44,10 +44,10 @@ import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PRE
  * @author rukkanen
  */
 public class Scanner {
-  
+
   // Used in the scan process
   private List<FileResult> results = new ArrayList<>();
-  
+
   private final BuildVerdict verdict;
   private final String protecodeScGroup;
   private final PrintStream log;
@@ -59,27 +59,29 @@ public class Scanner {
   private final String directoryToScan;
   private final boolean scanOnlyArtifacts;
   private final boolean includeSubdirectories;
+  private final boolean endAfterSendingFiles;
   private final String pattern;
   private final String protecodeScanName;
   private final String customHeader;
-  
+
   private boolean zippingInUse = false;
-  
+
   private static final String NO_ERROR = "";
   private static final Logger LOGGER = Logger.getLogger(Scanner.class.getName());
   private final JenkinsConsoler console;
-  
+
   public Scanner(
     BuildVerdict verdict,
     String protecodeScGroup,
-    ProtecodeScService serv,     
-    Run<?, ?> run, 
+    ProtecodeScService serv,
+    Run<?, ?> run,
     int scanTimeout,
-    FilePath workspace, 
+    FilePath workspace,
     TaskListener listener,
     String directoryToScan,
     boolean scanOnlyArtifacts,
     boolean includeSubdirectories,
+    boolean endAfterSendingFiles,
     String pattern,
     String protecodeScanName,
     String customHeader,
@@ -94,6 +96,7 @@ public class Scanner {
     this.scanTimeout = scanTimeout;
     this.workspace = workspace;
     this.directoryToScan = directoryToScan;
+    this.endAfterSendingFiles = endAfterSendingFiles;
     this.scanOnlyArtifacts = scanOnlyArtifacts;
     this.includeSubdirectories = includeSubdirectories;
     this.pattern = pattern;
@@ -101,19 +104,19 @@ public class Scanner {
     this.customHeader = customHeader;
     this.console = console;
   }
-  
+
 /**
  * The logic
- * 
+ *
  * Add a suppress since the executor workspace is already checked and valid.
  * SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
- * 
+ *
  * @return List of FileResults
  * @throws IOException File operations will throw this in cases of not found etc
  * @throws InterruptedException Jenkins build interruption
  */
-  @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")  
-  public List<FileResult> doPerform() throws InterruptedException, IOException {
+  @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+  public Optional<List<FileResult>> doPerform() throws InterruptedException, IOException {
     FilePath directory = workspace.child(directoryToScan);
     List<FilePath> files = new ArrayList<>(); // so not to cause npe if no files were fonud
     FilePath zip = null;
@@ -122,7 +125,7 @@ public class Scanner {
       if (scanOnlyArtifacts) {
         LOGGER.finer("Scanning only artifacts");
         files = UtilitiesFile.getArtifacts(
-          run, 
+          run,
           UtilitiesFile.patternOrAll(pattern),
           directory
         );
@@ -136,14 +139,14 @@ public class Scanner {
           run,
           listener
         );
-      }    
+      }
       verdict.setFilesFound(files.size());
       LOGGER.info("files found: " + files.size());
 
       Optional <String> zipName = Optional.empty();
       if (files.size() > 9) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
-        try {   
+        try {
           zipName = Optional.of(workspace + "/" + ZIP_FILE_PREFIX + protecodeScanName);
           zip = UtilitiesFile.packageFiles(
             workspace,
@@ -158,11 +161,11 @@ public class Scanner {
         } catch (Exception e) {
           zippingInUse = false;
           LOGGER.log(Level.INFO, "Couldn't zip files, sending them one-by-one. Error: {0}", e.getMessage());
-        }      
+        }
       }
 
-      // Send files and wait for all http responses 
-      start = System.currentTimeMillis();   
+      // Send files and wait for all http responses
+      start = System.currentTimeMillis();
       console.log("Upload began at " + UtilitiesGeneral.timestamp() + ".");
       if (zipName.isPresent()) {
         if (files.size() != 1) {
@@ -171,13 +174,13 @@ public class Scanner {
         }
       }
       sendFiles(files, zipName);
-      
+
     } else {
       LOGGER.log(Level.WARNING, "Gettign from URL");
       console.log("Fetching file from URL: " + directoryToScan);
       ObjectReader reader = new ObjectMapper().readerFor(Map.class);
-      start = System.currentTimeMillis();   
-      
+      start = System.currentTimeMillis();
+
       Map<String, String> map = reader.readValue(customHeader);
       service.scanFetchFromUrl(
         protecodeScGroup,
@@ -195,11 +198,15 @@ public class Scanner {
           public void processUploadResult(HttpTypes.UploadResponse result) {
             addUploadResponse(log, directoryToScan, result, NO_ERROR);
           }
-        } 
+        }
       );
     }
-    
+
     waitForUploadResponses(files.size(), log);
+
+    if (endAfterSendingFiles) {
+      return Optional.empty();
+    }
 
     console.log("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
     long time = (System.currentTimeMillis() - start) / 1000;
@@ -211,13 +218,13 @@ public class Scanner {
       LOGGER.info("removing zip file.");
       zip.delete();
     }
-    return results;
+    return Optional.of(results);
   }
-  
+
   public boolean zippingInUse() {
     return zippingInUse;
   }
-  
+
   /**
    * Called by the lamdas given to upload rest calls
    *
@@ -229,12 +236,12 @@ public class Scanner {
       results.add(new FileResult(name, response, zippingInUse));
       console.logPure("Uploaded: " + name + ": " + "\n\t" + response.getResults().getReport_url());
     } else {
-      // TODO, if en error which will stop the build from happening we should stop the build.     
-      results.add(new FileResult(name, error));      
+      // TODO, if en error which will stop the build from happening we should stop the build.
+      results.add(new FileResult(name, error));
     }
   }
 
-  private void sendFiles(List<FilePath> filesToScan, Optional <String> zipName) throws IOException, InterruptedException {    
+  private void sendFiles(List<FilePath> filesToScan, Optional <String> zipName) throws IOException, InterruptedException {
     for (FilePath file : filesToScan) {
       final String jobName;
       if (zippingInUse) {
@@ -242,7 +249,7 @@ public class Scanner {
       } else {
         jobName = file.getRemote();
       }
-      
+
       LOGGER.log(Level.INFO, "Sending file: {0}", jobName);
       service.scan(
         this.protecodeScGroup,
@@ -262,7 +269,7 @@ public class Scanner {
           public void setError(String reason) {
             // TODO: use Optional
             log.println(reason);
-            // TODO: Maybe use listener.error to stop writing for more results if we get error 
+            // TODO: Maybe use listener.error to stop writing for more results if we get error
             // perhaps?
             addUploadResponse(log, jobName, null, reason);
           }
@@ -271,7 +278,7 @@ public class Scanner {
       Thread.sleep(500); // we don't want to overload anything
     }
   }
-  
+
   /**
    * TODO clean up depth, move logic to other methods. This is staggeringly awful.
    *
@@ -281,10 +288,10 @@ public class Scanner {
     if (results.stream().allMatch((fileAndResult) -> (fileAndResult.errorIsSet()))) {
       log.println("No results found. Perhaps no uploads were succesfull.");
       return;
-    }    
+    }
     // TODO: Make better timeout, which encapsulates the whole step
     long endAt = System.currentTimeMillis() + ((long)this.scanTimeout * 60L * 1000L);
-    // use shortened variable to distinguish from possibly null service        
+    // use shortened variable to distinguish from possibly null service
     log.println("Waiting for results from Protecode SC");
     do {
       if (System.currentTimeMillis() > endAt) {
@@ -292,7 +299,7 @@ public class Scanner {
         run.setResult(Result.FAILURE);
         return;
       }
-      for (FileResult result : results) {      
+      for (FileResult result : results) {
         if (!result.errorIsSet() &&
           !result.hasScanResponse() &&
           result.uploadHTTPStatus() == 200
@@ -336,10 +343,10 @@ public class Scanner {
             );
           }
         }
-        
+
         Thread.sleep(500); // we don't want to overload the network with bulk requests
-        
-        if (allNotReady()) {          
+
+        if (allNotReady()) {
           Thread.sleep(15 * 1000);
         }
       }

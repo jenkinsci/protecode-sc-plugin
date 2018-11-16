@@ -12,6 +12,9 @@
     <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
         <f:checkbox default="${descriptor.defaultFailIfVulns}" />
     </f:entry>
+    <f:entry title="Don't wait for results" field="endAfterSendingFiles">
+        <f:checkbox default="${descriptor.defaultEndAfterSendingFiles}" />
+    </f:entry>
     <f:entry title="Scan only produced artifacts" field="scanOnlyArtifacts">
         <f:checkbox/>
     </f:entry>
