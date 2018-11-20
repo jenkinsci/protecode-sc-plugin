@@ -268,9 +268,15 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     try {
       // There needs to be a possiblity to just end the phase after the files are transfered.
       Optional<List<FileResult>> resultOp = scanner.doPerform();
+      if (verdict.getFilesFound() == 0) {
+        LOGGER.info("No files found, ending Protecode SC phase.");
+        console.log("No files found, ending Protecode SC phase.");
+        run.setResult(Result.SUCCESS);
+        return true;
+      }
       if(endAfterSendingFiles) {
-        LOGGER.info("Files sent, ending build due to configuration.");
-        console.log("Files sent, ending build.");
+        LOGGER.info("Files sent, ending Protecode SC phase due to configuration.");
+        console.log("Files sent, ending phase.");
         run.setResult(Result.SUCCESS);
         return true;
       }
@@ -517,6 +523,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.protecodeScanName = protecodeScanName;
   }
 
+  @DataBoundSetter
   public void setEndAfterSendingFiles(boolean endAfterSendingFiles) {
     this.endAfterSendingFiles = endAfterSendingFiles;
   }
@@ -576,6 +583,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     return this.protecodeScanName;
   }
 
+  @CheckForNull
   public boolean getEndAfterSendingFiles() {
     return this.endAfterSendingFiles;
   }

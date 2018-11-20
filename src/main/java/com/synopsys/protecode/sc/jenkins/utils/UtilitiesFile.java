@@ -53,7 +53,7 @@ public final class UtilitiesFile {
    * Used in the zip file name as the identifier for the zip file to be made.
    */
   public static final String ZIP_FILE_PREFIX = "jenkins-build-";
-  
+
   private UtilitiesFile() {
     // don't instantiate me...
   }
@@ -78,7 +78,7 @@ public final class UtilitiesFile {
   /**
    * Returns files in a directory
    *
-   * @param fileDirectory Name of the directory to parse through for files   
+   * @param fileDirectory Name of the directory to parse through for files
    * @param includeSubdirectories If true the method returns all files from the directory structure.
    * @param pattern Regex to include only certain files. If all is required use
    * UtilitiesFile.ALL_FILES_PATTERN
@@ -92,10 +92,10 @@ public final class UtilitiesFile {
     Pattern pattern,
     Run<?, ?> run,
     TaskListener listener
-  ) {  
-    PrintStream log = listener.getLogger();         
+  ) {
+    PrintStream log = listener.getLogger();
     log.println("Looking for files in directory: " + fileDirectory);
-    return getFiles(fileDirectory, includeSubdirectories, pattern, log);    
+    return getFiles(fileDirectory, includeSubdirectories, pattern, log);
   }
 
   /**
@@ -119,7 +119,7 @@ public final class UtilitiesFile {
           if (!file.isDirectory()) {
             // TODO Use ANT syntax
             if (pattern.matcher(file.getName()).matches()) {
-              // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)              
+              // TODO: Implement sha1sum read for file and set it with readableFile.setSha1Sum(xx)
               filesInDirectory.add(file);
             }
           } else if (includeSubdirectories) {
@@ -138,23 +138,22 @@ public final class UtilitiesFile {
 
   /**
    * Method zips files at the location of the first file.
-   * 
-   * @param workspace the directory to make the zip file and the base for all listed files. 
+   *
+   * @param workspace the directory to make the zip file and the base for all listed files.
    * @param files List of file paths
    * @param zipFileName Name for the zip file
-   * @return the zip file of all files to be 
-   * @throws IOException thrown when adding files to zip fails 
+   * @return the zip file of all files to be
+   * @throws IOException thrown when adding files to zip fails
    */
   public static FilePath packageFiles(
     FilePath workspace,
     List<FilePath> files,
     String zipFileName
   ) throws Exception {
-    // TODO simplify        
+    // TODO simplify
     FilePath zipFile = workspace.act(new MasterToSlaveFileCallable<FilePath>() {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) throws IOException, InterruptedException, InterruptedException {
-//        File zipFile = new File(workspace + "/" + ZIP_FILE_PREFIX + zipFileName);
         File zipFile = new File(zipFileName);
         LOGGER.info("Created zip: " + zipFile.getAbsolutePath());
 
@@ -168,7 +167,7 @@ public final class UtilitiesFile {
         }
 
         try (
-          FileOutputStream dest = new FileOutputStream(zipFile); 
+          FileOutputStream dest = new FileOutputStream(zipFile);
           ZipOutputStream zipOutputStream = new ZipOutputStream(dest)
           ) {
 
@@ -204,15 +203,15 @@ public final class UtilitiesFile {
 
   public static boolean removeFilePackage(
     FilePath zipFile
-  ) throws Exception {    
+  ) throws Exception {
     return zipFile.act(new MasterToSlaveFileCallable<Boolean>() {
        @Override
        public Boolean invoke(File f, VirtualChannel channel) throws IOException {
-         return f.delete();         
+         return f.delete();
        }
     });
   }
-  
+
   /**
    * Creates a directory in the specified workspace.
    *
@@ -294,12 +293,12 @@ public final class UtilitiesFile {
     }
     return cleanUrl;
   }
-  
+
   /**
    * Returns only the first part of the job name. Currently the job name is composed of the job name
    * and the number of the build, e.g. "somejob#7". Protecode SC doesn't accept "#" and the number
    * should not be added
-   * 
+   *
    * @param jobName the jenkins build name to be cleaned for Protecode SC use
    * @return the first token before #, this is the "normal" job name.
    */

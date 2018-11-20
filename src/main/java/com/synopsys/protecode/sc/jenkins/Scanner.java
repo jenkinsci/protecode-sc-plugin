@@ -142,7 +142,9 @@ public class Scanner {
       }
       verdict.setFilesFound(files.size());
       LOGGER.info("files found: " + files.size());
-
+      if (files.isEmpty()) {
+        return Optional.empty();
+      }
       Optional <String> zipName = Optional.empty();
       if (files.size() > 9) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
