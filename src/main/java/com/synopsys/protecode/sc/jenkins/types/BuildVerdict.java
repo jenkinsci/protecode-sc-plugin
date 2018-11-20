@@ -10,6 +10,7 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
+import java.util.Optional;
 import lombok.*;
 
 /**
@@ -18,28 +19,35 @@ import lombok.*;
  */
 public @Data class BuildVerdict {
   private final boolean failOnVulns;
- 
+
   private boolean zippingUsed = false;
   private long filesFound = 0;
   private boolean filesWithUntriagedVulns = false;
-  
+  private Optional<String> error = Optional.empty();
+
   public BuildVerdict(boolean failOnVulns) {
     this.failOnVulns = failOnVulns;
   }
-  
+
+  public void setError(String error) {
+    this.error = Optional.of(error);
+  }
+
   /**
    * @return True if there are no untriaged vulnerabilities
    */
   public boolean verdict() {
     return !filesWithUntriagedVulns;
   }
-  
+
   public String verdictStr() {
     String verdict = null;
     if (filesFound == 0) {
       verdict = "No files were found to be scanned.";
     } else if(filesWithUntriagedVulns) {
       verdict = "Files with vulnerabilities found.";
+    } else {
+      verdict = "No errors or Vulnerabilities found";
     }
     return verdict;
   }

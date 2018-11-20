@@ -210,7 +210,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
 
-    log = listener.getLogger();
+    //log = listener.getLogger();
     console = new JenkinsConsoler(listener);
 
     String cleanJob = null;
@@ -283,16 +283,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       results = resultOp.get();
     } catch (IOException ioe) {
       listener.error("Could not send files to Protecode-SC: " + ioe);
+      verdict.setError("Could not send files to Protecode-SC");
       //return false;
     } catch (InterruptedException ie) {
-      log.println("Interrupted, stopping build");
+      console.log("Interrupted, stopping build");
       run.setResult(Result.ABORTED);
       return false;
-    }
-
-    if (verdict.getFilesFound() == 0) {
-      console.log("Could not find any files to scan. Skipping build step with 'no error' status");
-      return true;
     }
 
     // make results
@@ -300,26 +296,28 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     // summarise
     if (convertToSummary) {
-      log.println("Writing summary for summary plugin to protecodesc.xml");
+      console.log("Writing summary for summary plugin to protecodesc.xml");
       ReportBuilder.makeSummary(run, listener);
     }
 
     //evaluate, if verdict is false, there are vulns
     ProtecodeEvaluator.evaluate(results, verdict);
-    boolean buildStatus = false;
+    boolean buildStatus = verdict.verdict();
 
+    // TODO: W-E-T
     if (failIfVulns) {
       if (!verdict.verdict()) {
         console.printReportString(results);
-        listener.fatalError("Vulnerabilities found. Failing build.");
+        listener.fatalError(verdict.verdictStr());
         run.setResult(Result.FAILURE);
       }
-      buildStatus = verdict.verdict();
+      console.log("NO vulnerabilities found.");
     } else {
       if (!verdict.verdict()) {
-        log.println("Vulnerabilities found! Not failing build due to configuration.");
+        console.printReportString(results);
+        console.log("Vulnerabilities/errors found! Not failing build due to configuration.");
       } else {
-        log.println("NO vulnerabilities found.");
+        console.log("NO vulnerabilities found.");
       }
       buildStatus = true;
       run.setResult(Result.SUCCESS);

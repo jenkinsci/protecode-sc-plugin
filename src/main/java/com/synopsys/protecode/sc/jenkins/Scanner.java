@@ -142,6 +142,7 @@ public class Scanner {
       }
       verdict.setFilesFound(files.size());
       LOGGER.info("files found: " + files.size());
+      console.log("Found " + files.size() + " files to send");
       if (files.isEmpty()) {
         return Optional.empty();
       }
