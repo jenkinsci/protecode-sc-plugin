@@ -210,15 +210,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
 
-    //log = listener.getLogger();
+    log = listener.getLogger();
     console = new JenkinsConsoler(listener);
 
     String cleanJob = null;
     if (protecodeScanName == null || "".equals(protecodeScanName)) {
       LOGGER.info("Didn't find job name, defaulting to build id");
-      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId()) != null
-        ? UtilitiesJenkins.cleanJobName(run.getExternalizableId()) : "jenkins_job";
+      cleanJob = UtilitiesJenkins.cleanJobName(run.getExternalizableId());
+    } else {
+      cleanJob = protecodeScanName;
     }
+
 
     console.start(failIfVulns, includeSubdirectories, protecodeScGroup);
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
@@ -258,7 +260,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       includeSubdirectories,
       endAfterSendingFiles,
       pattern,
-      protecodeScanName,
+      cleanJob,
       customHeader,
       console
     );
@@ -284,7 +286,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     } catch (IOException ioe) {
       listener.error("Could not send files to Protecode-SC: " + ioe);
       verdict.setError("Could not send files to Protecode-SC");
-      //return false;
+      if (results.isEmpty()) {
+        return false;
+      } // otherwise carry on, might get something
     } catch (InterruptedException ie) {
       console.log("Interrupted, stopping build");
       run.setResult(Result.ABORTED);
@@ -323,7 +327,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       run.setResult(Result.SUCCESS);
     }
 
-    log.println("/---------- Protecode SC plugin end -----------/");
+    console.log("Protecode SC plugin end");
     // TODO: Use perhaps unstable also
     return buildStatus;
   }

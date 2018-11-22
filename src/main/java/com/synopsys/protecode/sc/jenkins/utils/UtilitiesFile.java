@@ -155,7 +155,7 @@ public final class UtilitiesFile {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) throws IOException, InterruptedException, InterruptedException {
         File zipFile = new File(zipFileName);
-        LOGGER.info("Created zip: " + zipFile.getAbsolutePath());
+        LOGGER.info("Creating zip: " + zipFile.getAbsolutePath());
 
         if (zipFile.exists()) {
           if (!zipFile.delete()) {

@@ -139,10 +139,12 @@ public class Scanner {
           run,
           listener
         );
+
       }
       verdict.setFilesFound(files.size());
       LOGGER.info("files found: " + files.size());
       console.log("Found " + files.size() + " files to send");
+
       if (files.isEmpty()) {
         return Optional.empty();
       }
@@ -156,7 +158,6 @@ public class Scanner {
             files,
             zipName.get()
           );
-          console.log("10 or more files found, zipping. Protecode job will be called: " + protecodeScanName);
           LOGGER.info("Zip size: " + zip.length() + " bytes.");
           zippingInUse = true;
           files.clear();
@@ -194,12 +195,12 @@ public class Scanner {
           public void setError(String reason) {
             // TODO: use Optional
             log.println(reason);
-            addUploadResponse(log, directoryToScan, null, reason);
+            addUploadResponse(directoryToScan, null, reason);
           }
 
           @Override
           public void processUploadResult(HttpTypes.UploadResponse result) {
-            addUploadResponse(log, directoryToScan, result, NO_ERROR);
+            addUploadResponse(directoryToScan, result, NO_ERROR);
           }
         }
       );
@@ -233,7 +234,7 @@ public class Scanner {
    *
    * @param response The responses fetched from Protecode SC
    */
-  private void addUploadResponse(PrintStream log, String name, HttpTypes.UploadResponse response, String error) {
+  private void addUploadResponse(String name, HttpTypes.UploadResponse response, String error) {
     // TODO: compare the sha1sum and send again if incorrect
     if (NO_ERROR.equals(error)) {
       results.add(new FileResult(name, response, zippingInUse));
@@ -244,13 +245,14 @@ public class Scanner {
     }
   }
 
-  private void sendFiles(List<FilePath> filesToScan, Optional <String> zipName) throws IOException, InterruptedException {
+  private void sendFiles(List<FilePath> filesToScan, Optional<String> zipName) throws IOException, InterruptedException {
+    // TODO: Use zipnaming correctly.
     for (FilePath file : filesToScan) {
       final String jobName;
       if (zippingInUse) {
         jobName = protecodeScanName;
       } else {
-        jobName = file.getRemote();
+        jobName = file.getName();
       }
 
       LOGGER.log(Level.INFO, "Sending file: {0}", jobName);
@@ -265,16 +267,21 @@ public class Scanner {
           @Override
           public void processUploadResult(HttpTypes.UploadResponse result) {
             LOGGER.warning("Received results for file: " + jobName);
-            addUploadResponse(log, jobName, result, NO_ERROR);
+            addUploadResponse(jobName, result, NO_ERROR);
           }
 
           @Override
           public void setError(String reason) {
             // TODO: use Optional
-            log.println(reason);
-            // TODO: Maybe use listener.error to stop writing for more results if we get error
-            // perhaps?
-            addUploadResponse(log, jobName, null, reason);
+            // And awful hack to avoid problems
+            if (reason.toLowerCase().contains("unexpected end of stream")) {
+              LOGGER.warning("RECEIVED UNEXPECTED END OF STREAM");
+            } else {
+              log.println(reason);
+              // TODO: Maybe use listener.error to stop writing for more results if we get error
+              // perhaps?
+              addUploadResponse(jobName, null, reason);
+            }
           }
         }
       );
