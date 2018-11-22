@@ -51,6 +51,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.utils.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.ArrayList;
 import java.util.Optional;
 
 import lombok.Getter;
@@ -266,7 +267,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     );
 
     // Get/scan the files
-    List<FileResult> results = null;
+    List<FileResult> results = new ArrayList<>();
     try {
       // There needs to be a possiblity to just end the phase after the files are transfered.
       Optional<List<FileResult>> resultOp = scanner.doPerform();
