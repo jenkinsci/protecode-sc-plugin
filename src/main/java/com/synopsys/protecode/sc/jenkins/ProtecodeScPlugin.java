@@ -61,8 +61,7 @@ import net.sf.json.JSONObject;
 /**
  * TODO: There are much too many variables stored on the object level. Maybe we could perhaps store
  * them in a configuration object or much more preferably as temp variables being moved in the
- * methods. This would eliminate the danger of having a variable instantiated to an old value from
- * an older build.
+ * methods.
  */
 public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
@@ -79,6 +78,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private boolean failIfVulns;
   private boolean endAfterSendingFiles;
   private int scanTimeout;
+  private boolean dontZipFiles;
 
   // transients for old conf
   private transient String filesToScanDirectory;
@@ -117,6 +117,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.failIfVulns = true;
     this.endAfterSendingFiles = false;
     this.scanTimeout = 10;
+    this.dontZipFiles = false;
   }
 
   /**
@@ -171,6 +172,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
           storedHost,
           !getDescriptor().isDontCheckCert()
         );
+        // TODO: Add username password check
+        // Call some API which should always work and see if it doesn't return an error
       }
     } catch (MalformedURLException e) {
       LOGGER.warning("No URL given for Protecode SC ");
@@ -222,7 +225,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       cleanJob = protecodeScanName;
     }
 
-
     console.start(failIfVulns, includeSubdirectories, protecodeScGroup);
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
 
@@ -234,18 +236,13 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       return false;
     }
 
-    @SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    // some horror code to remove findbugs hits
-    String checkedDirectoryToScan = ".";
-    String dirToScan = getDirectoryToScan();
-    if (null != dirToScan){
-      if(!dirToScan.trim().equals("")) {
-        checkedDirectoryToScan = dirToScan;
-      } else {
-        console.log("Could not parse 'directory to scan'. Scanning workspace root");
-      }
-    } else {
-        console.log("Could not parse 'directory to scan'. Scanning workspace root");
+    // If we're using a Synopsys hosted protecode instance, we will use zipping in cases where there are more
+    // than the set limit of files.
+    boolean forceDontZip = this.dontZipFiles
+      && !UtilitiesGeneral.isPublicHost(getDescriptor().getProtecodeScHost());
+    if (this.dontZipFiles) {
+      console.log("'Dont zip' is chosen, but since this build is done against a Synopsys hosted Protecode SC "
+        + "instance, this option is ignored.");
     }
 
     Scanner scanner = new Scanner(
@@ -256,14 +253,15 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       scanTimeout,
       workspace,
       listener,
-      directoryToScan,
+      getDirectoryToScan(),
       scanOnlyArtifacts,
       includeSubdirectories,
       endAfterSendingFiles,
       pattern,
       cleanJob,
       customHeader,
-      console
+      console,
+      forceDontZip
     );
 
     // Get/scan the files
@@ -350,6 +348,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     /** Read from jelly */
     public static final boolean defaultFailIfVulns = true;
     public static final boolean defaultEndAfterSendingFiles = false;
+    public static final boolean defaultDontZipFiles = false;
 
     @Getter @Setter
     protected String protecodeScHost;
@@ -531,6 +530,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     this.endAfterSendingFiles = endAfterSendingFiles;
   }
 
+  @DataBoundSetter
+  public void setDontZipFiles(boolean dontZipFiles) {
+    this.dontZipFiles = dontZipFiles;
+  }
+
   @CheckForNull
   public boolean getConvertToSummary() {
     return convertToSummary;
@@ -543,7 +547,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
   @CheckForNull
   public String getDirectoryToScan() {
-    return directoryToScan;
+    if (directoryToScan != null) {
+      return directoryToScan;
+    } else {
+      return ".";
+    }
   }
 
   @CheckForNull
@@ -589,5 +597,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @CheckForNull
   public boolean getEndAfterSendingFiles() {
     return this.endAfterSendingFiles;
+  }
+
+  @CheckForNull
+  public boolean getDontZipFiles() {
+    return this.dontZipFiles;
   }
 }

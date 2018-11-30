@@ -11,22 +11,25 @@
 package com.synopsys.protecode.sc.jenkins.utils;
 
 import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
-import com.synopsys.protecode.sc.jenkins.types.FileResult;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
-import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import okhttp3.Headers;
 
 public final class UtilitiesGeneral {
 
+  private static final List<String> PUBLIC_HOSTS = new ArrayList<>();
+
+  static {
+    PUBLIC_HOSTS.add("protecode-sc.com");
+  }
+
   /**
-   * Checks connection status for errors. 
+   * Checks connection status for errors.
    *
    * @param connectionStatus the status object to check
    * @return true for connection ok, otherwise false
@@ -49,16 +52,27 @@ public final class UtilitiesGeneral {
     // TODO: Check if we should check the headers also
     return !Integer.toString(code).startsWith("4");
   }
-  
+
+  /*
+  * See that is the host like the fingerprints in the public hosts list
+  *
+  * This method exists to see if we should act accordingly when using some host.
+  */
+  public static boolean isPublicHost(String host) {
+    return PUBLIC_HOSTS.stream().anyMatch((public_host) -> {
+      return host.contains(public_host);
+    });
+  }
+
   /**
    * Replaces spaces with underscore in the given line. This is used to format the query parameter
-   * in the call to Protecode SC. The problem is that Protecode SC has a limited acceptable chars 
+   * in the call to Protecode SC. The problem is that Protecode SC has a limited acceptable chars
    * group.
-   * 
+   *
    * TODO: Use perhaps a regexp maybe?
-   * TODO: There is a slight possiblity that the user will give a file with underscores and a file 
-   * with spaces which are otherwise identical. This will then not work. 
-   * 
+   * TODO: There is a slight possiblity that the user will give a file with underscores and a file
+   * with spaces which are otherwise identical. This will then not work.
+   *
    * @param line The string to format
    * @return A string with spaces replaced with underscore
    */
@@ -66,7 +80,7 @@ public final class UtilitiesGeneral {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
     // Currently underscore is accepted in protecode SC so it's in use.
     return line.replace(" ", "_");
-  }    
+  }
 
   /**
    * Method for getting a nicely formated timestamp.
@@ -79,7 +93,7 @@ public final class UtilitiesGeneral {
     String strDate = sdfDate.format(now);
     return strDate;
   }
-  
+
   @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   public static boolean isUrl(String possibleUrl) {
     try {

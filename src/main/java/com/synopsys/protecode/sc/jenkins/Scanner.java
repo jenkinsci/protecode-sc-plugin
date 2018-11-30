@@ -63,6 +63,7 @@ public class Scanner {
   private final String pattern;
   private final String protecodeScanName;
   private final String customHeader;
+  private final boolean dontZipFiles;
 
   private boolean zippingInUse = false;
 
@@ -85,7 +86,8 @@ public class Scanner {
     String pattern,
     String protecodeScanName,
     String customHeader,
-    JenkinsConsoler console
+    JenkinsConsoler console,
+    boolean dontZipFiles
   ) {
     this.verdict = verdict;
     this.protecodeScGroup = protecodeScGroup;
@@ -103,6 +105,7 @@ public class Scanner {
     this.protecodeScanName = protecodeScanName;
     this.customHeader = customHeader;
     this.console = console;
+    this.dontZipFiles = dontZipFiles;
   }
 
 /**
@@ -139,7 +142,6 @@ public class Scanner {
           run,
           listener
         );
-
       }
       verdict.setFilesFound(files.size());
       LOGGER.info("files found: " + files.size());
@@ -149,7 +151,8 @@ public class Scanner {
         return Optional.empty();
       }
       Optional <String> zipName = Optional.empty();
-      if (files.size() > 9) {
+      if (files.size() > Configuration.MAXIMUM_UNZIPPED_FILE_AMOUNT
+        && !dontZipFiles) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
         try {
           zipName = Optional.of(workspace + "/" + ZIP_FILE_PREFIX + protecodeScanName);
@@ -158,12 +161,13 @@ public class Scanner {
             files,
             zipName.get()
           );
-          LOGGER.info("Zip size: " + zip.length() + " bytes.");
+          LOGGER.log(Level.INFO, "Zip size: {0} bits.", zip.length());
           zippingInUse = true;
           files.clear();
           files.add(zip);
         } catch (Exception e) {
           zippingInUse = false;
+          console.log("Could not zip files, sending one-by-one.");
           LOGGER.log(Level.INFO, "Couldn't zip files, sending them one-by-one. Error: {0}", e.getMessage());
         }
       }
@@ -275,13 +279,16 @@ public class Scanner {
             // TODO: use Optional
             // And awful hack to avoid problems
             if (reason.toLowerCase().contains("unexpected end of stream")) {
-              LOGGER.warning("RECEIVED UNEXPECTED END OF STREAM");
-            } else {
-              log.println(reason);
-              // TODO: Maybe use listener.error to stop writing for more results if we get error
-              // perhaps?
-              addUploadResponse(jobName, null, reason);
+              LOGGER.log(Level.WARNING, "RECEIVED UNEXPECTED END OF STREAM: {0}", reason);
+              console.log("Protecode SC reported that the file did not arrive properly. Please check you network.\n"
+                + "This is usually seen when the socket between Jenkins and the Protecode SC instance has connection"
+                + "problems. One possibility to fix this is to make sure you don't use WLAN and the network"
+                + "has enough bandwidth and is reliable.");
             }
+            log.println(reason);
+            // TODO: Maybe use listener.error to stop writing for more results if we get error
+            // perhaps?
+            addUploadResponse(jobName, null, reason);
           }
         }
       );
@@ -354,11 +361,10 @@ public class Scanner {
           }
         }
 
-        Thread.sleep(500); // we don't want to overload the network with bulk requests
-
-        if (allNotReady()) {
-          Thread.sleep(15 * 1000);
-        }
+        Thread.sleep(150); // we don't want to overload the network with bulk requests
+      }
+      if (allNotReady()) {
+        Thread.sleep(10 * 1000);
       }
     } while (allNotReady());
     log.println("Received all results from Protecode SC");

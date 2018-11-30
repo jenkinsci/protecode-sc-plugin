@@ -61,7 +61,7 @@ public class ProtecodeScConnection {
     // HOW TO LOG
     // Leave these here for convenience of debugging. They bleed memory _badly_ though
     // HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-    // interceptor.setLevel(HttpLoggingInterceptor.Level.NONE);
+    // interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
     OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
       (Interceptor.Chain chain) ->
@@ -90,7 +90,7 @@ public class ProtecodeScConnection {
     ).readTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
       .connectTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
       .retryOnConnectionFailure(true)
-      //      .addInterceptor(interceptor).build();
+      //      .addInterceptor(interceptor)
       .build();
     // TODO: Write interceptor for checking is the error 429 (too many requests) and handle that in
     // a nice fashion.

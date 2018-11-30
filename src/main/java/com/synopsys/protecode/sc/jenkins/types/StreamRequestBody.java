@@ -56,6 +56,9 @@ public class StreamRequestBody extends RequestBody {
         file.getRemote()
       );
     }
+    LOGGER.log(Level.WARNING,
+      "File size: {0}",
+      size);
     return size;
   }
 
@@ -63,9 +66,9 @@ public class StreamRequestBody extends RequestBody {
   public void writeTo(@NonNull BufferedSink sink) {
     /*
     * TODO!
-    * If the "unexpected end of stream" problem persists, try:    
-    *    
-      OutputStream output = sink.outputStream();      
+    * If the "unexpected end of stream" problem persists, try:
+    *
+      OutputStream output = sink.outputStream();
       InputStream input = file.read();
 
       byte[] bytes = new byte[1024]; // Again an arbitrary number
@@ -73,30 +76,30 @@ public class StreamRequestBody extends RequestBody {
       while ((length = input.read(bytes)) >= 0) {
         output.write(bytes, 0, length);
       }
-    * 
+    *
     * This is the "dummy" way of doing this, but might help in figuring what happens with really
     * heavy loads
     */
-    
+
     Source source = null;
     // TODO: Study if other amount would be better... This is just a number-out-of-a-hat.
-    long writeAmount = 8192L;  // arbitratry nice number.    
-    try {      
+    long writeAmount = 8192L;  // arbitratry nice number.
+    try {
       source = Okio.source(file.read());
       while (true) {
         try {
           // Do not use writeAll, since it depends on the source(inputstream) knowing how much it
-          // still has. In this case it seems the stream doesnt know how much it has and returns 
+          // still has. In this case it seems the stream doesnt know how much it has and returns
           // zero.
           sink.write(source, writeAmount);
           sink.flush();
         } catch (IOException e) {
-          // Okio throws exception when attempting to read more than there is in a stream. Why we do 
-          // not use sink.writeAll() is because it relies on source.available which returns zero due 
+          // Okio throws exception when attempting to read more than there is in a stream. Why we do
+          // not use sink.writeAll() is because it relies on source.available which returns zero due
           // to lack of implementation or okio/jenkins compatibility
           break;
         }
-      }      
+      }
     } catch (Exception e) {
       LOGGER.log(Level.WARNING, "Error while sending file. Error message: {0}", e.getMessage());
     } finally {

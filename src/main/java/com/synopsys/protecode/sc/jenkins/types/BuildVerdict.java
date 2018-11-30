@@ -42,7 +42,9 @@ public @Data class BuildVerdict {
 
   public String verdictStr() {
     String verdict = null;
-    if (filesFound == 0) {
+    if (this.error.isPresent()) {
+      verdict = error.get();
+    } else if (filesFound == 0) {
       verdict = "No files were found to be scanned.";
     } else if(filesWithUntriagedVulns) {
       verdict = "Files with vulnerabilities found.";
