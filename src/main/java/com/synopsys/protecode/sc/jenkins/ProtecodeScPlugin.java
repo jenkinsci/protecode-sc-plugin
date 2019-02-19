@@ -10,58 +10,45 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins;
 
-import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
-import com.synopsys.protecode.sc.jenkins.types.FileResult;
-import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
-import com.synopsys.protecode.sc.jenkins.utils.ReportBuilder;
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
-
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
-
-import hudson.Extension;
-import hudson.ExtensionPoint;
-import hudson.FilePath;
-import hudson.Launcher;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.synopsys.protecode.sc.jenkins.Scanner;
+import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
+import com.synopsys.protecode.sc.jenkins.types.FileResult;
+import com.synopsys.protecode.sc.jenkins.utils.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.*;
 import hudson.model.*;
 import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.*;
-import jenkins.tasks.SimpleBuildStep;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
+import java.util.*;
+import java.util.Optional;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.servlet.ServletException;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.synopsys.protecode.sc.jenkins.utils.*;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.Optional;
-
+import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
 import net.sf.json.JSONObject;
+import org.jenkinsci.Symbol;
+import org.kohsuke.stapler.*;
 
 /**
- * TODO: There are much too many variables stored on the object level. Maybe we could perhaps store
- * them in a configuration object or much more preferably as temp variables being moved in the
- * methods.
+ * TODO: There are much too many variables stored on the object level. Maybe we could perhaps store them in a
+ * configuration object or much more preferably as temp variables being moved in the methods.
  */
 public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
@@ -72,7 +59,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private String customHeader;
   private boolean includeSubdirectories;
   private String pattern; // Be carefull with this.
-  /** Will cause the plugin to use a Jenkins service to fetch only artifacts from the specified directory */
+  /**
+   * Will cause the plugin to use a Jenkins service to fetch only artifacts from the specified directory
+   */
   private boolean scanOnlyArtifacts;
   private boolean convertToSummary;
   private boolean failIfVulns;
@@ -121,9 +110,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   }
 
   /**
-   * For backward compatibility. The XML persistence will build the instance in memory with out much
-   * logic and since some values are empty, they will default to null. This method is called right
-   * after the "resurrection" of the object and checks all non-trivial values.
+   * For backward compatibility. The XML persistence will build the instance in memory with out much logic and
+   * since some values are empty, they will default to null. This method is called right after the
+   * "resurrection" of the object and checks all non-trivial values.
    *
    * @return a ProtecodeScPlugin object with values which might be null.
    */
@@ -161,8 +150,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (service == null
         // We need to check whether we need a new instance of the backend.
         || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
-        || getDescriptor().isDontCheckCert() != storedDontCheckCertificate
-      ) {
+        || getDescriptor().isDontCheckCert() != storedDontCheckCertificate) {
         LOGGER.finer("Making new " + Configuration.TOOL_NAME + " http connection service");
         storedHost = new URL(getDescriptor().getProtecodeScHost());
         storedDontCheckCertificate = getDescriptor().isDontCheckCert();
@@ -182,7 +170,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       LOGGER.warning("No URL given for " + Configuration.TOOL_NAME);
       listener.error("Cannot read " + Configuration.TOOL_NAME + " URL, please make sure it has been set in the Jenkins"
         + " configuration page.");
-      // TODO: Add prebuild
+      // TODO: Add prebuild 
     }
     return service;
   }
@@ -279,7 +267,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         run.setResult(Result.SUCCESS);
         return true;
       }
-      if(endAfterSendingFiles) {
+      if (endAfterSendingFiles) {
         LOGGER.info("Files sent, ending " + Configuration.TOOL_NAME + " phase due to configuration.");
         console.log("Files sent, ending phase.");
         run.setResult(Result.SUCCESS);
@@ -348,17 +336,24 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @Extension
   @Symbol("protecodesc")
   public static final class DescriptorImpl extends BuildStepDescriptor<Builder> implements ExtensionPoint {
-    /** Read from jelly */
+
+    /**
+     * Read from jelly
+     */
     public static final int defaultTimeout = 60;
-    /** Read from jelly */
+    /**
+     * Read from jelly
+     */
     public static final boolean defaultFailIfVulns = true;
     public static final boolean defaultEndAfterSendingFiles = false;
     public static final boolean defaultDontZipFiles = false;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     protected String protecodeScHost;
 
-    @Getter @Setter
+    @Getter
+    @Setter
     protected boolean dontCheckCert;
 
     public DescriptorImpl() {
@@ -433,7 +428,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       try {
         Integer.parseInt(protecodeScGroup);
         return FormValidation.ok();
-      } catch (Exception e) {
+      } catch (NumberFormatException e) {
         return FormValidation.error("Please provide a valid group. The group should a plain number,"
           + "not a URL or a name.");
       }
@@ -467,14 +462,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       try {
         Integer.parseInt(timeout);
         return FormValidation.ok();
-      } catch (Exception e) {
+      } catch (NumberFormatException e) {
         return FormValidation.error("Please provide a valid timeout in minutes.");
       }
     }
 
     @Override
     public String getDisplayName() {
-      return "Protecode SC";
+      return Configuration.TOOL_NAME;
     }
 
     @Override

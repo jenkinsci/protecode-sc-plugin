@@ -11,13 +11,14 @@
 package com.synopsys.protecode.sc.jenkins.types;
 
 import java.util.Optional;
-import lombok.*;
+import lombok.Data;
 
 /**
  * A collect all class for protecode scan result/build status
- * @author rukkanen
  */
-public @Data class BuildVerdict {
+public @Data
+class BuildVerdict {
+
   private final boolean failOnVulns;
 
   private boolean zippingUsed = false;
@@ -46,7 +47,7 @@ public @Data class BuildVerdict {
       verdict = error.get();
     } else if (filesFound == 0) {
       verdict = "No files were found to be scanned.";
-    } else if(filesWithUntriagedVulns) {
+    } else if (filesWithUntriagedVulns) {
       verdict = "Files with vulnerabilities found.";
     } else {
       verdict = "No errors or Vulnerabilities found";

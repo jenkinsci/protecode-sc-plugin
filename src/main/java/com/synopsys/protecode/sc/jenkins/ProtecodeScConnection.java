@@ -1,4 +1,4 @@
-/*******************************************************************************
+/** *****************************************************************************
  * Copyright (c) 2017 Synopsys, Inc
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -7,7 +7,7 @@
  *
  * Contributors:
  *    Synopsys, Inc - initial implementation and documentation
- *******************************************************************************/
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -39,22 +39,24 @@ public class ProtecodeScConnection {
   }
 
   /**
-   * Simple backend for checking the server and such. This backend doesn't use authentication. It
-   * does not have declarations for any Protecode SC API calls, only server level calls.
+   * Simple backend for checking the server and such. This backend doesn't use authentication. It does not
+   * have declarations for any Protecode SC API calls, only server level calls.
+   *
    * @param checkCertificate whether or not to check the server certificate.
    * @param url The URL which points to the Protecode SC instance.
    * @return the backend to use while communicating to the server with no authentication
    */
   public static ProtecodeScServicesApi serviceBackend(URL url, boolean checkCertificate) {
     Retrofit retrofit = new Retrofit.Builder()
-    .baseUrl(url.toExternalForm())
-    .build();
+      .baseUrl(url.toExternalForm())
+      .build();
 
     return retrofit.create(ProtecodeScServicesApi.class);
   }
 
   /**
    * Main entry point for building a backend implementation in run-time.
+   *
    * @param credentialsId the identifier for the credentials to be used.
    * @param url The url which points to the protecode-sc instance.
    * @param run The context for getting the credentials
@@ -74,19 +76,19 @@ public class ProtecodeScConnection {
     // interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
     OkHttpClient okHttpClient = httpClientBuilder(checkCertificate).addInterceptor(
-      (Interceptor.Chain chain) ->
-      {
-        Request originalRequest = chain.request();
+      (Interceptor.Chain chain)
+      -> {
+      Request originalRequest = chain.request();
 
-        Request.Builder builder = originalRequest.newBuilder()
-          .addHeader("User-Agent", Configuration.CLIENT_NAME)
-          .addHeader("Connection", "close");
+      Request.Builder builder = originalRequest.newBuilder()
+        .addHeader("User-Agent", Configuration.CLIENT_NAME)
+        .addHeader("Connection", "close");
 
-        builder.header("Authorization", authenticationString(credentialsId, run, url));
+      builder.header("Authorization", authenticationString(credentialsId, run, url));
 
-        Request newRequest = builder.build();
-        return chain.proceed(newRequest);
-      }
+      Request newRequest = builder.build();
+      return chain.proceed(newRequest);
+    }
     ).readTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
       .connectTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
       .retryOnConnectionFailure(true)
@@ -96,7 +98,7 @@ public class ProtecodeScConnection {
     // a nice fashion.
 
     okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);
-    LOGGER.log(Level.ALL, "Max simultaneous requests to protecode limited to: {0}",
+    LOGGER.log(Level.ALL, "Max simultaneous requests to " + Configuration.TOOL_NAME + " limited to: {0}",
       okHttpClient.dispatcher().getMaxRequests());
 
     Retrofit retrofit = new Retrofit.Builder()
@@ -112,7 +114,7 @@ public class ProtecodeScConnection {
    * Method returns authentication string based on the credentials type.
    *
    * @param credentialsId the identifier for the credentials to be used.
-   * @param url The url which points to the protecode-sc instance.
+   * @param url The url which points to the BDBA instance.
    * @param run The context for getting the credentials
    * @return The string to use with authorization header
    */

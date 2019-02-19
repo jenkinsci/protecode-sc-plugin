@@ -1,4 +1,4 @@
-/*******************************************************************************
+/** *****************************************************************************
  * Copyright (c) 2017 Synopsys, Inc
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -7,7 +7,7 @@
  *
  * Contributors:
  *    Synopsys, Inc - initial implementation and documentation
- *******************************************************************************/
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes.Vuln;
@@ -19,7 +19,9 @@ public class InternalTypes {
 
   private static final Logger LOGGER = Logger.getLogger(InternalTypes.class.getName());
 
-  public static @Data class VulnStatus {
+  public static @Data
+  class VulnStatus {
+
     private ArrayList<Vuln> untriagedVulns = new ArrayList();
     private ArrayList<Vuln> triagedVulns = new ArrayList();
 
@@ -40,8 +42,9 @@ public class InternalTypes {
     }
   }
 
+  public static @Data
+  class Group {
 
-  public static @Data class Group {
     private String name;
   }
 }

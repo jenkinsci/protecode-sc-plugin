@@ -36,16 +36,13 @@ public class ReportBuilder {
     List<FileResult> results,
     TaskListener listener,
     FilePath reportsDirectory,
-    Run <?,?> run
+    Run<?, ?> run
   ) {
     PrintStream log = listener.getLogger();
     ObjectMapper mapper = getObjectMapper();
-    LOGGER.warning("Making results");
     results.forEach((result) -> {
-      LOGGER.warning("Reporting: " + result.getFilename());
       result.getSerializableResults(run.getNumber()).forEach((serializableResult) -> {
         try {
-          LOGGER.warning("Reporting - later: " + serializableResult.getFilename());
           writeJson(log, mapper, reportsDirectory, serializableResult);
         } catch (Exception e) {
           log.println("No results for: " + result.getFilename());
@@ -75,8 +72,8 @@ public class ReportBuilder {
       + ".json"
     );
 
-    LOGGER.warning("writing json to: " + jsonFile.getAbsoluteFile());
-    
+    LOGGER.finer("Writing json to: " + jsonFile.getAbsoluteFile());
+
     try (OutputStream out = new FileOutputStream(jsonFile)) {
       mapper.writeValue(out, result);
     } catch (Exception e) {
@@ -138,11 +135,11 @@ public class ReportBuilder {
    * @throws InterruptedException Jenkins interrupts
    */
   private static void createXmlReport(
-    final FilePath[] jsonFiles, 
+    final FilePath[] jsonFiles,
     final ObjectMapper mapper,
-    OutputStream writeToStream    
+    OutputStream writeToStream
   ) throws IOException, InterruptedException {
-    // TODO: Evaluate exception handling. 
+    // TODO: Evaluate exception handling.
 
     try (PrintStream out = new PrintStream(writeToStream, false, "UTF-8")) {
       out.println(

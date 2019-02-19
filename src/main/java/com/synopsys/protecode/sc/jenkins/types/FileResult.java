@@ -1,14 +1,13 @@
-/*******************************************************************************
-* Copyright (c) 2017 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
-
+/** *****************************************************************************
+ * Copyright (c) 2017 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
 import com.synopsys.protecode.sc.jenkins.UIResources;
@@ -20,25 +19,27 @@ import java.util.logging.Logger;
 import lombok.Data;
 
 /**
- * TODO, this class is an example of null-pointer fest. 
- * TODO: Also: This object has an ugly double role. It's both a merge of file metadata and scan 
- *    result. This isn't very nice and should be divided.
+ * TODO, this class is an example of null-pointer fest. TODO: Also: This object has an ugly double role. It's
+ * both a merge of file metadata and scan result. This isn't very nice and should be divided.
  */
-public @Data class FileResult {
-  
+public @Data
+class FileResult {
+
   private static final Logger LOGGER = Logger.getLogger(FileResult.class.getName());
-  
+
   private String filename = null;
   private HttpTypes.UploadResponse uploadResponse = null;
   private boolean resultBeingFetched = false;
   private String error = null;
   private HttpTypes.ScanResultResponse resultResponse = null;
-  /** Makes it possible to not parse the result as multiple files in an archive. */
+  /**
+   * Makes it possible to not parse the result as multiple files in an archive.
+   */
   private boolean zippingInUse = false;
 
   private Map<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> files = new HashMap<>();
 
-  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse, boolean zippingInUse) {    
+  public FileResult(String filename, HttpTypes.UploadResponse uploadResponse, boolean zippingInUse) {
     this.filename = filename;
     this.uploadResponse = uploadResponse;
     this.zippingInUse = zippingInUse;
@@ -51,12 +52,12 @@ public @Data class FileResult {
 
   // TODO: This should be a model, this is a bit over the limit what it should have.
   public void setResultResponse(HttpTypes.ScanResultResponse resultResponse) {
-    this.resultResponse = resultResponse;    
+    this.resultResponse = resultResponse;
     if (!zippingInUse) {
       LOGGER.log(Level.WARNING, "Adding filename to result root. No zipping.");
       files.putIfAbsent(this.filename, new HashMap<>());
     }
-    for (HttpTypes.Component component : this.resultResponse.getResults().getComponents()) {  
+    for (HttpTypes.Component component : this.resultResponse.getResults().getComponents()) {
       InternalTypes.VulnStatus vulnStatus = new InternalTypes.VulnStatus();
       if (!component.getVulns().isEmpty()) {
         // Component has vulns
@@ -86,16 +87,16 @@ public @Data class FileResult {
       if (zippingInUse) {
         LOGGER.log(Level.FINE, "Zipping in use so zipping in result too");
         // Support for multifile packages
-        for(String includedFileName : component.getFileNames()) {
+        for (String includedFileName : component.getFileNames()) {
           files.putIfAbsent(includedFileName, new HashMap<>());
-          files.get(includedFileName).put(component, vulnStatus);        
-        }        
+          files.get(includedFileName).put(component, vulnStatus);
+        }
       } else {
         // of course this isn't needed 'as such' but the user expects the zip to be evaluated
         // as a single entity.
-        LOGGER.log(Level.FINE, "Making single file/non zip result!");        
-        files.get(this.filename).put(component, vulnStatus); 
-      }      
+        LOGGER.log(Level.FINE, "Making single file/non zip result!");
+        files.get(this.filename).put(component, vulnStatus);
+      }
       //components.put(component, vulnStatus);
     }
   }
@@ -169,9 +170,8 @@ public @Data class FileResult {
   public List<SerializableResult> getSerializableResults(int buildNumber) {
     // TODO implement error handling for misbuilt responses
     List<SerializableResult> resultList = new ArrayList<>();
-    
+
     //LOGGER.fine("result entry set size: " + files.entrySet().size());
-    
     for (Map.Entry<String, Map<Component, VulnStatus>> file : files.entrySet()) {
       long untriagedVulns = 0;
       long triagedVulns = 0;
@@ -180,29 +180,31 @@ public @Data class FileResult {
         untriagedVulns += vulnStatus.untriagedVulnsCount();
         triagedVulns += vulnStatus.triagedVulnsCount();
       }
-      
+
       String resultFileName = file.getKey();
       if (!zippingInUse) {
         resultFileName = this.filename;
       }
-          
+
       resultList.add(
         new SerializableResult(
           resultFileName,
-          untriagedVulns, 
-          triagedVulns, 
-          untriagedVulns > 0 ? UIResources.VULNS : "", 
-          untriagedVulns > 0 ? UIResources.HAS_VULNS_DETAILED : UIResources.NO_VULNS_DETAILED, 
+          untriagedVulns,
+          triagedVulns,
+          untriagedVulns > 0 ? UIResources.VULNS : "",
+          untriagedVulns > 0 ? UIResources.HAS_VULNS_DETAILED : UIResources.NO_VULNS_DETAILED,
           resultResponse.getResults().getReport_url(),
           buildNumber
         )
       );
     }
-    return resultList;        
+    return resultList;
   }
-  
-  public static @Data class SerializableResult {
-    private final String filename;    
+
+  public static @Data
+  class SerializableResult {
+
+    private final String filename;
     private final long untriagedVulns;
     private final long triagedVulns;
     private final String verdict;

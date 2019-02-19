@@ -25,13 +25,13 @@ import jenkins.model.Jenkins;
  * Utility for Jenkins related functionality.
  */
 public final class UtilitiesJenkins {
-  
+
   private static final Logger LOGGER = Logger.getLogger(UtilitiesJenkins.class.getName());
-  
+
   private UtilitiesJenkins() {
     // don't instantiate me
   }
-  
+
   /**
    * Returns The first suitable credential for the id.
    * @param url Host to associate the credentials with
@@ -39,7 +39,7 @@ public final class UtilitiesJenkins {
    * @return Standard credential types
    */
   public static StandardUsernamePasswordCredentials getCredentials(
-    URL url, 
+    URL url,
     String credentialsId
   ) {
     StandardUsernamePasswordCredentials creds = CredentialsMatchers
@@ -50,15 +50,15 @@ public final class UtilitiesJenkins {
           new HostnameRequirement(url.toExternalForm())),
         CredentialsMatchers.withId(credentialsId));
     LOGGER.log(Level.FINE, "Creds: {0}", creds);
-    return creds;         
+    return creds;
   }
-  
+
   /**
    * Returns only the first part of the job name. Currently the job name is composed of the job name
-   * and the number of the build, e.g. "somejob#7". Protecode SC doesn't accept "#" and the number
-   * should not be added
-   * 
-   * @param jobName the jenkins build name to be cleaned for Protecode SC use
+   * and the
+   * number of the build, e.g. "somejob#7". BDBA doesn't accept "#" and the number   * should not be added
+   *
+   * @param jobName the jenkins build name to be cleaned for BDBA use
    * @return the first token before #, this is the "normal" job name.
    */
   public static String cleanJobName(String jobName) {

@@ -10,6 +10,7 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.utils;
 
+import com.synopsys.protecode.sc.jenkins.Configuration;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
@@ -18,6 +19,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
+import org.springframework.beans.factory.annotation.Configurable;
 
 /**
  * Used to make nice and concise prints to the jenkins build console.
@@ -41,17 +43,17 @@ public class JenkinsConsoler {
   public void log(String line) {
     log.println(wrapper(line));
   }
-  
+
   public void logPure(String line){
     log.println(line);
   }
-  
+
   public void error(String error) {
-    
+
   }
 
   /**
-   * Print start Protecode SC Jenkins plugin message TODO, take some nice key-value-pair list instead of this
+   * Print start BDBA Jenkins plugin message TODO: take some nice key-value-pair list instead of this
    * 1990-java-style stuff.
    *
    * @param failIfVulns info to print
@@ -59,7 +61,7 @@ public class JenkinsConsoler {
    * @param group for printing the group into which the files are uploaded
    */
   public void start(boolean failIfVulns, boolean includeSubdirectories, String group) {
-    log("Protecode SC plugin start. Uploading to group number: " + group);
+    log(Configuration.TOOL_NAME + " plugin start. Uploading to group number: " + group);
     if (failIfVulns) {
       log("The build will fail if any untriaged vulnerabilities are found.");
     } else {
@@ -69,16 +71,16 @@ public class JenkinsConsoler {
       log("Including subdirectories");
     }
   }
-  
+
   public void end() {
     // TODO: Some nice printing
   }
-  
+
   /**
-   * Print a report of the fileResults. 
+   * Print a report of the fileResults.
    * @param results The fileresult set from which to print the report
    */
-  public void printReportString(List<FileResult> results) {    
+  public void printReportString(List<FileResult> results) {
     StringBuilder report = new StringBuilder();
     log("Following files have vulnerabilities");
     for(FileResult result : results) {
@@ -93,7 +95,7 @@ public class JenkinsConsoler {
 
   /**
    * Make the string 80 chars long with filler "|--- " in front and " ---|" at the end.
-   * 
+   *
    * TODO: Evaluate if users are annoyed by this. Remove if it makes the log unreadable!
    *
    * @param msg message to wrap

@@ -40,7 +40,7 @@ import java.util.Optional;
 import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PREFIX;
 
 /**
- * The main logic class for operating with Protecode SC
+ * The main logic class for operating with BDBA
  */
 public class Scanner {
 
@@ -217,7 +217,7 @@ public class Scanner {
 
     console.log("Upload of files completed at " + UtilitiesGeneral.timestamp() + ".");
     long time = (System.currentTimeMillis() - start) / 1000;
-    LOGGER.log(Level.INFO, "Uploading files to protecode sc took: {0} seconds", time);
+    LOGGER.log(Level.INFO, "Uploading files to " + Configuration.TOOL_NAME + " took: {0} seconds", time);
 
     // start polling for reponses to scans
     poll(run);
@@ -279,8 +279,8 @@ public class Scanner {
             // And awful hack to avoid problems
             if (reason.toLowerCase().contains("unexpected end of stream")) {
               LOGGER.log(Level.WARNING, "RECEIVED UNEXPECTED END OF STREAM: {0}", reason);
-              console.log("Protecode SC reported that the file did not arrive properly. Please check you network.\n"
-                + "This is usually seen when the socket between Jenkins and the Protecode SC instance has connection\n"
+              console.log(Configuration.TOOL_NAME + " reported that the file did not arrive properly. Please check you network.\n"
+                + "This is usually seen when the socket between Jenkins and the BDBA instance has connection\n"
                 + "problems. One possibility to fix this is to make sure you don't use WLAN, the network\n"
                 + "has enough bandwidth and is reliable.");
             }
@@ -306,9 +306,9 @@ public class Scanner {
       return;
     }
     // TODO: Make better timeout, which encapsulates the whole step
-    long endAt = System.currentTimeMillis() + ((long)this.scanTimeout * 60L * 1000L);
+    long endAt = System.currentTimeMillis() + (this.scanTimeout * 60L * 1000L);
     // use shortened variable to distinguish from possibly null service
-    log.println("Waiting for results from Protecode SC");
+    log.println("Waiting for results from " + Configuration.TOOL_NAME);
     do {
       if (System.currentTimeMillis() > endAt) {
         listener.error("Timeout while fetching files");
@@ -334,7 +334,8 @@ public class Scanner {
 
                   @Override
                   public void setError(String reason) {
-                    log.println("Received Protecode SC scan result ERROR for file: " + result.getFilename());
+                    log.println("Received " + Configuration.TOOL_NAME + " scan result ERROR for file: "
+                      + result.getFilename());
                     result.setError(reason);
                   }
                 }
@@ -366,7 +367,7 @@ public class Scanner {
         Thread.sleep(10 * 1000);
       }
     } while (allNotReady());
-    log.println("Received all results from Protecode SC");
+    log.println("Received all results from " + Configuration.TOOL_NAME);
   }
 
   /**
@@ -385,7 +386,7 @@ public class Scanner {
    */
   private void waitForUploadResponses(int fileCount, PrintStream log) {
     boolean waitForResponses = true;
-    // TODO: Add timeout since some files get no reponse from protecode
+    // TODO: Add timeout since some files get no reponse from BDBA
     while (waitForResponses) {
       try {
         Thread.sleep(30 * 1000);
@@ -395,7 +396,7 @@ public class Scanner {
         }
       } catch (InterruptedException ie) {
         waitForResponses = false;
-        log.println("Interrupted while waiting for upload responses from Protecode SC");
+        log.println("Interrupted while waiting for upload responses from " + Configuration.TOOL_NAME);
       }
     }
   }

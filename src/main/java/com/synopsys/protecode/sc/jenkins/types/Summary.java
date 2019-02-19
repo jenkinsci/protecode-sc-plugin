@@ -1,14 +1,13 @@
-/*******************************************************************************
-* Copyright (c) 2017 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
-
+/** *****************************************************************************
+ * Copyright (c) 2017 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
 import lombok.Data;
@@ -25,7 +24,9 @@ import lombok.Data;
 </accordion>
 </section>
  */
-public @Data class Summary {
+public @Data
+class Summary {
+
   private String filename;
   private String verdict;
   private int untriagedVulnerabilities;

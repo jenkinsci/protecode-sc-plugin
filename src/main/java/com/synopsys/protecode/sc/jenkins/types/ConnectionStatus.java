@@ -1,14 +1,13 @@
-/*******************************************************************************
-* Copyright (c) 2017 Synopsys, Inc
-* All rights reserved. This program and the accompanying materials
-* are made available under the terms of the Eclipse Public License v1.0
-* which accompanies this distribution, and is available at
-* http://www.eclipse.org/legal/epl-v10.html
-*
-* Contributors:
-*    Synopsys, Inc - initial implementation and documentation
-*******************************************************************************/
-
+/** *****************************************************************************
+ * Copyright (c) 2017 Synopsys, Inc
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *    Synopsys, Inc - initial implementation and documentation
+ ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins.types;
 
 import java.io.IOException;
@@ -18,9 +17,9 @@ import java.util.logging.Logger;
 import lombok.Data;
 import retrofit2.Response;
 
+public @Data
+class ConnectionStatus {
 
-public @Data class ConnectionStatus {
-  
   private static final Logger LOGGER = Logger.getLogger(ConnectionStatus.class.getName());
 
   private Response response;

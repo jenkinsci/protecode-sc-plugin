@@ -24,6 +24,7 @@ import okio.Okio;
 import okio.Source;
 
 public class StreamRequestBody extends RequestBody {
+
   private final FilePath file;
   private final MediaType contentType;
 
@@ -76,7 +77,7 @@ public class StreamRequestBody extends RequestBody {
     *
     * This is the "dummy" way of doing this, but might help in figuring what happens with really
     * heavy loads
-    */
+     */
 
     Source source = null;
     // TODO: Study if other amount would be better... This is just a number-out-of-a-hat.

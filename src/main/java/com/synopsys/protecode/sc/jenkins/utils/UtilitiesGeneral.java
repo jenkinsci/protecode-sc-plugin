@@ -45,7 +45,7 @@ public final class UtilitiesGeneral {
   }
 
   /**
-   * Checks the headers to determine whether Protecode SC is up and running
+   * Checks the headers to determine whether BDBA is up and running
    *
    * @param headers headers from response
    * @param code the http response code
@@ -68,9 +68,9 @@ public final class UtilitiesGeneral {
   }
 
   /**
-   * Replaces spaces with underscore in the given line. This is used to format the query parameter
-   * in the call to Protecode SC. The problem is that Protecode SC has a limited acceptable chars
-   * group.
+   * Replaces spaces with underscore in the given line. This is used to format the query parameter *
+   *
+   * in the call to BDBA. The problem is that BDBA has a limited acceptable chars * group.
    *
    * TODO: Use perhaps a regexp maybe?
    * TODO: There is a slight possiblity that the user will give a file with underscores and a file
@@ -81,7 +81,7 @@ public final class UtilitiesGeneral {
    */
   public static String replaceSpaceWithUnderscore(String line) {
     // TODO, use something which is certainly not used in other files. Underscore isn't good.
-    // Currently underscore is accepted in protecode SC so it's in use.
+    // Currently underscore is accepted in BDBA so it's in use.
     return line.replace(" ", "_");
   }
 
