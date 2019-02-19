@@ -18,8 +18,8 @@ import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 
 import hudson.Extension;
@@ -151,7 +151,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     return this;
   }
 
-  private ProtecodeScService service() {
+  private ProtecodeScService service(Run<?, ?> run) {
     // TODO: Add check that service is ok. Write http interceptor for okhttp
 
     // TODO: Is this needed?
@@ -163,21 +163,24 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         || !getDescriptor().getProtecodeScHost().equals(storedHost.toExternalForm())
         || getDescriptor().isDontCheckCert() != storedDontCheckCertificate
       ) {
-        LOGGER.finer("Making new protecode http connection service");
+        LOGGER.finer("Making new " + Configuration.TOOL_NAME + " http connection service");
         storedHost = new URL(getDescriptor().getProtecodeScHost());
         storedDontCheckCertificate = getDescriptor().isDontCheckCert();
 
+        // TODO: Make credentials provider since we don't want to provide the run context to parts which
+        //   shouldn't be jenkins libs linked.
         service = new ProtecodeScService(
           credentialsId,
           storedHost,
+          run,
           !getDescriptor().isDontCheckCert()
         );
         // TODO: Add username password check
         // Call some API which should always work and see if it doesn't return an error
       }
     } catch (MalformedURLException e) {
-      LOGGER.warning("No URL given for Protecode SC ");
-      listener.error("Cannot read Protecode SC URL, please make sure it has been set in the Jenkins"
+      LOGGER.warning("No URL given for " + Configuration.TOOL_NAME);
+      listener.error("Cannot read " + Configuration.TOOL_NAME + " URL, please make sure it has been set in the Jenkins"
         + " configuration page.");
       // TODO: Add prebuild
     }
@@ -187,7 +190,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @Override
   public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener)
     throws InterruptedException, IOException {
-    // TODO add try - catch (Interrupted) to call abort scan in protecode sc (remember to throw the
+    // TODO add try - catch (Interrupted) to call abort scan in BDBA (remember to throw the
     // same exception upward)
     LOGGER.finer("Perform() with run object");
     this.listener = listener;
@@ -197,7 +200,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   @Override
   public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
     BuildListener listener) throws InterruptedException, IOException {
-    // TODO add try - catch (Interrupted) to call abort scan in protecode sc (remember to throw the
+    // TODO add try - catch (Interrupted) to call abort scan in BDBA (remember to throw the
     // same exception upward)
     LOGGER.finer("Perform() with build object");
     this.listener = listener;
@@ -229,9 +232,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
 
     // use shortened word to distinguish from possibly null service
-    ProtecodeScService serv = service();
+    ProtecodeScService serv = service(run);
     if (serv == null) {
-      listener.error("Cannot connect to Protecode SC"); // TODO use consoler also
+      listener.error("Cannot connect to " + Configuration.TOOL_NAME); // TODO use consoler also
       run.setResult(Result.FAILURE);
       return false;
     }
@@ -241,10 +244,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     boolean forceDontZip = this.dontZipFiles
       && !UtilitiesGeneral.isPublicHost(getDescriptor().getProtecodeScHost());
     if (this.dontZipFiles) {
-      console.log("'Dont zip' is chosen, but since this build is done against a Synopsys hosted Protecode SC "
-        + "instance, this option is ignored.");
+      console.log("'Dont zip' is chosen, but since this build is done against a Synopsys hosted "
+        + Configuration.TOOL_NAME + "instance, this option is ignored.");
     }
 
+    // TOTO: Make Scanner not linked to Jenkins.
     Scanner scanner = new Scanner(
       verdict,
       protecodeScGroup,
@@ -270,21 +274,21 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       // There needs to be a possiblity to just end the phase after the files are transfered.
       Optional<List<FileResult>> resultOp = scanner.doPerform();
       if (verdict.getFilesFound() == 0) {
-        LOGGER.info("No files found, ending Protecode SC phase.");
-        console.log("No files found, ending Protecode SC phase.");
+        LOGGER.info("No files found, ending " + Configuration.TOOL_NAME + " phase.");
+        console.log("No files found, ending " + Configuration.TOOL_NAME + " phase.");
         run.setResult(Result.SUCCESS);
         return true;
       }
       if(endAfterSendingFiles) {
-        LOGGER.info("Files sent, ending Protecode SC phase due to configuration.");
+        LOGGER.info("Files sent, ending " + Configuration.TOOL_NAME + " phase due to configuration.");
         console.log("Files sent, ending phase.");
         run.setResult(Result.SUCCESS);
         return true;
       }
       results = resultOp.get();
     } catch (IOException ioe) {
-      listener.error("Could not send files to Protecode-SC: " + ioe);
-      verdict.setError("Could not send files to Protecode-SC");
+      listener.error("Could not send files to " + Configuration.TOOL_NAME + ": " + ioe);
+      verdict.setError("Could not send files to " + Configuration.TOOL_NAME);
       if (results.isEmpty()) {
         return false;
       } // otherwise carry on, might get something
@@ -313,8 +317,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         console.printReportString(results);
         listener.fatalError(verdict.verdictStr());
         run.setResult(Result.FAILURE);
+      } else {
+        console.log("NO vulnerabilities found.");
       }
-      console.log("NO vulnerabilities found.");
     } else {
       if (!verdict.verdict()) {
         console.printReportString(results);
@@ -326,7 +331,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       run.setResult(Result.SUCCESS);
     }
 
-    console.log("Protecode SC plugin end");
+    console.log(Configuration.TOOL_NAME + " plugin end");
     // TODO: Use perhaps unstable also
     return buildStatus;
   }
@@ -383,14 +388,22 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       //  - this might be impossible in this scope
       // https://groups.google.com/forum/?hl=en#!searchin/jenkinsci-dev/store$20configuration|sort:date/jenkinsci-dev/-DosteCUiu8/18-HvlAsAAAJ
       StandardListBoxModel result = new StandardListBoxModel();
+      // TODO: use non-deprectated
       result.withEmptySelection();
       result.withMatching(
-        CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(
-          StandardUsernamePasswordCredentials.class)),
+        CredentialsMatchers.anyOf(
+          CredentialsMatchers.instanceOf(
+            // TODO: Perhaps too wide
+            StandardCredentials.class
+          )
+        ),
         CredentialsProvider.lookupCredentials(
-          StandardUsernamePasswordCredentials.class, context,
+          // TODO: Perhaps too wide
+          StandardCredentials.class, context,
           ACL.SYSTEM,
-          new HostnameRequirement(protecodeScHost)));
+          new HostnameRequirement(protecodeScHost)
+        )
+      );
       return result;
     }
 

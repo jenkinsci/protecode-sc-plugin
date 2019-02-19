@@ -56,9 +56,6 @@ public class StreamRequestBody extends RequestBody {
         file.getRemote()
       );
     }
-    LOGGER.log(Level.WARNING,
-      "File size: {0}",
-      size);
     return size;
   }
 

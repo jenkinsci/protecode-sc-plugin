@@ -41,7 +41,6 @@ import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PRE
 
 /**
  * The main logic class for operating with Protecode SC
- * @author rukkanen
  */
 public class Scanner {
 
@@ -281,8 +280,8 @@ public class Scanner {
             if (reason.toLowerCase().contains("unexpected end of stream")) {
               LOGGER.log(Level.WARNING, "RECEIVED UNEXPECTED END OF STREAM: {0}", reason);
               console.log("Protecode SC reported that the file did not arrive properly. Please check you network.\n"
-                + "This is usually seen when the socket between Jenkins and the Protecode SC instance has connection"
-                + "problems. One possibility to fix this is to make sure you don't use WLAN and the network"
+                + "This is usually seen when the socket between Jenkins and the Protecode SC instance has connection\n"
+                + "problems. One possibility to fix this is to make sure you don't use WLAN, the network\n"
                 + "has enough bandwidth and is reliable.");
             }
             log.println(reason);

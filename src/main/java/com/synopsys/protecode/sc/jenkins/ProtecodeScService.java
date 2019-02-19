@@ -20,6 +20,7 @@ import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
 import com.synopsys.protecode.sc.jenkins.types.ConnectionStatus;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
+import hudson.model.Run;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
@@ -37,17 +38,25 @@ import retrofit2.Response;
  * for it.
  */
 public @Data class ProtecodeScService {
-  
+
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScService.class.getName());
   private ProtecodeScApi backend = null;
   private ProtecodeScServicesApi serviceBackend = null;
-  
-  public ProtecodeScService(String credentialsId, URL host, boolean checkCertificate){
-    backend = ProtecodeScConnection.backend(credentialsId, host, checkCertificate);
+
+  /**
+   * The implementation of the BDBA backend
+   *
+   * @param credentialsId the id of the chosen credentials. This is used when the connection is built.
+   * @param host Host URL for BDBA instance
+   * @param run The Jenkins Run instance to be used (for accessing credentials)
+   * @param checkCertificate whether to check certificate or not
+   */
+  public ProtecodeScService(String credentialsId, URL host, Run<?, ?> run, boolean checkCertificate) {
+    backend = ProtecodeScConnection.backend(credentialsId, host, run, checkCertificate);
     serviceBackend = ProtecodeScConnection.serviceBackend(host, checkCertificate);
   }
-  
-  public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {   
+
+  public void scan(String group, String fileName, RequestBody requestBody, ScanService listener) {
     Call<HttpTypes.UploadResponse> call = backend.scan(
       group,
       UtilitiesGeneral.replaceSpaceWithUnderscore(fileName),
@@ -75,22 +84,22 @@ public @Data class ProtecodeScService {
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
         // something went completely south (like no internet connection)
         String error = "Protecode SC returned error for file scan request: " + fileName +
-          ": " + t.getLocalizedMessage();  
+          ": " + t.getLocalizedMessage();
         fail(error, listener);
       }
     });
   }
-  
+
   // TODO: This is a copy paste
   public void scanFetchFromUrl(
-          String group, 
-          String url, 
-          Map headers, 
+          String group,
+          String url,
+          Map headers,
           ScanService listener
   ) {
     headers.put("Group", group);
     headers.put("Url", url);
-    
+
     Call<HttpTypes.UploadResponse> call = backend.scanFetchFromUrl(headers);
     call.enqueue(new Callback<HttpTypes.UploadResponse>() {
       @Override
@@ -101,9 +110,9 @@ public @Data class ProtecodeScService {
         if (response.isSuccessful()) {
           listener.processUploadResult(response.body());
         } else {
-          try {            
+          try {
             listener.setError("Protecode SC returned error for " +
-              response.errorBody().string() + " for url: " + url);            
+              response.errorBody().string() + " for url: " + url);
           } catch (IOException ex) {
             listener.setError("Protecode SC returned generic error without error message"
               + " for url: " + url);
@@ -114,12 +123,12 @@ public @Data class ProtecodeScService {
       public void onFailure(Call<HttpTypes.UploadResponse> call, Throwable t) {
         // something went completely south (like no internet connection)
         String error = "Protecode SC returned error for url scan request: " + url +
-          ": " + t.getLocalizedMessage();  
+          ": " + t.getLocalizedMessage();
         fail(error, listener);
       }
     });
   }
-  
+
   public void poll(Integer scanId, PollService listener) {
     Call<HttpTypes.UploadResponse> call = backend.poll(scanId);
     call.enqueue(new Callback<HttpTypes.UploadResponse>() {
@@ -145,7 +154,7 @@ public @Data class ProtecodeScService {
       }
     });
   }
-  
+
   public void scanResult(String sha1sum, ResultService listener) {
     Call<HttpTypes.ScanResultResponse> call = backend.scanResult(sha1sum);
     call.enqueue(new Callback<HttpTypes.ScanResultResponse>() {
@@ -165,7 +174,7 @@ public @Data class ProtecodeScService {
       }
     });
   }
-  
+
   /**
    * Test the connection with a HEAD call.
    * @return ConnectionStatus object for the current connection.
@@ -179,7 +188,7 @@ public @Data class ProtecodeScService {
       return new ConnectionStatus(ex);
     }
   }
-  
+
   /**
    * Fetch groups for a user
    * @param listener GroupService instance to handle responses
@@ -191,12 +200,12 @@ public @Data class ProtecodeScService {
       public void onResponse(Call<HttpTypes.Groups> call, Response<HttpTypes.Groups> response) {
         if (response.isSuccessful()) {
           listener.setGroups(response.body());
-        } else {          
+        } else {
           String error = "Fetching groups failed";
           fail(error, listener);
         }
       }
-      
+
       @Override
       public void onFailure(Call<HttpTypes.Groups> call, Throwable t) {
         String error = "Fetching groups failed with error: " + t.getMessage();
@@ -204,7 +213,7 @@ public @Data class ProtecodeScService {
       }
     });
   }
-  
+
   private void fail(String error, ErrorService listener) {
     listener.setError(error);
     LOGGER.warning(error);

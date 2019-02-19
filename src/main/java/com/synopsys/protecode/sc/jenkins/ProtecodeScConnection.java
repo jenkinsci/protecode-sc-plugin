@@ -10,17 +10,20 @@
  *******************************************************************************/
 package com.synopsys.protecode.sc.jenkins;
 
+import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
+import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScApi;
 import com.synopsys.protecode.sc.jenkins.interfaces.ProtecodeScServicesApi;
-import com.synopsys.protecode.sc.jenkins.utils.UtilitiesJenkins;
+import hudson.model.Run;
 import java.net.URL;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import okhttp3.*;
-import okhttp3.logging.HttpLoggingInterceptor;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -54,10 +57,17 @@ public class ProtecodeScConnection {
    * Main entry point for building a backend implementation in run-time.
    * @param credentialsId the identifier for the credentials to be used.
    * @param url The url which points to the protecode-sc instance.
+   * @param run The context for getting the credentials
    * @param checkCertificate whether or not to check the server certificate.
    * @return the backend to use while communicating to the server
    */
-  public static ProtecodeScApi backend(String credentialsId, URL url, boolean checkCertificate) {
+  public static ProtecodeScApi backend(
+    String credentialsId,
+    URL url,
+    Run run,
+    boolean checkCertificate
+  ) {
+    // TODO: Add a debug flag or something
     // HOW TO LOG
     // Leave these here for convenience of debugging. They bleed memory _badly_ though
     // HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
@@ -68,21 +78,11 @@ public class ProtecodeScConnection {
       {
         Request originalRequest = chain.request();
 
-        StandardUsernamePasswordCredentials credentials
-          = UtilitiesJenkins.getCredentials(url, credentialsId);
-
-        // Right now we can't provide credentials "as is" to protecode so we need to extract to
-        // contents
-        String protecodeScUser = credentials.getUsername();
-        String protecodeScPass = credentials.getPassword().getPlainText();
-
         Request.Builder builder = originalRequest.newBuilder()
-          .header(
-            "Authorization",
-            Credentials.basic(protecodeScUser, protecodeScPass)
-          )
           .addHeader("User-Agent", Configuration.CLIENT_NAME)
           .addHeader("Connection", "close");
+
+        builder.header("Authorization", authenticationString(credentialsId, run, url));
 
         Request newRequest = builder.build();
         return chain.proceed(newRequest);
@@ -90,11 +90,10 @@ public class ProtecodeScConnection {
     ).readTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
       .connectTimeout(Configuration.TIMEOUT_SECONDS, TimeUnit.SECONDS)
       .retryOnConnectionFailure(true)
-      //      .addInterceptor(interceptor)
+      //.addInterceptor(interceptor)
       .build();
     // TODO: Write interceptor for checking is the error 429 (too many requests) and handle that in
     // a nice fashion.
-
 
     okHttpClient.dispatcher().setMaxRequests(Configuration.MAX_REQUESTS_TO_PROTECODE);
     LOGGER.log(Level.ALL, "Max simultaneous requests to protecode limited to: {0}",
@@ -109,6 +108,46 @@ public class ProtecodeScConnection {
     return retrofit.create(ProtecodeScApi.class);
   }
 
+  /**
+   * Method returns authentication string based on the credentials type.
+   *
+   * @param credentialsId the identifier for the credentials to be used.
+   * @param url The url which points to the protecode-sc instance.
+   * @param run The context for getting the credentials
+   * @return The string to use with authorization header
+   */
+  private static String authenticationString(String credentialsId, Run<?, ?> run, URL url) {
+    StandardCredentials credentials = CredentialsProvider.findCredentialById(
+      credentialsId,
+      StandardCredentials.class,
+      run,
+      URIRequirementBuilder.fromUri(url.toExternalForm()).build()
+    );
+
+    String authenticationString;
+
+    if (credentials instanceof StandardUsernamePasswordCredentials) {
+      LOGGER.fine("using credentials");
+      authenticationString = Credentials.basic(
+        ((StandardUsernamePasswordCredentials) credentials).getUsername(),
+        ((StandardUsernamePasswordCredentials) credentials).getPassword().getPlainText()
+      );
+    } else if (credentials instanceof StringCredentials) {
+      LOGGER.fine("using API key");
+      authenticationString = "Bearer " + ((StringCredentials) credentials).getSecret();
+    } else {
+      return "";
+    }
+    return authenticationString;
+  }
+
+  /**
+   * Add possible CipherSuites, connection specs and connection linked items which are completely server
+   * specific here.
+   *
+   * @param checkCertificate whether to enforce certificate
+   * @return the http client
+   */
   private static OkHttpClient.Builder httpClientBuilder(boolean checkCertificate) {
     if (checkCertificate) {
       LOGGER.log(Level.INFO, "Checking certificates");

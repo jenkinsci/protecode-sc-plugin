@@ -25,6 +25,9 @@ public final class UtilitiesGeneral {
   private static final List<String> PUBLIC_HOSTS = new ArrayList<>();
 
   static {
+    // Add possible names for cloud instance. This will limit the possiblity of choosing
+    // "do not zip files". This limitation is in place to protect the cloud if the user
+    // would happen to recursively send large amounts of files.
     PUBLIC_HOSTS.add("protecode-sc.com");
   }
 
@@ -94,6 +97,12 @@ public final class UtilitiesGeneral {
     return strDate;
   }
 
+  /**
+   * Does a very simple check that is the string provided a valid URL.
+   *
+   * @param possibleUrl the string to verify a url
+   * @return true if string provided is a valid URL
+   */
   @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   public static boolean isUrl(String possibleUrl) {
     try {

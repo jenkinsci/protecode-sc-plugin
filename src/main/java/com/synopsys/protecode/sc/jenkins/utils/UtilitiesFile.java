@@ -19,7 +19,6 @@ import hudson.remoting.VirtualChannel;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,6 +62,7 @@ public final class UtilitiesFile {
    *
    * @param run Instance of the build
    * @param pattern Regexp pattern used for including only certain artifacts
+   * @param directoryToScan the relative path in workspace to scan
    * @return List of FilePaths produced as artifacts
    */
   // TODO: CLEAN! And add option to use (w/ option to scan artifacts)
@@ -155,7 +155,7 @@ public final class UtilitiesFile {
       @Override
       public FilePath invoke(File f, VirtualChannel channel) throws IOException, InterruptedException, InterruptedException {
         File zipFile = new File(zipFileName);
-        LOGGER.info("Creating zip: " + zipFile.getAbsolutePath());
+        LOGGER.log(Level.INFO, "Creating zip: {0}", zipFile.getAbsolutePath());
 
         if (zipFile.exists()) {
           if (!zipFile.delete()) {
