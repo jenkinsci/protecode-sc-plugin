@@ -233,7 +233,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       && !UtilitiesGeneral.isPublicHost(getDescriptor().getProtecodeScHost());
     if (this.dontZipFiles) {
       console.log("'Dont zip' is chosen, but since this build is done against a Synopsys hosted "
-        + Configuration.TOOL_NAME + "instance, this option is ignored.");
+        + Configuration.TOOL_NAME + " instance, this option is ignored.");
     }
 
     // TOTO: Make Scanner not linked to Jenkins.
