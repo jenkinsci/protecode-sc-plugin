@@ -30,7 +30,6 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
@@ -82,8 +81,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   private static boolean storedDontCheckCertificate = true;
 
   // used for printing to the jenkins console
-  private PrintStream log = null;
-  private TaskListener listener = null;
+  //private PrintStream log = null;
+  private TaskListener buildListener = null;
 
   public static final String NO_ERROR = ""; // TODO: Use Optional
   private static final Logger LOGGER = Logger.getLogger(ProtecodeScPlugin.class.getName());
@@ -168,9 +167,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       }
     } catch (MalformedURLException e) {
       LOGGER.warning("No URL given for " + Configuration.TOOL_NAME);
-      listener.error("Cannot read " + Configuration.TOOL_NAME + " URL, please make sure it has been set in the Jenkins"
+      buildListener.error("Cannot read " + Configuration.TOOL_NAME + " URL, please make sure it has been set in the Jenkins"
         + " configuration page.");
-      // TODO: Add prebuild 
+      // TODO: Add prebuild
     }
     return service;
   }
@@ -181,7 +180,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // TODO add try - catch (Interrupted) to call abort scan in BDBA (remember to throw the
     // same exception upward)
     LOGGER.finer("Perform() with run object");
-    this.listener = listener;
+    this.buildListener = listener;
     doPerform(run, workspace);
   }
 
@@ -191,7 +190,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // TODO add try - catch (Interrupted) to call abort scan in BDBA (remember to throw the
     // same exception upward)
     LOGGER.finer("Perform() with build object");
-    this.listener = listener;
+    this.buildListener = listener;
     return doPerform(build, build.getWorkspace());
   }
 
@@ -200,13 +199,14 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     // TODO: Check credentials exists!
     if (workspace == null) {
-      listener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
+      buildListener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
       run.setResult(Result.FAILURE);
       return false;
     }
 
-    log = listener.getLogger();
-    console = new JenkinsConsoler(listener);
+    //log = buildListener.getLogger();
+    console = JenkinsConsoler.getInstance();
+    console.setStream(buildListener.getLogger());
 
     String cleanJob = null;
     if (protecodeScanName == null || "".equals(protecodeScanName)) {
@@ -222,7 +222,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service(run);
     if (serv == null) {
-      listener.error("Cannot connect to " + Configuration.TOOL_NAME); // TODO use consoler also
+      buildListener.error("Cannot connect to " + Configuration.TOOL_NAME); // TODO use consoler also
       run.setResult(Result.FAILURE);
       return false;
     }
@@ -244,7 +244,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       run,
       scanTimeout,
       workspace,
-      listener,
+      buildListener,
       getDirectoryToScan(),
       scanOnlyArtifacts,
       includeSubdirectories,
@@ -252,7 +252,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       pattern,
       cleanJob,
       customHeader,
-      console,
       forceDontZip
     );
 
@@ -275,7 +274,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       }
       results = resultOp.get();
     } catch (IOException ioe) {
-      listener.error("Could not send files to " + Configuration.TOOL_NAME + ": " + ioe);
+      buildListener.error("Could not send files to " + Configuration.TOOL_NAME + ": " + ioe);
       verdict.setError("Could not send files to " + Configuration.TOOL_NAME);
       if (results.isEmpty()) {
         return false;
@@ -287,12 +286,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     // make results
-    ReportBuilder.report(results, listener, UtilitiesFile.reportsDirectory(run), run);
+    ReportBuilder.report(results, buildListener, UtilitiesFile.reportsDirectory(run), run);
 
     // summarise
     if (convertToSummary) {
       console.log("Writing summary for summary plugin to protecodesc.xml");
-      ReportBuilder.makeSummary(run, listener);
+      ReportBuilder.makeSummary(run, buildListener);
     }
 
     //evaluate, if verdict is false, there are vulns
@@ -300,10 +299,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     boolean buildStatus = verdict.verdict();
 
     // TODO: W-E-T
+    // TODO: This is awful. It will tell the user that some files have vulns when any error happened
+    // even though that's not true. The list of vulnerable files will just be empty
     if (failIfVulns) {
       if (!verdict.verdict()) {
         console.printReportString(results);
-        listener.fatalError(verdict.verdictStr());
+        buildListener.fatalError(verdict.verdictStr());
         run.setResult(Result.FAILURE);
       } else {
         console.log("NO vulnerabilities found.");
@@ -330,7 +331,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
   }
 
   public String getTask() {
-    return "Protecode SC";
+    return Configuration.TOOL_NAME;
   }
 
   @Extension

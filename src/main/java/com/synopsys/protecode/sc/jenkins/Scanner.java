@@ -10,34 +10,26 @@
  ****************************************************************************** */
 package com.synopsys.protecode.sc.jenkins;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.synopsys.protecode.sc.jenkins.Scanner;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
-import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
-import com.synopsys.protecode.sc.jenkins.types.FileResult;
-import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
-import com.synopsys.protecode.sc.jenkins.types.StreamRequestBody;
+import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
+import com.synopsys.protecode.sc.jenkins.types.*;
+import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile;
+import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PREFIX;
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import okhttp3.MediaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
-import com.synopsys.protecode.sc.jenkins.utils.JenkinsConsoler;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Map;
-import java.util.Optional;
-
-import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PREFIX;
 
 /**
  * The main logic class for operating with BDBA
@@ -49,7 +41,7 @@ public class Scanner {
 
   private final BuildVerdict verdict;
   private final String protecodeScGroup;
-  private final PrintStream log;
+  private final JenkinsConsoler console;
   private final TaskListener listener;
   private final ProtecodeScService service;
   private final Run<?, ?> run;
@@ -68,7 +60,6 @@ public class Scanner {
 
   private static final String NO_ERROR = "";
   private static final Logger LOGGER = Logger.getLogger(Scanner.class.getName());
-  private final JenkinsConsoler console;
 
   public Scanner(
     BuildVerdict verdict,
@@ -85,12 +76,11 @@ public class Scanner {
     String pattern,
     String protecodeScanName,
     String customHeader,
-    JenkinsConsoler console,
     boolean dontZipFiles
   ) {
     this.verdict = verdict;
     this.protecodeScGroup = protecodeScGroup;
-    this.log = listener.getLogger();
+    this.console = JenkinsConsoler.getInstance();
     this.listener = listener;
     this.service = serv;
     this.run = run;
@@ -103,20 +93,19 @@ public class Scanner {
     this.pattern = pattern;
     this.protecodeScanName = protecodeScanName;
     this.customHeader = customHeader;
-    this.console = console;
     this.dontZipFiles = dontZipFiles;
   }
 
-/**
- * The logic
- *
- * Add a suppress since the executor workspace is already checked and valid.
- * SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
- *
- * @return List of FileResults
- * @throws IOException File operations will throw this in cases of not found etc
- * @throws InterruptedException Jenkins build interruption
- */
+  /**
+   * The logic.
+   *
+   * Add a suppress since the executor workspace is already checked and valid.
+   * SuppressWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
+   *
+   * @return List of FileResults
+   * @throws IOException File operations will throw this in cases of not found etc
+   * @throws InterruptedException Jenkins build interruption
+   */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public Optional<List<FileResult>> doPerform() throws InterruptedException, IOException {
     FilePath directory = workspace.child(directoryToScan);
@@ -149,7 +138,7 @@ public class Scanner {
       if (files.isEmpty()) {
         return Optional.empty();
       }
-      Optional <String> zipName = Optional.empty();
+      Optional<String> zipName = Optional.empty();
       if (files.size() > Configuration.MAXIMUM_UNZIPPED_FILE_AMOUNT
         && !dontZipFiles) {
         LOGGER.log(Level.INFO, "Files count: {0}, attempting to zip to executor workspace root", files.size());
@@ -189,27 +178,26 @@ public class Scanner {
       start = System.currentTimeMillis();
 
       Map<String, String> map = reader.readValue(customHeader);
-      service.scanFetchFromUrl(
-        protecodeScGroup,
+      service.scanFetchFromUrl(protecodeScGroup,
         directoryToScan,
         map,
         new ScanService() {
-          @Override
-          public void setError(String reason) {
-            // TODO: use Optional
-            log.println(reason);
-            addUploadResponse(directoryToScan, null, reason);
-          }
-
-          @Override
-          public void processUploadResult(HttpTypes.UploadResponse result) {
-            addUploadResponse(directoryToScan, result, NO_ERROR);
-          }
+        @Override
+        public void setError(String reason) {
+          // TODO: use Optional
+          console.error(reason);
+          addUploadResponse(directoryToScan, null, reason);
         }
+
+        @Override
+        public void processUploadResult(HttpTypes.UploadResponse result) {
+          addUploadResponse(directoryToScan, result, NO_ERROR);
+        }
+      }
       );
     }
 
-    waitForUploadResponses(files.size(), log);
+    waitForUploadResponses(files.size());
 
     if (endAfterSendingFiles) {
       return Optional.empty();
@@ -259,37 +247,36 @@ public class Scanner {
       }
 
       LOGGER.log(Level.INFO, "Sending file: {0}", jobName);
-      service.scan(
-        this.protecodeScGroup,
+      service.scan(this.protecodeScGroup,
         jobName,
         new StreamRequestBody(
           MediaType.parse("application/octet-stream"),
           file
         ),
         new Listeners.ScanService() {
-          @Override
-          public void processUploadResult(HttpTypes.UploadResponse result) {
-            LOGGER.warning("Received results for file: " + jobName);
-            addUploadResponse(jobName, result, NO_ERROR);
-          }
-
-          @Override
-          public void setError(String reason) {
-            // TODO: use Optional
-            // And awful hack to avoid problems
-            if (reason.toLowerCase().contains("unexpected end of stream")) {
-              LOGGER.log(Level.WARNING, "RECEIVED UNEXPECTED END OF STREAM: {0}", reason);
-              console.log(Configuration.TOOL_NAME + " reported that the file did not arrive properly. Please check you network.\n"
-                + "This is usually seen when the socket between Jenkins and the BDBA instance has connection\n"
-                + "problems. One possibility to fix this is to make sure you don't use WLAN, the network\n"
-                + "has enough bandwidth and is reliable.");
-            }
-            log.println(reason);
-            // TODO: Maybe use listener.error to stop writing for more results if we get error
-            // perhaps?
-            addUploadResponse(jobName, null, reason);
-          }
+        @Override
+        public void processUploadResult(HttpTypes.UploadResponse result) {
+          addUploadResponse(jobName, result, NO_ERROR);
         }
+
+        @Override
+        public void setError(String reason) {
+          // TODO: use Optional
+          // And awful hack to avoid problems
+          if (reason.toLowerCase().contains("unexpected end of stream")) {
+            LOGGER.log(Level.WARNING, "RECEIVED UNEXPECTED END OF STREAM: {0}", reason);
+            console.error(Configuration.TOOL_NAME + " reported that the file did not arrive properly. Please check you network.\n"
+              + "This is usually seen when the socket between Jenkins and the BDBA instance has connection\n"
+              + "problems. One possibility to fix this is to make sure you don't use WLAN, the network\n"
+              + "has enough bandwidth and is reliable.");
+          } else {
+            console.error("while sending files: " + reason);
+          }
+          // TODO: Maybe use listener.error to stop writing for more results if we get error
+          // perhaps?
+          addUploadResponse(jobName, null, reason);
+        }
+      }
       );
       Thread.sleep(500); // we don't want to overload anything
     }
@@ -302,13 +289,13 @@ public class Scanner {
    */
   private void poll(Run<?, ?> run) throws InterruptedException {
     if (results.stream().allMatch((fileAndResult) -> (fileAndResult.errorIsSet()))) {
-      log.println("No results found. Perhaps no uploads were succesfull.");
+      console.log("No results found. Perhaps no uploads were succesfull.");
       return;
     }
     // TODO: Make better timeout, which encapsulates the whole step
     long endAt = System.currentTimeMillis() + (this.scanTimeout * 60L * 1000L);
     // use shortened variable to distinguish from possibly null service
-    log.println("Waiting for results from " + Configuration.TOOL_NAME);
+    console.log("Waiting for results from " + Configuration.TOOL_NAME);
     do {
       if (System.currentTimeMillis() > endAt) {
         listener.error("Timeout while fetching files");
@@ -316,47 +303,44 @@ public class Scanner {
         return;
       }
       for (FileResult result : results) {
-        if (!result.errorIsSet() &&
-          !result.hasScanResponse() &&
-          result.uploadHTTPStatus() == 200
-        ) {
+        if (!result.errorIsSet()
+          && !result.hasScanResponse()
+          && result.uploadHTTPStatus() == 200) {
           if ("R".equals(result.getState())) {
             if (!result.isResultBeingFetched()) {
               result.setResultBeingFetched(true);
-              service.scanResult(
-                result.getUploadResponse().getResults().getSha1sum(),
+              service.scanResult(result.getUploadResponse().getResults().getSha1sum(),
                 new Listeners.ResultService() {
-                  @Override
-                  public void setScanResult(HttpTypes.ScanResultResponse scanResult) {
-                    log.println("Received results for file: " + result.getFilename());
-                    result.setResultResponse(scanResult);
-                  }
-
-                  @Override
-                  public void setError(String reason) {
-                    log.println("Received " + Configuration.TOOL_NAME + " scan result ERROR for file: "
-                      + result.getFilename());
-                    result.setError(reason);
-                  }
-                }
-              );
-            }
-          } else {
-            service.poll(
-              // TODO: Use pretty annotation in type "product_id"
-              result.getUploadResponse().getResults().getProduct_id(),
-              new Listeners.PollService() {
                 @Override
-                public void setScanStatus(HttpTypes.UploadResponse status) {
-                  result.setUploadResponse(status);
+                public void setScanResult(HttpTypes.ScanResultResponse scanResult) {
+                  console.logPure("Received results for file: " + result.getFilename());
+                  result.setResultResponse(scanResult);
                 }
 
                 @Override
                 public void setError(String reason) {
-                  log.println("scan status ERROR: " + result.getFilename() + ": " + result.getState() + ": " + reason);
+                  console.logPure("Received " + Configuration.TOOL_NAME + " scan result ERROR for file: "
+                    + result.getFilename());
                   result.setError(reason);
                 }
               }
+              );
+            }
+          } else {
+            service.poll(// TODO: Use pretty annotation in type "product_id"
+              result.getUploadResponse().getResults().getProduct_id(),
+              new Listeners.PollService() {
+              @Override
+              public void setScanStatus(HttpTypes.UploadResponse status) {
+                result.setUploadResponse(status);
+              }
+
+              @Override
+              public void setError(String reason) {
+                console.error("scan status ERROR: " + result.getFilename() + ": " + result.getState() + ": " + reason);
+                result.setError(reason);
+              }
+            }
             );
           }
         }
@@ -367,11 +351,12 @@ public class Scanner {
         Thread.sleep(10 * 1000);
       }
     } while (allNotReady());
-    log.println("Received all results from " + Configuration.TOOL_NAME);
+    console.log("Received all results from " + Configuration.TOOL_NAME);
   }
 
   /**
    * Simple check to determine does every scan have a result or an error
+   *
    * @return true if all results have been fetched
    */
   private boolean allNotReady() {
@@ -384,19 +369,18 @@ public class Scanner {
    * @param fileCount How many files were uploaded
    * @param log for printing to Jenkins build console.
    */
-  private void waitForUploadResponses(int fileCount, PrintStream log) {
+  private void waitForUploadResponses(int fileCount) {
     boolean waitForResponses = true;
     // TODO: Add timeout since some files get no reponse from BDBA
     while (waitForResponses) {
       try {
         Thread.sleep(30 * 1000);
-        // TODO: remove print after testing
         if (results.size() >= fileCount) {
           waitForResponses = false;
         }
       } catch (InterruptedException ie) {
         waitForResponses = false;
-        log.println("Interrupted while waiting for upload responses from " + Configuration.TOOL_NAME);
+        console.log("Interrupted while waiting for upload responses from " + Configuration.TOOL_NAME);
       }
     }
   }

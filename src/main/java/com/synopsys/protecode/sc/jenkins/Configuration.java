@@ -46,5 +46,5 @@ public class Configuration {
   /**
    * Convenience for making sure the tool name is correct.
    */
-  public static final String TOOL_NAME = "BDBA";
+  public static final String TOOL_NAME = "Black Duck Binary Analysis";
 }

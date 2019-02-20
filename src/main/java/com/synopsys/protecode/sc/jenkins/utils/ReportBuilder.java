@@ -109,7 +109,7 @@ public class ReportBuilder {
           throw new IOException("XML report directory could not be created.");
         }
       } else {
-        log.println("cannot find log dir: " + xmlReportDir.getAbsolutePath());
+        log.println("Cannot find log dir: " + xmlReportDir.getAbsolutePath());
       }
       File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
 

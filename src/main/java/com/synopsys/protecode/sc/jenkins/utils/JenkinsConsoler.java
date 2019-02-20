@@ -14,17 +14,27 @@ import com.synopsys.protecode.sc.jenkins.Configuration;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.types.HttpTypes;
 import com.synopsys.protecode.sc.jenkins.types.InternalTypes;
-import hudson.model.TaskListener;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import lombok.NonNull;
-import org.springframework.beans.factory.annotation.Configurable;
 
 /**
- * Used to make nice and concise prints to the jenkins build console.
+ * Used to make nice and concise prints to the jenkins build console. This is now a pseudo singleton to reduce
+ * amount of effort to use it
  */
 public class JenkinsConsoler {
+
+  private static JenkinsConsoler instance;
+
+  public static JenkinsConsoler getInstance() {
+    if (instance != null) {
+      // One might throw an exception if the log isn't set at this point
+      return instance;
+    }
+    instance = new JenkinsConsoler();
+    return instance;
+  }
 
   /**
    * Edit this to choose formatted message format.
@@ -32,24 +42,22 @@ public class JenkinsConsoler {
   final static int LINE_LENGTH = 80;
   final static String STRING_EDGE_CHAR = "|";
 
-  private final TaskListener listener;
-  private final PrintStream log;
+  private PrintStream log;
 
-  public JenkinsConsoler(TaskListener listener) {
-    this.listener = listener;
-    this.log = listener.getLogger();
+  public void setStream(PrintStream printStream) {
+    this.log = printStream;
   }
 
   public void log(String line) {
     log.println(wrapper(line));
   }
 
-  public void logPure(String line){
+  public void logPure(String line) {
     log.println(line);
   }
 
   public void error(String error) {
-
+    log.println("ERROR: " + error);
   }
 
   /**
@@ -78,14 +86,15 @@ public class JenkinsConsoler {
 
   /**
    * Print a report of the fileResults.
+   *
    * @param results The fileresult set from which to print the report
    */
   public void printReportString(List<FileResult> results) {
     StringBuilder report = new StringBuilder();
     log("Following files have vulnerabilities");
-    for(FileResult result : results) {
+    for (FileResult result : results) {
       for (Map.Entry<String, Map<HttpTypes.Component, InternalTypes.VulnStatus>> file : result.getFiles().entrySet()) {
-        if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount()>0))) {
+        if (file.getValue().values().stream().anyMatch((vulnStatus) -> (vulnStatus.untriagedVulnsCount() > 0))) {
           report.append("\t").append(file.getKey()).append("\n");
         }
       }

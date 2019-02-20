@@ -13,7 +13,7 @@
     so it should be straightforward to find them.
     
   -->
-  <f:section title="Protecode SC">
+  <f:section title="Black Duck Binary Analysis">
     <f:entry title="Server" field="protecodeScHost">
       <f:textbox />
     </f:entry>    
