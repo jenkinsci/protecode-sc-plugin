@@ -201,9 +201,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     // TODO: Check credentials exists!
     if (workspace == null) {
-      buildListener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
+      String message = "No executor workspace, exiting. Has the build been able to create a workspace?";
+      buildListener.error(message);
       if (failIfVulns) {
-        run.setResult(Result.FAILURE);
+        throw new ScanException(message);
       }
 
       return false;
@@ -227,9 +228,10 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service(run);
     if (serv == null) {
-      buildListener.error("Cannot connect to " + Configuration.TOOL_NAME); // TODO use consoler also
+      String message = "Cannot connect to " + Configuration.TOOL_NAME;
+      buildListener.error(message); // TODO use consoler also
       if (failIfVulns) {
-        run.setResult(Result.FAILURE);
+        throw new ApiException(message);
       }
 
       return false;
@@ -260,7 +262,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       pattern,
       cleanJob,
       customHeader,
-      forceDontZip
+      forceDontZip,
+      failIfVulns
     );
 
     // Get/scan the files
