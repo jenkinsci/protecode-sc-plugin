@@ -203,6 +203,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (failIfVulns) {
         run.setResult(Result.FAILURE);
       }
+
       return false;
     }
 
@@ -228,6 +229,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (failIfVulns) {
         run.setResult(Result.FAILURE);
       }
+
       return false;
     }
 
@@ -267,17 +269,11 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (verdict.getFilesFound() == 0) {
         LOGGER.info("No files found, ending " + Configuration.TOOL_NAME + " phase.");
         console.log("No files found, ending " + Configuration.TOOL_NAME + " phase.");
-        if (failIfVulns) {
-          run.setResult(Result.SUCCESS);
-        }
         return true;
       }
       if (endAfterSendingFiles) {
         LOGGER.info("Files sent, ending " + Configuration.TOOL_NAME + " phase due to configuration.");
         console.log("Files sent, ending phase.");
-        if (failIfVulns) {
-          run.setResult(Result.SUCCESS);
-        }
         return true;
       }
       results = resultOp.get();
@@ -288,10 +284,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         return false;
       } // otherwise carry on, might get something
     } catch (InterruptedException ie) {
+      buildListener.error("Interrupted, stopping build");
       console.log("Interrupted, stopping build");
-      if (failIfVulns) {
-        run.setResult(Result.ABORTED);
-      }
       return false;
     }
 
@@ -315,9 +309,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (!verdict.verdict()) {
         console.printReportString(results);
         buildListener.fatalError(verdict.verdictStr());
-        if (failIfVulns) {
-          run.setResult(Result.FAILURE);
-        }
       } else {
         console.log("NO vulnerabilities found.");
       }
