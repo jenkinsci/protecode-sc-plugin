@@ -200,7 +200,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // TODO: Check credentials exists!
     if (workspace == null) {
       buildListener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
-      run.setResult(Result.FAILURE);
+      if (failIfVulns) {
+        run.setResult(Result.FAILURE);
+      }
       return false;
     }
 
@@ -223,7 +225,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     ProtecodeScService serv = service(run);
     if (serv == null) {
       buildListener.error("Cannot connect to " + Configuration.TOOL_NAME); // TODO use consoler also
-      run.setResult(Result.FAILURE);
+      if (failIfVulns) {
+        run.setResult(Result.FAILURE);
+      }
       return false;
     }
 
@@ -263,13 +267,17 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (verdict.getFilesFound() == 0) {
         LOGGER.info("No files found, ending " + Configuration.TOOL_NAME + " phase.");
         console.log("No files found, ending " + Configuration.TOOL_NAME + " phase.");
-        run.setResult(Result.SUCCESS);
+        if (failIfVulns) {
+          run.setResult(Result.SUCCESS);
+        }
         return true;
       }
       if (endAfterSendingFiles) {
         LOGGER.info("Files sent, ending " + Configuration.TOOL_NAME + " phase due to configuration.");
         console.log("Files sent, ending phase.");
-        run.setResult(Result.SUCCESS);
+        if (failIfVulns) {
+          run.setResult(Result.SUCCESS);
+        }
         return true;
       }
       results = resultOp.get();
@@ -281,7 +289,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       } // otherwise carry on, might get something
     } catch (InterruptedException ie) {
       console.log("Interrupted, stopping build");
-      run.setResult(Result.ABORTED);
+      if (failIfVulns) {
+        run.setResult(Result.ABORTED);
+      }
       return false;
     }
 
@@ -305,7 +315,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (!verdict.verdict()) {
         console.printReportString(results);
         buildListener.fatalError(verdict.verdictStr());
-        run.setResult(Result.FAILURE);
+        if (failIfVulns) {
+          run.setResult(Result.FAILURE);
+        }
       } else {
         console.log("NO vulnerabilities found.");
       }
@@ -317,7 +329,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         console.log("NO vulnerabilities found.");
       }
       buildStatus = true;
-      run.setResult(Result.SUCCESS);
     }
 
     console.log(Configuration.TOOL_NAME + " plugin end");
