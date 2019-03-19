@@ -292,7 +292,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       String message = "Interrupted, stopping build";
       buildListener.error(message);
       console.log(message);
+      if(failIfVulns) {
         throw new ScanException(message);
+      }
       return false;
     }
 
