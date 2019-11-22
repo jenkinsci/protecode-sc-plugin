@@ -18,6 +18,8 @@ import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.Scanner;
+import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
+import com.synopsys.protecode.sc.jenkins.exceptions.ScanException;
 import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
 import com.synopsys.protecode.sc.jenkins.types.FileResult;
 import com.synopsys.protecode.sc.jenkins.utils.*;
@@ -199,8 +201,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     // TODO: Check credentials exists!
     if (workspace == null) {
-      buildListener.error("No executor workspace, exiting. Has the build been able to create a workspace?");
-      run.setResult(Result.FAILURE);
+      String message = "No executor workspace, exiting. Has the build been able to create a workspace?";
+      buildListener.error(message);
+      if (failIfVulns) {
+        throw new ScanException(message);
+      }
+
       return false;
     }
 
@@ -222,8 +228,12 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     // use shortened word to distinguish from possibly null service
     ProtecodeScService serv = service(run);
     if (serv == null) {
-      buildListener.error("Cannot connect to " + Configuration.TOOL_NAME); // TODO use consoler also
-      run.setResult(Result.FAILURE);
+      String message = "Cannot connect to " + Configuration.TOOL_NAME;
+      buildListener.error(message); // TODO use consoler also
+      if (failIfVulns) {
+        throw new ApiException(message);
+      }
+
       return false;
     }
 
@@ -252,7 +262,8 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       pattern,
       cleanJob,
       customHeader,
-      forceDontZip
+      forceDontZip,
+      failIfVulns
     );
 
     // Get/scan the files
@@ -263,25 +274,30 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (verdict.getFilesFound() == 0) {
         LOGGER.info("No files found, ending " + Configuration.TOOL_NAME + " phase.");
         console.log("No files found, ending " + Configuration.TOOL_NAME + " phase.");
-        run.setResult(Result.SUCCESS);
         return true;
       }
       if (endAfterSendingFiles) {
         LOGGER.info("Files sent, ending " + Configuration.TOOL_NAME + " phase due to configuration.");
         console.log("Files sent, ending phase.");
-        run.setResult(Result.SUCCESS);
         return true;
       }
       results = resultOp.get();
     } catch (IOException ioe) {
       buildListener.error("Could not send files to " + Configuration.TOOL_NAME + ": " + ioe);
       verdict.setError("Could not send files to " + Configuration.TOOL_NAME);
+      if(failIfVulns) {
+        throw new ApiException("Could not send files to " + Configuration.TOOL_NAME);
+      }
       if (results.isEmpty()) {
         return false;
       } // otherwise carry on, might get something
     } catch (InterruptedException ie) {
-      console.log("Interrupted, stopping build");
-      run.setResult(Result.ABORTED);
+      String message = "Interrupted, stopping build";
+      buildListener.error(message);
+      console.log(message);
+      if(failIfVulns) {
+        throw new ScanException(message);
+      }
       return false;
     }
 
@@ -305,7 +321,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (!verdict.verdict()) {
         console.printReportString(results);
         buildListener.fatalError(verdict.verdictStr());
-        run.setResult(Result.FAILURE);
+        throw new ScanException(verdict.verdictStr());
       } else {
         console.log("NO vulnerabilities found.");
       }
@@ -317,7 +333,6 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         console.log("NO vulnerabilities found.");
       }
       buildStatus = true;
-      run.setResult(Result.SUCCESS);
     }
 
     console.log(Configuration.TOOL_NAME + " plugin end");

@@ -13,6 +13,7 @@ package com.synopsys.protecode.sc.jenkins;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.synopsys.protecode.sc.jenkins.Scanner;
+import com.synopsys.protecode.sc.jenkins.exceptions.ScanException;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners;
 import com.synopsys.protecode.sc.jenkins.interfaces.Listeners.ScanService;
 import com.synopsys.protecode.sc.jenkins.types.*;
@@ -55,10 +56,11 @@ public class Scanner {
   private final String protecodeScanName;
   private final String customHeader;
   private final boolean dontZipFiles;
-
-  private boolean zippingInUse = false;
+  private final boolean failIfVulns;
 
   private static final String NO_ERROR = "";
+
+  private boolean zippingInUse = false;
   private static final Logger LOGGER = Logger.getLogger(Scanner.class.getName());
 
   public Scanner(
@@ -76,7 +78,8 @@ public class Scanner {
     String pattern,
     String protecodeScanName,
     String customHeader,
-    boolean dontZipFiles
+    boolean dontZipFiles,
+    boolean failIfVulns
   ) {
     this.verdict = verdict;
     this.protecodeScGroup = protecodeScGroup;
@@ -94,6 +97,7 @@ public class Scanner {
     this.protecodeScanName = protecodeScanName;
     this.customHeader = customHeader;
     this.dontZipFiles = dontZipFiles;
+    this.failIfVulns = failIfVulns;
   }
 
   /**
@@ -298,9 +302,11 @@ public class Scanner {
     console.log("Waiting for results from " + Configuration.TOOL_NAME);
     do {
       if (System.currentTimeMillis() > endAt) {
-        listener.error("Timeout while fetching files");
-        run.setResult(Result.FAILURE);
-        return;
+        String message = "Timeout while fetching files";
+        listener.error(message);
+        if (failIfVulns) {
+          throw new ScanException(message);
+        }
       }
       for (FileResult result : results) {
         if (!result.errorIsSet()
