@@ -246,7 +246,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         + Configuration.TOOL_NAME + " instance, this option is ignored.");
     }
 
-    // TOTO: Make Scanner not linked to Jenkins.
+    // TODO: Make Scanner not linked to Jenkins.
     Scanner scanner = new Scanner(
       verdict,
       protecodeScGroup,
