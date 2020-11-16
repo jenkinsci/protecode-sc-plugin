@@ -66,7 +66,7 @@ class FileResult {
           String vuln_cve = vulnContext.getVuln().getCve();
           if (vulnContext.isExact()) {
             Collection<HttpTypes.Triage> triages = vulnContext.getTriage();
-            if (triages == null) {
+            if (triages == null || triages.isEmpty()) {
               vulnStatus.addUntriagedVuln(vulnContext.getVuln());
             } else {
               boolean triaged = triages.stream().anyMatch((triage) -> (triage.getVulnId().equals(vuln_cve)));
