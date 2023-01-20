@@ -15,6 +15,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -105,11 +106,22 @@ public final class UtilitiesGeneral {
    */
   @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   public static boolean isUrl(String possibleUrl) {
+    if (possibleUrl.startsWith("docker-registry-http")) {
+      return true;
+    }
     try {
       final URL url = new URL(possibleUrl);
       return true;
     } catch(MalformedURLException e) {
       return false;
     }
+  }
+
+  public static String parseEnvironmentVariable(String envVar) throws ParseException {
+    if (envVar.startsWith("$"))
+    {
+      return envVar.replace("$", "").replace("{", "").replace("}", "");
+    }
+    throw new ParseException("Invalid env var syntax", 0);
   }
 }

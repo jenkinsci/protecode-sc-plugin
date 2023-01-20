@@ -23,10 +23,10 @@ import static com.synopsys.protecode.sc.jenkins.utils.UtilitiesFile.ZIP_FILE_PRE
 import com.synopsys.protecode.sc.jenkins.utils.UtilitiesGeneral;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
-import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,14 +41,14 @@ public class Scanner {
   private List<FileResult> results = new ArrayList<>();
 
   private final BuildVerdict verdict;
-  private final String protecodeScGroup;
+  private String protecodeScGroup;
   private final JenkinsConsoler console;
   private final TaskListener listener;
   private final ProtecodeScService service;
   private final Run<?, ?> run;
   private final int scanTimeout;
   private final FilePath workspace;
-  private final String directoryToScan;
+  private String directoryToScan;
   private final boolean scanOnlyArtifacts;
   private final boolean includeSubdirectories;
   private final boolean endAfterSendingFiles;
@@ -100,6 +100,21 @@ public class Scanner {
     this.failIfVulns = failIfVulns;
   }
 
+  public void readEnvironmentVariables() throws IOException, InterruptedException {
+    Map<String, String> envMap = run.getEnvironment(listener);
+    try {
+      String groupVarName = UtilitiesGeneral.parseEnvironmentVariable(protecodeScGroup);
+      protecodeScGroup = envMap.getOrDefault(groupVarName, protecodeScGroup);
+      console.log("Upload group value from env var: " + groupVarName + "=" + protecodeScGroup);
+    } catch (ParseException e) {}
+
+    try {
+      String scanDirVarName = UtilitiesGeneral.parseEnvironmentVariable(directoryToScan);
+      directoryToScan = envMap.getOrDefault(scanDirVarName, directoryToScan);
+      console.log("Directory to scan value from env var: " + scanDirVarName + "=" + directoryToScan);
+    } catch (ParseException e) {}
+  }
+
   /**
    * The logic.
    *
@@ -112,10 +127,12 @@ public class Scanner {
    */
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public Optional<List<FileResult>> doPerform() throws InterruptedException, IOException {
+    readEnvironmentVariables();
     FilePath directory = workspace.child(directoryToScan);
     List<FilePath> files = new ArrayList<>(); // so not to cause npe if no files were fonud
     FilePath zip = null;
     long start = 0;
+
     if (!UtilitiesGeneral.isUrl(directoryToScan)) {
       if (scanOnlyArtifacts) {
         LOGGER.finer("Scanning only artifacts");
@@ -181,8 +198,14 @@ public class Scanner {
       ObjectReader reader = new ObjectMapper().readerFor(Map.class);
       start = System.currentTimeMillis();
 
-      Map<String, String> map = reader.readValue(customHeader);
-      service.scanFetchFromUrl(protecodeScGroup,
+      Map<String, String> map = new HashMap<>();
+      if (customHeader.length() > 0)
+      {
+          map = reader.readValue(customHeader);
+      }
+
+      service.scanFetchFromUrl(
+        protecodeScGroup,
         directoryToScan,
         map,
         new ScanService() {
