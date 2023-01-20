@@ -95,7 +95,7 @@ class ProtecodeScService {
   public void scanFetchFromUrl(
     String group,
     String url,
-    Map headers,
+    Map<String, String> headers,
     ScanService listener
   ) {
     headers.put("Group", group);

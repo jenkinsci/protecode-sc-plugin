@@ -17,7 +17,6 @@ import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.HostnameRequirement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.synopsys.protecode.sc.jenkins.Scanner;
 import com.synopsys.protecode.sc.jenkins.exceptions.ApiException;
 import com.synopsys.protecode.sc.jenkins.exceptions.ScanException;
 import com.synopsys.protecode.sc.jenkins.types.BuildVerdict;
@@ -222,7 +221,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       cleanJob = protecodeScanName;
     }
 
-    console.start(failIfVulns, includeSubdirectories, protecodeScGroup);
+    console.start(failIfVulns, includeSubdirectories);
     BuildVerdict verdict = new BuildVerdict(failIfVulns);
 
     // use shortened word to distinguish from possibly null service
@@ -442,11 +441,16 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
 
     public FormValidation doCheckProtecodeScGroup(@QueryParameter String protecodeScGroup) {
       try {
-        Integer.parseInt(protecodeScGroup);
+        if (protecodeScGroup.startsWith("$")) {
+          return FormValidation.ok();
+        }
+        else {
+          Integer.parseInt(protecodeScGroup);
+        }
         return FormValidation.ok();
       } catch (NumberFormatException e) {
-        return FormValidation.error("Please provide a valid group. The group should a plain number,"
-          + "not a URL or a name.");
+        return FormValidation.error("Please provide a valid group. The group should be a plain number or "
+          + "environment variable containing a number. Not a URL or a name.");
       }
     }
 
@@ -465,6 +469,9 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     }
 
     public FormValidation doCheckDirectoryToScan(@QueryParameter String directoryToScan) {
+      if (directoryToScan.startsWith("$")) {
+        return FormValidation.ok();
+      }
       // TODO: Make this work with empty string also... Currently börken
 //      if (directoryToScan.matches(".*[^w$ -.y].*")) {
 //        return FormValidation.ok();

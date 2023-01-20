@@ -2,12 +2,15 @@
 <div>
    Specify the BDBA Group ID where the artifacts should be uploaded to.
    <p>
-       Group ID can be found from the BDBA service by looking at the URL when 
+       Group ID can be found from the BDBA service by looking at the URL when
        browsing an individual group:
        <code>https://protecode-sc.mydomain.com/group/<strong>1234</strong>/</code>
        or with Groups API <code>https://protecode-sc.mydomain.com/api/groups/</code>.
    </p>
    <br>
-   <i> Please notice that this value should be a number, not the name or the 
+   <i> Please notice that this value should be a number, not the name or the
        path to the group.</i>
+    <p>
+        Value can also be an environment variable containing the group number, e.g $MY_GROUP_ID or ${MY_GROUP_ID}.
+    </p>
 </div>

@@ -3,7 +3,7 @@
     <f:entry title="Credentials (password or API key)" field="credentialsId">
         <c:select />
     </f:entry>
-    <f:entry title="Group ID" field="protecodeScGroup">
+    <f:entry title="Group ID (Environment variable supported)" field="protecodeScGroup">
         <f:textbox />
     </f:entry>
     <f:entry title="Scan job name (used only when zipping 10 or more files)" field="protecodeScanName">
@@ -21,7 +21,7 @@
     <f:entry title="Scan only produced artifacts" field="scanOnlyArtifacts">
         <f:checkbox/>
     </f:entry>
-    <f:entry title="Directory to scan / Url of file" field="directoryToScan">
+    <f:entry title="Directory to scan / Url of file (Environment variable supported)" field="directoryToScan">
         <f:textbox />
     </f:entry>
     <f:entry title="Custom header for fetching file by URL (optional)" field="customHeader">

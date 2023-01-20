@@ -68,8 +68,8 @@ public class JenkinsConsoler {
    * @param includeSubdirectories info to print
    * @param group for printing the group into which the files are uploaded
    */
-  public void start(boolean failIfVulns, boolean includeSubdirectories, String group) {
-    log(Configuration.TOOL_NAME + " plugin start. Uploading to group number: " + group);
+  public void start(boolean failIfVulns, boolean includeSubdirectories) {
+    log(Configuration.TOOL_NAME + " plugin enabled.");
     if (failIfVulns) {
       log("The build will fail if any untriaged vulnerabilities are found.");
     } else {
