@@ -25,7 +25,7 @@
     </properties>
     <name>Protecode SC</name>
     <description>Jenkins integration to Protecode SC with pipeline support</description>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/Protecode+SC+Plugin</url>
+    <url>https://github.com/jenkinsci/protecode-sc-plugin</url>
     <licenses>
         <license>
             <name>Eclipse Public License v1.0</name>
