@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import lombok.NonNull;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
-import okhttp3.internal.Util;
 import okio.BufferedSink;
 import okio.Okio;
 import okio.Source;
@@ -103,7 +102,13 @@ public class StreamRequestBody extends RequestBody {
     } finally {
       // TODO: Figure out that does this also close the file for real. According to the "ownership"
       // of the handle it shouldn't necessarily close it.
-      Util.closeQuietly(source);
+      if (source != null) {
+        try {
+          source.close();
+        } catch (IOException e) {
+          return;
+        }
+      }
     }
   }
 }

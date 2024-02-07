@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 import lombok.Data;
 
 /**
- * TODO, this class is an example of null-pointer fest. TODO: Also: This object has an ugly double role. It's
+ * TODO: This object has an ugly double role. It's
  * both a merge of file metadata and scan result. This isn't very nice and should be divided.
  */
 public @Data

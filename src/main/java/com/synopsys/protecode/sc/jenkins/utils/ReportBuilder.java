@@ -98,30 +98,27 @@ public class ReportBuilder {
     PrintStream log = listener.getLogger();
     ObjectMapper mapper = getObjectMapper();
 
-    try {
-      FilePath[] jsonFiles = UtilitiesFile.reportsDirectory(run).list("*-" + PROTECODE_FILE_TAG + ".json");
-      File xmlReportDir = run.getArtifactsDir();
+    FilePath[] jsonFiles = UtilitiesFile.reportsDirectory(run).list("*-" + PROTECODE_FILE_TAG + ".json");
+    File xmlReportDir = run.getArtifactsDir();
 
-      if (!xmlReportDir.exists()) {
-        boolean xmlReportDirCreated = xmlReportDir.mkdirs();
-        if (!xmlReportDirCreated) {
-          log.println("XML report directory could not be created.");
-          throw new IOException("XML report directory could not be created.");
-        }
-      } else {
-        log.println("Cannot find log dir: " + xmlReportDir.getAbsolutePath());
+    if (!xmlReportDir.exists()) {
+      boolean xmlReportDirCreated = xmlReportDir.mkdirs();
+      if (!xmlReportDirCreated) {
+        log.println("XML report directory could not be created.");
+        throw new IOException("XML report directory could not be created.");
       }
-      File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
-
-      log.println("Creating xml report to " + xmlFile.getName());
-
-      try (OutputStream out = new BufferedOutputStream(
-        new FileOutputStream(xmlFile))) {
-        createXmlReport(jsonFiles, mapper, out);
-      }
-    } catch (NullPointerException e) {
-      // NOP
+    } else {
+      log.println("Cannot find log dir: " + xmlReportDir.getAbsolutePath());
     }
+    File xmlFile = new File(xmlReportDir, PROTECODE_FILE_TAG + ".xml");
+
+    log.println("Creating xml report to " + xmlFile.getName());
+
+    try (OutputStream out = new BufferedOutputStream(
+      new FileOutputStream(xmlFile))) {
+      createXmlReport(jsonFiles, mapper, out);
+    }
+
     return true;
   }
 
