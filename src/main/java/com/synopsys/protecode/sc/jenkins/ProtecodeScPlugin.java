@@ -313,8 +313,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
     ProtecodeEvaluator.evaluate(results, verdict);
     boolean buildStatus = verdict.verdict();
 
-    // TODO: W-E-T
-    // TODO: This is awful. It will tell the user that some files have vulns when any error happened
+    // TODO: This could be better. It will tell the user that some files have vulns when any error happened
     // even though that's not true. The list of vulnerable files will just be empty
     if (failIfVulns) {
       if (!verdict.verdict()) {
@@ -463,7 +462,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
         ObjectReader reader = new ObjectMapper().readerFor(Map.class);
         final Map<String, String> map = reader.readValue(customHeader);
         return FormValidation.ok();
-      } catch (IOException | NullPointerException e) {
+      } catch (IOException e) {
         return FormValidation.error("Please provide a key-value list in JSON format.");
       }
     }
@@ -472,7 +471,7 @@ public class ProtecodeScPlugin extends Builder implements SimpleBuildStep {
       if (directoryToScan.startsWith("$")) {
         return FormValidation.ok();
       }
-      // TODO: Make this work with empty string also... Currently börken
+      // TODO: Make this work with empty string also
 //      if (directoryToScan.matches(".*[^w$ -.y].*")) {
 //        return FormValidation.ok();
 //      } else {

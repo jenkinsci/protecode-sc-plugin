@@ -289,7 +289,6 @@ public class Scanner {
         @Override
         public void setError(String reason) {
           // TODO: use Optional
-          // And awful hack to avoid problems
           if (reason.toLowerCase().contains("unexpected end of stream")) {
             LOGGER.log(Level.WARNING, "RECEIVED UNEXPECTED END OF STREAM: {0}", reason);
             console.error(Configuration.TOOL_NAME + " reported that the file did not arrive properly. Please check you network.\n"
@@ -310,7 +309,7 @@ public class Scanner {
   }
 
   /**
-   * TODO clean up depth, move logic to other methods. This is staggeringly awful.
+   * TODO clean up depth, move logic to other methods
    *
    * @param listener
    */

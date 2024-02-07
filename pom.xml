@@ -4,27 +4,22 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.4</version>
+        <version>4.76</version>
         <relativePath />
     </parent>
     <groupId>com.synopsys</groupId>
     <artifactId>protecode-sc</artifactId>
-    <version>0.18.5-SNAPSHOT</version>
+    <version>0.19.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
-        <jenkins.version>2.60.3</jenkins.version>
+        <jenkins.version>2.401.3</jenkins.version>
         <gson.version>2.10.1</gson.version>
-        <java.level>8</java.level>
+        <java.level>11</java.level>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
-        <junit.version>4.12</junit.version>
-        <junit.jupiter.version>5.0.1</junit.jupiter.version>
-        <junit.vintage.version>${junit.version}.1</junit.vintage.version>
-        <junit.platform.version>1.0.1</junit.platform.version>
+        <java.version>11</java.version>
         <findbugs.failOnError>true</findbugs.failOnError>
     </properties>
     <name>Protecode SC</name>
-    <description>Jenkins integration to Protecode SC with pipeline support</description>
     <url>https://github.com/jenkinsci/protecode-sc-plugin</url>
     <licenses>
         <license>
@@ -37,14 +32,16 @@
             <plugin>
                 <groupId>org.jenkins-ci.tools</groupId>
                 <artifactId>maven-hpi-plugin</artifactId>
-                <extensions>true</extensions>
+                <version>3.51</version>
                 <configuration>
-                    <compatibleSinceVersion>0.15.1</compatibleSinceVersion>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <minimumJavaVersion>11</minimumJavaVersion>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.7.0</version>
+                <version>3.12.1</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
@@ -64,13 +61,6 @@
                         <excludeTags>slow</excludeTags>
                     </properties>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.junit.platform</groupId>
-                        <artifactId>junit-platform-surefire-provider</artifactId>
-                        <version>${junit.platform.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
@@ -118,56 +108,38 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.14.9</version>
+            <version>5.0.0-alpha.12</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>logging-interceptor</artifactId>
-            <version>3.14.9</version>
+            <version>5.0.0-alpha.12</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
-            <version>2.1.18</version>
+            <version>2.6.1.1</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.9.10.8</version>
+            <version>2.16.1</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.14.8</version>
+            <version>1.18.30</version>
             <scope>provided</scope>
 	    </dependency>
         <!-- Test scope -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>plain-credentials</artifactId>
-            <version>1.5</version>
+            <version>1.8</version>
             <type>jar</type>
         </dependency>
     </dependencies>

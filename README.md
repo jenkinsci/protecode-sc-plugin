@@ -129,6 +129,11 @@ following information:
 
 ## Version History
 
+### Version 0.19.0 (February 7, 2024)
+
+- Updated to Java 11
+- Updated dependencies to later versions
+
 ### Version 0.18.4 (January 23, 2023)
 
 - Moved documentation to Github
