@@ -66,7 +66,6 @@ public class JenkinsConsoler {
    *
    * @param failIfVulns info to print
    * @param includeSubdirectories info to print
-   * @param group for printing the group into which the files are uploaded
    */
   public void start(boolean failIfVulns, boolean includeSubdirectories) {
     log(Configuration.TOOL_NAME + " plugin enabled.");
