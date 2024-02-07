@@ -9,7 +9,7 @@
     </parent>
     <groupId>com.synopsys</groupId>
     <artifactId>protecode-sc</artifactId>
-    <version>0.19.0</version>
+    <version>0.19.1-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <jenkins.version>2.401.3</jenkins.version>
