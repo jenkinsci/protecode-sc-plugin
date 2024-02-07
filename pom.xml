@@ -9,7 +9,7 @@
     </parent>
     <groupId>com.synopsys</groupId>
     <artifactId>protecode-sc</artifactId>
-    <version>0.19.0-SNAPSHOT</version>
+    <version>0.19.0</version>
     <packaging>hpi</packaging>
     <properties>
         <jenkins.version>2.401.3</jenkins.version>
@@ -75,7 +75,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-        <tag>HEAD</tag>
+        <tag>protecode-sc-0.19.0</tag>
     </scm>
     <repositories>
         <repository>
