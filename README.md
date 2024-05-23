@@ -129,6 +129,10 @@ following information:
 
 ## Version History
 
+### Version 0.19.1 (May 23, 2024)
+
+- Fixed a bug causing scans done via URL fetch to always pass.
+
 ### Version 0.19.0 (February 7, 2024)
 
 - Updated to Java 11

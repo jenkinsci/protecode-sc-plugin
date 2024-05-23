@@ -203,7 +203,7 @@ public class Scanner {
       {
           map = reader.readValue(customHeader);
       }
-
+      verdict.setFilesFound(1);
       service.scanFetchFromUrl(
         protecodeScGroup,
         directoryToScan,
