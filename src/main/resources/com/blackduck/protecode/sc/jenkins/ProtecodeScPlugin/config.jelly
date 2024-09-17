@@ -1,0 +1,42 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+    <f:entry title="Credentials (password or API key)" field="credentialsId">
+        <c:select />
+    </f:entry>
+    <f:entry title="Group ID (Environment variable supported)" field="protecodeScGroup">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Scan job name (used only when zipping 10 or more files)" field="protecodeScanName">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Fail build if vulnerabilities" field="failIfVulns">
+        <f:checkbox default="${descriptor.defaultFailIfVulns}" />
+    </f:entry>
+    <f:entry title="Don't wait for results" field="endAfterSendingFiles">
+        <f:checkbox default="${descriptor.defaultEndAfterSendingFiles}" />
+    </f:entry>
+    <f:entry title="Don't zip files (doesn't apply to Black Duck hosted systems)" field="dontZipFiles">
+        <f:checkbox default="${descriptor.defaultDontZipFiles}" />
+    </f:entry>
+    <f:entry title="Scan only produced artifacts" field="scanOnlyArtifacts">
+        <f:checkbox/>
+    </f:entry>
+    <f:entry title="Directory to scan / Url of file (Environment variable supported)" field="directoryToScan">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Custom header for fetching file by URL (optional)" field="customHeader">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Include subdirectories. Please see help for warnings." field="includeSubdirectories">
+        <f:checkbox />
+    </f:entry>
+    <f:entry title="Regular expression for including files" field="pattern">
+        <f:textbox />
+    </f:entry>
+    <f:entry title="Scanning timeout (minutes)" field="scanTimeout">
+        <f:textbox default="${descriptor.defaultTimeout}" />
+    </f:entry>
+    <f:entry title="Convert results to Summary plugin format" field="convertToSummary">
+        <f:checkbox />
+    </f:entry>
+</j:jelly>

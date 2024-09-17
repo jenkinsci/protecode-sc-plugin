@@ -7,7 +7,7 @@
         <version>4.76</version>
         <relativePath />
     </parent>
-    <groupId>com.synopsys</groupId>
+    <groupId>com.blackduck</groupId>
     <artifactId>protecode-sc</artifactId>
     <version>0.19.2-SNAPSHOT</version>
     <packaging>hpi</packaging>

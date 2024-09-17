@@ -1,10 +1,7 @@
 # Protecode SC Jenkins Plugin
 
 This plugin allows Jenkins builds to scan the resulting build artifacts
-with Synopsys Black Duck Binary Analysis tool (formerly known as Protecode SC).
-
-More information of Synopsys Protecode SC is available from
-<https://www.synopsys.com/software-integrity/security-testing/software-composition-analysis.html>
+with Black Duck Binary Analysis tool (formerly known as Protecode SC).
 
 ## Getting started
 
