@@ -7,7 +7,7 @@
         <version>4.76</version>
         <relativePath />
     </parent>
-    <groupId>com.blackduck</groupId>
+    <groupId>com.blackducksoftware</groupId>
     <artifactId>protecode-sc</artifactId>
     <version>0.19.3-SNAPSHOT</version>
     <packaging>hpi</packaging>

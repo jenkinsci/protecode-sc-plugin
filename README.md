@@ -126,6 +126,10 @@ following information:
 
 ## Version History
 
+### Version 0.19.2 (Sep 17, 2024)
+
+- Rebranding only. No functionality changes.
+
 ### Version 0.19.1 (May 23, 2024)
 
 - Fixed a bug causing scans done via URL fetch to always pass.
